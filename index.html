@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1024">
+
+    <title>Calamytryx</title>	
+    <link rel="icon" href="media/logo.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="myCss.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+
+  </head>
+
+  <body>
+    
+    <!-- nav-bar -->
+    <div class="position-fixed" style="width: 100%; z-index: 5;">
+      <nav class="navbar navbar-expand-lg" id="navBar">
+        <div class="container-fluid p-0">
+
+          <button class="navbar-toggler ms-3 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <a class="navbar-brand ms-sm-4" href="#">
+            <img src="media/logoCrop.png" width="120" height="auto">
+          </a>
+
+          <button class="navbar-toggler me-3 p-2" type="button" data-bs-toggle="collapse">
+            <i class="bi bi-search text-center fs-2"></i>
+          </button>
+          
+
+          <div class="collapse navbar-collapse mx-3 py-0 pe-4" id="navbarNavDropdown">
+
+            <ul class="navbar-nav ms-auto my-0 py-0 me-3">
+              <li class="nav-item">
+                <a class="nav-link activeA" aria-current="page" href="#heroPage">HOME</a>
+              </li>
+			  <li class="nav-item">
+                <a class="nav-link" href="#socialsPage">MY SOCIALS</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#merchPage">MERCH</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#live">WATCH ME</a>
+              </li>
+              
+              
+            </ul>
+  
+            <div class="input-group m-0 ms-4" style="max-width: 200px;" id="searchDiv">
+              <input type="text" id="searchBar" class="form-control" placeholder="" aria-label="" aria-describedby="button-addon2">
+              <button class="btn btn-outline-secondary" id="searchBtn" type="button" id="button-addon2"><i class="bi bi-search text-center fs-5"></i></button>
+            </div>
+  
+          </div>
+
+        </div>
+
+      </nav>
+      <div class="container-fluid shapeInv"></div>
+    </div>
+
+    <!-- 1-hero -->
+
+    <div class="containter-fluid" id="heroPage">
+
+      <div class="container-fluid" style="height: 110px;"></div>
+
+      <div class="container-fluid" style="max-width: 1300px;">
+
+        <div class="row g-3 d-flex flex-row-reverse">
+
+          <div class="col-lg">
+            <img src="media/home art.jpg" class="img-fluid mx-auto d-block">
+          </div>
+
+          <div class="col-lg d-flex flex-column justify-content-center align-items-center">
+            <div class="px-4 d-flex flex-column">
+              <p class="text-white p-0 m-0 display-2 text-center text-lg-start" style="margin-bottom: -12px !important;">
+                CALAMYTRYX
+              </p>
+            <p class="fs-3 text-center text-lg-start p-0 m-0" style="color: gray;padding-left: 5px !important;">Calamyty of the Mytryx</p>
+           <a href="lore.html" target="_blank"><button class="moreButton my-3 fs-4">READ MORE</button></a>
+            <p class="text-white text-center text-lg-start fs-5">
+              Greetings, the name's Calamytryx. 
+              I myself is a disaster so don't expect a proper schedule. 
+              I play games like a mess and you can see me streaming 
+              on random platforms with no prior announcement. 
+              Watch me cause a disaster in my stream!
+          </p>
+            </div>
+            
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="container-fluid" style="height: 40px;"></div>
+
+    </div>
+
+    <!-- 2-socials -->
+    <div class="container-fluid p-0" style="background-color: #151515;">
+
+      <div class="container-fluid" style="background-color: #0e0e0e;" id="shape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+      <div class="container-fluid" style="max-width: 1300px;">
+
+        <p class="text-white p-0 m-0 display-4 text-center" id="socialsPage">WHERE TO FIND ME</p>
+        <p class="text-white text-center fs-5 my-3">
+          Are you bored? How about watch some of my useless contents
+        </p>
+
+        <div class="row g-2 mx-auto">
+          <div class="col-sm d-flex flex-column justify-content-center align-items-center p-4">
+            <i class="bi bi-facebook" style="font-size: 15rem; color: rgb(138, 129, 129);" id="socialsIcon"></i>
+            <div class="container-fluid" id="socialBG">
+              <p class="fs-3 text-white">Facebook</p>
+              <a href="https://www.facebook.com/calamytry/" class="socialsLink" target="_blank">
+                <p class="fs-5 text-break">https://www.facebook.com/calamytry/</p>
+              </a>
+              
+            </div>
+            
+          </div>
+          <div class="col-sm d-flex flex-column justify-content-center align-items-center p-4">
+            <i class="bi bi-twitch" style="font-size: 15rem; color: rgb(138, 129, 129);" id="socialsIcon"></i>
+            <div class="container-fluid" id="socialBG">
+              <p class="fs-3 text-white">Twitch</p>
+              <a href="https://www.twitch.tv/calamytryx_/" class="socialsLink" target="_blank">
+                <p class="fs-5 text-break">https://www.twitch.tv/calamytryx_/</p>
+              </a>
+            </div>
+            
+          </div>
+          <div class="col-sm d-flex flex-column justify-content-center align-items-center p-4">
+            <i class="bi bi-youtube" style="font-size: 15rem; color: rgb(138, 129, 129);" id="socialsIcon"></i>
+            <div class="container-fluid" id="socialBG">
+              <p class="fs-3 text-white">Youtube</p>
+              <a href="https://www.youtube.com/channel/calamytryx" class="socialsLink" target="_blank">
+                <p class="fs-5 text-break">https://www.youtube.com/channel/calamytryx</p>
+              </a>
+              
+            </div>
+          </div>
+        </div>
+
+        <div class="container-fluid d-flex justify-content-center"><a href="https://linktr.ee/calamytryx"><button class="showMore my-3 fs-6">SHOW MORE</button></a></div>
+        
+        
+      </div>
+      
+    </div>
+
+    <!-- 3-merch -->
+    <div class="containter-fluid" id="merchPage">
+
+      <div class="container-fluid" style="height: 110px;"></div>
+
+      <div class="container-fluid" style="max-width: 1300px;">
+
+        <div class="row g-4 d-flex">
+
+          <div class="col-lg">
+            <img src="media/merch art.png" class="img-fluid mx-auto d-block">
+          </div>
+
+          <div class="col-lg d-flex flex-column justify-content-center align-items-center px-lg-4">
+            <div class="px-4 d-flex flex-column">
+              <p class="text-white p-0 m-0 my-4 display-2 text-center text-lg-start">
+                No merch yet
+              </p>
+            
+            <p class="text-white text-center text-lg-start fs-5">
+              T-shirts, stickers, wall art, home decor, and
+              more designed and sold by independent 
+              artists. Find Calamytryx-inspired gifts 
+              and merchandise printed on quality products 
+              (none so far)
+            </p>
+            <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"><button class="moreButton my-3 fs-4">READ MORE</button></a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="container-fluid" style="height: 40px;"></div>
+
+    </div>
+
+  
+    <!-- 4-fan-art -->
+    <div class="containter-fluid" id="fanArtPage">
+
+      <div class="container-fluid" style="height: 110px;"></div>
+
+      <div class="container-fluid" style="max-width: 1300px;">
+
+        <div class="row g-4 d-flex flex-row-reverse">
+
+          <div class="col-lg" style="padding: 50px;">
+            <img src="media/fanart.jpg" class="img-fluid mx-auto d-block" id="fanArtPic">
+          </div>
+
+          <div class="col-lg d-flex flex-column justify-content-center align-items-center px-lg-4">
+            <div class="px-4 d-flex flex-column">
+              <p class="text-white p-0 m-0 my-4 display-2 text-center text-lg-start">
+                Calamyty's <br> Fan Arts
+              </p>
+            
+            <p class="text-white text-center text-lg-start fs-5">
+              You want to draw, sketch, sculpt, or even
+              NSFW R34 you could all be here just use the 
+              #CalArts or #Calats or nsfw
+            </p>
+            <a href="https://drive.google.com/drive/folders/1f8kTp0c46v4yJGJ3DantXlsPQZusCo2N?usp=drive_link"><button class="moreButton my-3 fs-4">READ MORE</button></a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="container-fluid" style="height: 80px;"></div>
+
+    </div>
+
+    <!-- 5-who -->
+    <div class="container-fluid p-0" style="background-color: rgb(109, 109, 109);">
+
+      <div class="container-fluid" style="background-color: #151515;" id="greyShape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+      <div class="container-fluid" style="max-width: 1000px;">
+
+        <p class="text-white p-0 m-0 display-4 text-center">Huh?</p>
+        <p class="text-white text-center fs-5 my-3 px-3">
+            Calamyty Mytryx is a Vtuber who streams on Twitch and posts on Twitter.
+            He is also known as Calamytryx or Calamyty. He is a level 20 disaster who plays random games and interacts with his fans.
+            He has a third character model that he plans to reveal soon.
+            He is part of the PHVtuber community, which is a Group of Filipino Vtubers.
+        </p>
+
+
+      </div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <div class="container-fluid p-0" style="background-color: rgb(255, 255, 255);">
+
+      <div class="container-fluid" style="background-color: rgb(109, 109, 109);" id="whiteShape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <!-- 6-explore-the-chaos -->
+    <div class="container-fluid p-0" style="background-color: #151515;">
+
+      <div class="container-fluid" style="background-color: #ffffff;" id="shape"></div>
+
+      <div class="container-fluid" style="height: 100px;" id="live"></div>
+
+      <div class="container-fluid" style="max-width: 1400px;">
+
+        <div class="row g-4 d-flex" >
+
+          <div class="col-lg-7">
+            <!-- Video Player -->
+              <div class="MediaPlayer" id="twitch-embed">
+                  <iframe width="100%" height="100%" src="https://www.youtube.com/embed/3UDZjKDySKc?&autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+              
+          </div>
+
+          <div class="col-lg-5 d-flex flex-column justify-content-center align-items-center px-lg-4">
+            <div class="px-4 d-flex flex-column">
+              <p class="text-white p-0 m-0 my-4 display-3 text-center text-lg-end">
+                EXPLORE THE CHAOS
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <div class="container-fluid p-0" style="background-color: rgb(255, 255, 255);">
+
+      <div class="container-fluid" style="background-color: #151515;" id="whiteShape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <!-- 7-chaos-disaster-cataclysm -->
+    <div class="container-fluid p-0" style="background-color: #151515;">
+
+      <div class="container-fluid" style="background-color: #ffffff;" id="shape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+      <div class="container-fluid" style="max-width: 1400px;">
+
+        <div class="row g-2 mx-auto">
+          <div class="col-sm d-flex flex-column justify-content-center align-items-center p-4">
+
+            <div class="container-fluid" id="CDC">
+              <p class="fs-2 text-white">Chaos</p>
+              <p class="fs-5 text-break" style="color: rgb(206, 197, 197);">
+                Vtuber streamer with nothing
+                but chaos on his contents and
+                bringing bad omen to others.
+              </p>
+            </div>
+            
+          </div>
+          <div class="col-sm d-flex flex-column justify-content-center align-items-center p-4">
+            <div class="container-fluid" id="CDC">
+              <p class="fs-2 text-white">Disaster</p>
+              <p class="fs-5 text-break" style="color: rgb(206, 197, 197);">
+                Disaster on organizing, undoubtfully
+                unsceduled V-Streamer. May such
+                Wonderful lady help him.
+              </p>
+            </div>
+            
+          </div>
+          <div class="col-sm d-flex flex-column justify-content-center align-items-center p-4">
+            <div class="container-fluid" id="CDC">
+              <p class="fs-2 text-white">Cataclysm</p>
+              <p class="fs-5 text-break" style="color: rgb(206, 197, 197);">
+                Anger issues would nothing be but
+                a conternt everyone sees. His end is 
+                always near once he got cancelled on twitter.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <!-- 8-quote -->
+    <div class="container-fluid p-0" style="background-color: #151515;">
+
+      <div class="container-fluid" style="height: 30px;"></div>
+
+      <div class="container-fluid" style="max-width: 1000px;">
+
+        <p class="text-white p-0 text-center" id="quote">"</p>
+        <p class="text-white text-center fs-1 my-3 px-3">
+          For he who does not seek chaos, <br>
+          does not know what peace truly meant for
+        </p>
+        <p class="text-muted text-center fs-3 my-4 px-3">Calamytryx</p>
+
+      </div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <!-- 9-support -->
+    <div class="container-fluid p-0" style="background-color: rgb(255, 255, 255);">
+
+      <div class="container-fluid" style="background-color: #151515;" id="whiteShape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+      <div class="container-fluid" style="max-width: 1000px;">
+
+        <p class="p-0 m-0 mb-4 display-4 text-center" style="color: rgb(46, 44, 44);">Support?</p>
+        <p class="text-center fs-4 my-3 px-3" style="color: rgb(95, 90, 90);">
+          You could always support me in Ko-Fi, Gank, and many other platforms
+          just always remember support is not a reason for me to be your slave.
+        </p>
+
+        <div class="input-group mx-auto mb-3 px-4" style="max-width: 700px; margin: 50px auto !important;">
+          <input type="text" class="form-control emailTF" placeholder="Your Email" aria-label="Your Email" aria-describedby="button-addon2">
+          <a href=mailto:"calamytymytryx@gmail.com"<button class="btn btn-outline-secondary subscribeBtn" type="button" id="button-addon2">Subscribe</button></a>
+        </div>
+
+
+      </div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+    <!-- 10-footer -->
+	<div class="container-fluid p-0" style="background-color: rgb(109, 109, 109);">
+
+      <div class="container-fluid" style="background-color: #ffffff;" id="greyShape"></div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+      <div class="row g-4 mx-auto" style="max-width: 1400px;">
+        <div class="col-sm-4 d-flex flex-column px-4">
+          <p class="text-white fs-3">Calamytrix</p>
+          <p class="text-white fs-5">
+            Your fiendly digital entity close directory 
+            Vtuber. Follow me on my Socials below
+          </p>
+          
+          <div class="container-fluid p-0 d-flex">
+            <i class="bi bi-facebook fs-1 mx-2" style="color: rgb(226, 210, 210);" id="socialsIcon"></i>
+            <i class="bi bi-youtube fs-1 mx-2" style="color: rgb(226, 210, 210);" id="socialsIcon"></i>
+            <i class="bi bi-twitch fs-1 mx-2" style="color: rgb(226, 210, 210);" id="socialsIcon"></i>
+            <i class="bi bi-twitter fs-1 mx-2" style="color: rgb(226, 210, 210);" id="socialsIcon"></i>
+          </div>
+        </div>
+
+        <div class="col-sm-8 px-4" id="AccordionView">
+          <div class="accordion" id="accordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="heading123">
+                <button class="accordion-button collapsed fs-3 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapse123" aria-expanded="false" aria-controls="collapse123">
+                  Wanna know more?
+                </button>
+              </h2>
+              <div id="collapse123" class="accordion-collapse collapse" aria-labelledby="heading123" data-bs-parent="#accordion">
+                <div class="accordion-body p-4 pt-3">
+                  <div class="d-flex flex-column">
+                    <a href="lore.html" target="_blank" id="footerLinks">Lore</a>
+                    <a href="https://linktr.ee/calamytryx" id="footerLinks">Socials</a>
+                    <a href="https://discord.gg/Sm4rNPyNgM" id="footerLinks">Collab?</a>
+                    <a href="https://twitch.tv/calamytryx" id="footerLinks">Stream Schedule</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="heading1234">
+                <button class="accordion-button collapsed fs-3 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1234" aria-expanded="false" aria-controls="collapse1234">
+                  Nonesense so far
+                </button>
+              </h2>
+              <div id="collapse1234" class="accordion-collapse collapse" aria-labelledby="heading1234" data-bs-parent="#accordion">
+                <div class="accordion-body p-4 pt-3">
+                  <div class="d-flex flex-column">
+                    <a href="https://facebook.com/calamytry" id="footerLinks">How to Order</a>
+                    <a href="https://facebook.com/calamytry" id="footerLinks">Our Product</a>
+                    <a href="https://facebook.com/calamytry" id="footerLinks">Order Status</a>
+                    <a href="https://facebook.com/calamytry" id="footerLinks">Promo</a>
+                    <a href="https://ganknow.com/calamytryx" id="footerLinks">Payment Method</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="heading12345">
+                <button class="accordion-button collapsed fs-3 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapse12345" aria-expanded="false" aria-controls="collapse12345">
+                  Other
+                </button>
+              </h2>
+              <div id="collapse12345" class="accordion-collapse collapse" aria-labelledby="heading12345" data-bs-parent="#accordion">
+                <div class="accordion-body p-4 pt-3">
+                  <div class="d-flex flex-column">
+                    <a href="https://facebook.com/calamytryx" id="footerLinks">Contact me?</a>
+                    <a href="https://facebook.com/calamytryx" id="footerLinks">Jowa?</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        <div class="col-sm-8" id="flexView">
+          <div class="row g-4">
+            <div class="col d-flex flex-column align-items-center">
+                <div class="d-flex flex-column">
+                    <p class="text-white fs-4">Wanna know more?</p>
+                    <a href="lore.html" target="_blank" id="footerLinks">Lore</a>
+                    <a href="https://linktr.ee/calamytryx" id="footerLinks">Socials</a>
+                    <a href="https://discord.gg/Sm4rNPyNgM" id="footerLinks">Collab?</a>
+                    <a href="https://twitch.tv/calamytryx" id="footerLinks">Stream Schedule</a>
+                </div>
+              
+            </div>
+            <div class="col d-flex flex-column align-items-center">
+              <div class="d-flex flex-column">
+                <p class="text-white fs-4">Nonesense so far</p>
+                <a href="https://facebook.com/calamytry" id="footerLinks">How to Order</a>
+                    <a href="https://facebook.com/calamytry" id="footerLinks">Our Product</a>
+                    <a href="https://facebook.com/calamytry" id="footerLinks">Order Status</a>
+                    <a href="https://facebook.com/calamytry" id="footerLinks">Promo</a>
+                    <a href="https://ganknow.com/calamytryx" id="footerLinks">Payment Method</a>
+              </div>
+              
+            </div>
+            <div class="col d-flex flex-column align-items-center">
+                <div class="d-flex flex-column">
+                    <p class="text-white fs-4">Other</p>
+                    <a href="https://facebook.com/calamytryx" id="footerLinks">Contact me?</a>
+                    <a href="https://facebook.com/calamytryx" id="footerLinks">Jowa?</a>
+                </div>
+              
+            </div>
+          </div>
+        </div>
+
+        
+      </div>
+
+      <div class="container-fluid" style="height: 100px;"></div>
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  </body>
+
+</html>

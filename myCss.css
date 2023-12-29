@@ -1,0 +1,237 @@
+/* Fontstyle */
+@font-face {
+    font-family: ChaosMytryx;
+    src: url('fonts/ChaosMytryx.ttf');
+}
+
+body{
+    font-family: ChaosMytryx;
+}
+
+/* <!-- nav-bar --> */
+#navBar{
+    background-color: rgb(255, 255, 255);
+}
+.nav-link{
+    font-size: 1.2rem;
+    color: rgb(39, 34, 34);
+}
+#searchBar{
+    border-radius: 30px 0 0 30px;
+    border: 1px solid rgb(189, 174, 174);
+    background-color:  rgb(189, 174, 174);
+    color: rgb(68, 63, 63);
+}
+#searchBtn{
+    border-radius: 0 30px 30px 0;
+    border: 1px solid rgb(189, 174, 174);
+    background-color:  rgb(189, 174, 174);
+}
+.nav-item{
+    margin: 0 10px;
+}
+
+@media (max-width: 991px) {
+    .navbar-nav{
+        margin: 0 auto !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    #navbarNavDropdown{
+        margin: 0 auto !important;
+        padding: 0 !important;
+        padding: 10px 0 !important;
+    }
+    #searchDiv{
+        display: none;
+    }
+    .navbar-brand{
+        margin: 0 auto !important;
+        padding-top: 5px !important;
+    }
+}
+
+.shapeInv{
+    background-image: url('media/shapeInv2.png');
+    background-size: contain;
+    height: 40px;
+    background-repeat: repeat-x;
+}
+
+/* <!-- 1-hero --> */
+
+#heroPage{
+    background-color: #0e0e0e;
+}
+.moreButton{
+    padding: 7px 35px;
+    background-color: gray;
+    color: white;
+    border-radius: 30px;
+    align-self: start;
+}
+.moreButton:hover{
+    background-color: rgb(103, 95, 95);
+}
+@media (max-width: 991px) {
+    .moreButton{
+        align-self: center;
+    }
+}
+
+
+/* <!-- 2-socials --> */
+
+#shape{
+    background-image: url('media/shapeDarkGreyInv.png');
+    background-size: contain;
+    background-position: bottom;
+    height: 40px;
+    background-repeat: repeat-x;
+}
+#socialsIcon:hover{
+    color: rgb(200, 189, 189) !important;
+    cursor: pointer;
+}
+#socialBG{
+    background-color:  rgb(105, 102, 102);
+    border-radius: 20px;
+    min-height: 180px;
+    max-height: 180px;
+    padding: 25px;
+}
+.socialsLink{
+    text-decoration: none;
+    color: rgb(167, 175, 182);
+}
+.socialsLink:hover{
+    color: rgb(238, 242, 246);
+}
+.showMore{
+    padding: 10px 35px;
+    background-color: gray;
+    color: white;
+    border-radius: 30px;
+    
+}
+.showMore:hover{
+    background-color: rgb(103, 95, 95);
+}
+
+
+/* <!-- 3-merch --> */
+#merchPage{
+    background-color: #151515;
+}
+
+/* <!-- 4-fan-art --> */
+#fanArtPage{
+    background-color: #151515;
+}
+#fanArtPic{
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+     rgba(0, 0, 0, 0.12) 0px -12px 30px,
+      rgba(0, 0, 0, 0.12) 0px 4px 6px, 
+      rgba(0, 0, 0, 0.17) 0px 12px 13px, 
+      rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+
+/* <!-- 5-lore-n-gore --> */
+#greyShape{
+    background-image: url('media/shapeGrey.png');
+    background-size: contain;
+    background-position: bottom;
+    height: 40px;
+    background-repeat: repeat-x;
+}
+#whiteShape{
+    background-image: url('media/shapeInv3.png');
+    background-size: contain;
+    background-position: bottom;
+    height: 40px;
+    background-repeat: repeat-x;
+}
+
+
+/* <!-- 6-explore-the-chaos --> */
+
+.MediaPlayer{
+    height: auto;
+    width: auto;
+}
+
+/* <!-- 7-chaos-disaster-cataclysm --> */
+
+
+/* <!-- 8-quote --> */
+#quote{
+    margin: 0;
+    color: white;
+    font-size: 100px;
+    margin-bottom: -80px !important;
+}
+
+/* <!-- 9-support --> */
+.emailTF{
+    border-radius: 30px 0 0 30px;
+    height: 50px;
+    padding-left: 30px;
+    font-size: 1.2rem;
+    background-color: rgb(208, 196, 196);;
+}
+.subscribeBtn{
+    border-radius: 30px 30px 30px 30px;
+    font-size: 1.2rem;
+    background-color: rgb(68, 63, 63);;
+    color: white;
+    padding: 0 20px;
+}
+
+/* <!-- 10-footer --> */
+
+#footerLinks{
+    text-decoration: none;
+    color: rgb(215, 205, 205);
+    font-size: 1.2rem;
+}
+#footerLinks:hover{
+    color: rgb(255, 255, 255);
+}
+#AccordionView{
+    display: none;
+}
+@media (max-width: 768px) {
+    #AccordionView{
+        display: block;
+    }
+    #flexView{
+        display: none;
+    }
+}
+.accordion-item{
+    border: none !important;
+}
+.accordion-button{
+    background-color: rgb(109, 109, 109);
+    border-bottom: 1px solid white;
+    border-radius: 0% !important;
+    font-size: 1.2rem;
+}
+.accordion-button.collapsed::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+}
+
+.accordion-button:not(.collapsed)::after{
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: rgb(109, 109, 109);
+
+}
+.accordion-body{
+    background-color: rgb(109, 109, 109);
+    border: none !important;
+}
+
