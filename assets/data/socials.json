@@ -1,0 +1,52 @@
+[
+  {
+    "name": "TikTok",
+    "url": "https://www.tiktok.com/@calamytryxvt",
+    "handle": "tiktok.com/@calamytryxvt",
+    "icon": "tiktok",
+    "featured": true,
+    "badge": "LIVE",
+    "card": true,
+    "row": true
+  },
+  {
+    "name": "Twitch",
+    "url": "https://www.twitch.tv/calamytryx_/",
+    "handle": "twitch.tv/calamytryx_",
+    "icon": "twitch",
+    "featured": false,
+    "badge": "",
+    "card": true,
+    "row": true
+  },
+  {
+    "name": "YouTube",
+    "url": "https://www.youtube.com/channel/calamytryx",
+    "handle": "youtube.com/channel/calamytryx",
+    "icon": "youtube",
+    "featured": false,
+    "badge": "",
+    "card": true,
+    "row": true
+  },
+  {
+    "name": "Facebook",
+    "url": "https://www.facebook.com/calamytry/",
+    "handle": "facebook.com/calamytry",
+    "icon": "facebook",
+    "featured": false,
+    "badge": "",
+    "card": true,
+    "row": true
+  },
+  {
+    "name": "Discord",
+    "url": "https://discord.gg/Sm4rNPyNgM",
+    "handle": "discord.gg/calamytryx",
+    "icon": "discord",
+    "featured": false,
+    "badge": "",
+    "card": true,
+    "row": true
+  }
+]

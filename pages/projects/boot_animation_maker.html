@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<!-- to modify for better UI/UX and make it inline with main page -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bootanim.mk — Android bootanimation.zip maker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="stylesheet" href="/my_css.css">
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --panel:#13171c;
+    --panel2:#181d23;
+    --line:#242b33;
+    --txt:#c5ced6;
+    --dim:#6b7681;
+    /* chrome accent re-themed to blood-red to match the main site.
+       boot-log tag colors (cOk/cFail/cWarn/cInfo defaults, --green/--red) stay as-is. */
+    --amber:#d11c1c;
+    --green:#39d353;
+    --red:#f85149;
+    --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Fira Mono','Consolas','Liberation Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.5;
+  }
+  .toolbar{
+    display:flex;align-items:baseline;gap:10px;
+    padding:14px 18px;border-bottom:1px solid var(--line);
+  }
+  .toolbar h1{font-size:15px;font-weight:700;letter-spacing:.5px}
+  .toolbar h1 .dot{color:var(--amber)}
+  .toolbar .sub{color:var(--dim);font-size:11px}
+  .app{
+    display:grid;
+    grid-template-columns:minmax(330px,430px) 1fr;
+    height:auto;
+  }
+  /* ---------- controls ---------- */
+  .controls{
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+    padding:16px 18px 80px;
+  }
+  .tabs{display:flex;gap:6px;margin-bottom:18px}
+  .tab{
+    flex:1;font-family:var(--mono);font-size:12px;letter-spacing:.5px;
+    background:var(--panel);color:var(--dim);
+    border:1px solid var(--line);border-radius:4px;
+    padding:8px;cursor:pointer;
+  }
+  .tab.on{background:var(--panel2);color:var(--amber);border-color:var(--amber)}
+  .sec{margin-bottom:22px}
+  .sec>.t{
+    color:var(--amber);font-size:11px;letter-spacing:1px;
+    margin-bottom:10px;user-select:none;
+  }
+  .row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:90px}
+  .field label{color:var(--dim);font-size:11px}
+  input[type=text],input[type=number],select,textarea{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--txt);
+    font-family:var(--mono);
+    font-size:13px;
+    padding:6px 8px;
+    border-radius:4px;
+    width:100%;
+  }
+  input:focus,select:focus,textarea:focus{outline:1px solid var(--amber);outline-offset:-1px}
+  textarea{
+    min-height:220px;resize:vertical;line-height:1.45;
+    white-space:pre;overflow-x:auto;
+  }
+  input[type=color]{
+    appearance:none;-webkit-appearance:none;
+    border:1px solid var(--line);border-radius:4px;
+    background:var(--panel);
+    width:100%;height:30px;padding:2px;cursor:pointer;
+  }
+  input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
+  input[type=color]::-webkit-color-swatch{border:none;border-radius:2px}
+  input[type=range]{width:100%;accent-color:var(--amber);cursor:pointer}
+  input[type=file]{
+    width:100%;font-family:var(--mono);font-size:11px;color:var(--dim);
+    background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:8px;
+  }
+  input[type=file]::file-selector-button{
+    font-family:var(--mono);font-size:11px;
+    background:var(--panel2);color:var(--txt);
+    border:1px solid var(--line);border-radius:4px;
+    padding:4px 8px;margin-right:8px;cursor:pointer;
+  }
+  .check{display:flex;align-items:center;gap:8px;color:var(--txt);font-size:12px;cursor:pointer;user-select:none}
+  .check input{accent-color:var(--amber);width:14px;height:14px;cursor:pointer}
+  .hint{color:var(--dim);font-size:11px;margin-top:4px}
+  .vinfo{color:var(--green);font-size:11px;margin-top:4px;min-height:14px}
+  .presetbtns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  button{
+    font-family:var(--mono);font-size:12px;
+    background:var(--panel2);color:var(--txt);
+    border:1px solid var(--line);border-radius:4px;
+    padding:6px 10px;cursor:pointer;
+  }
+  button:hover{border-color:var(--amber);color:var(--amber)}
+  button:focus-visible{outline:1px solid var(--amber)}
+  .rlabel{display:flex;justify-content:space-between;color:var(--dim);font-size:11px}
+  .rlabel b{color:var(--txt);font-weight:400}
+  .hidden{display:none !important}
+  /* ---------- preview side ---------- */
+  .stage{
+    display:flex;flex-direction:column;align-items:center;
+    padding:20px;overflow-y:auto;gap:14px;
+  }
+  .phone{
+    border:2px solid #2c343d;
+    border-radius:22px;
+    padding:10px;
+    background:#04060a;
+    box-shadow:0 0 50px rgba(57,211,83,.05),0 8px 30px rgba(0,0,0,.5);
+    max-width:100%;
+  }
+  #preview{
+    display:block;border-radius:12px;background:#000;max-width:100%;
+  }
+  .meter{color:var(--dim);font-size:11px;text-align:center;max-width:440px}
+  .meter b{color:var(--txt);font-weight:400}
+  .meter .warn{color:var(--red)}
+  .exportbox{
+    width:100%;max-width:420px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;padding:14px;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .exportbox .big{
+    background:var(--amber);color:#1a1206;border:none;
+    font-weight:700;font-size:13px;padding:10px;letter-spacing:.5px;
+  }
+  .exportbox .big:hover{background:#f2b65a;color:#1a1206}
+  .exportbox .big:disabled{opacity:.5;cursor:wait}
+  .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;display:none}
+  .bar i{display:block;height:100%;width:0;background:var(--green);transition:width .1s linear}
+  .exporthint{color:var(--dim);font-size:11px;line-height:1.5}
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr;height:auto}
+    .controls{border-right:none;border-bottom:1px solid var(--line);padding-bottom:20px}
+    body{overflow:auto}
+  }
+</style>
+</head>
+<body data-page="projects">
+
+<div data-include="/assets/layout/header.html"></div>
+
+<header class="toolbar">
+  <h1>bootanim<span class="dot">.</span>mk</h1>
+  <span class="sub">android bootanimation.zip maker — boot logs &amp; video</span>
+  <a href="index.html" style="margin-left:auto;color:var(--amber);text-decoration:none;font-size:12px">← projects</a>
+</header>
+
+<div class="app">
+  <!-- ================= CONTROLS ================= -->
+  <div class="controls">
+
+    <div class="tabs">
+      <button class="tab on" id="tabText">text mode</button>
+      <button class="tab" id="tabVideo">video mode</button>
+    </div>
+
+    <!-- ======== TEXT MODE ======== -->
+    <div class="sec tmode">
+      <div class="t">// boot log</div>
+      <div class="presetbtns">
+        <button id="presetBoot">preset: clean boot</button>
+        <button id="presetCrash">preset: kernel panic</button>
+      </div>
+      <textarea id="logText" spellcheck="false"></textarea>
+      <div class="hint">one line per row. lines starting with [OK] [FAILED] [WARN] [INFO] get tag colors. blank lines are kept.</div>
+    </div>
+
+    <!-- ======== VIDEO MODE ======== -->
+    <div class="sec vmode hidden">
+      <div class="t">// video</div>
+      <div class="row">
+        <div class="field">
+          <label for="vidMain">main video</label>
+          <input type="file" id="vidMain" accept="video/*">
+          <div class="vinfo" id="vidMainInfo"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="fitMode">fit to screen</label>
+          <select id="fitMode">
+            <option value="letterbox">letterbox (bg color bars)</option>
+            <option value="crop" selected>crop to fill</option>
+            <option value="stretch">stretch</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cBgV">letterbox / bg color</label>
+          <input type="color" id="cBgV" value="#000000">
+        </div>
+      </div>
+      <div class="row"><div class="field">
+        <div class="rlabel"><span>trim start</span><b id="trimStartLbl">0.00s</b></div>
+        <input type="range" id="trimStart" min="0" max="10" step="0.05" value="0">
+      </div></div>
+      <div class="row"><div class="field">
+        <div class="rlabel"><span>trim end</span><b id="trimEndLbl">0.00s</b></div>
+        <input type="range" id="trimEnd" min="0" max="10" step="0.05" value="10">
+      </div></div>
+    </div>
+
+    <div class="sec vmode hidden">
+      <div class="t">// loop (part1)</div>
+      <div class="row"><div class="field">
+        <label for="vLoopMode">loop source</label>
+        <select id="vLoopMode">
+          <option value="hold">hold last frame</option>
+          <option value="point" selected>loop from a point in the video</option>
+          <option value="video">separate loop video</option>
+        </select>
+      </div></div>
+      <div class="row" id="loopPointRow"><div class="field">
+        <div class="rlabel"><span>loop starts at</span><b id="loopPointLbl">0.00s</b></div>
+        <input type="range" id="loopPoint" min="0" max="10" step="0.05" value="5">
+        <div class="hint">before this point → part0 (plays once). from here to trim end → part1 (loops forever).</div>
+      </div></div>
+      <div class="row hidden" id="loopVidRow"><div class="field">
+        <label for="vidLoop">loop video (plays after main, loops forever)</label>
+        <input type="file" id="vidLoop" accept="video/*">
+        <div class="vinfo" id="vidLoopInfo"></div>
+        <div class="hint">used in full. main video (trimmed) → part0, this video → part1.</div>
+      </div></div>
+    </div>
+
+    <!-- ======== SHARED: DISPLAY ======== -->
+    <div class="sec">
+      <div class="t">// display</div>
+      <div class="row">
+        <div class="field" style="flex:2">
+          <label for="resPreset">resolution preset</label>
+          <select id="resPreset">
+            <option value="720x1280">720 × 1280 (HD)</option>
+            <option value="1080x1920">1080 × 1920 (FHD 16:9)</option>
+            <option value="1080x2340">1080 × 2340 (19.5:9)</option>
+            <option value="1080x2400" selected>1080 × 2400 (20:9)</option>
+            <option value="1220x2712">1220 × 2712</option>
+            <option value="1440x3200">1440 × 3200 (QHD+)</option>
+            <option value="custom">custom…</option>
+          </select>
+        </div>
+        <div class="field"><label for="resW">width</label><input type="number" id="resW" value="1080" min="16"></div>
+        <div class="field"><label for="resH">height</label><input type="number" id="resH" value="2400" min="16"></div>
+      </div>
+    </div>
+
+    <!-- ======== TEXT: TYPOGRAPHY ======== -->
+    <div class="sec tmode">
+      <div class="t">// typography</div>
+      <div class="row">
+        <div class="field" style="flex:2">
+          <label for="fontFam">font family (editable)</label>
+          <input type="text" id="fontFam" list="fontlist" value="monospace">
+          <datalist id="fontlist">
+            <option value="monospace"></option>
+            <option value="Courier New"></option>
+            <option value="Consolas"></option>
+            <option value="Cascadia Mono"></option>
+            <option value="JetBrains Mono"></option>
+            <option value="Fira Mono"></option>
+            <option value="Ubuntu Mono"></option>
+            <option value="Liberation Mono"></option>
+            <option value="Lucida Console"></option>
+          </datalist>
+        </div>
+        <div class="field"><label for="fontSize">size (px)</label><input type="number" id="fontSize" value="28" min="6"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="lineH">line height ×</label><input type="number" id="lineH" value="1.4" min="0.8" step="0.1"></div>
+        <div class="field"><label for="padX">pad left (px)</label><input type="number" id="padX" value="40" min="0"></div>
+        <div class="field"><label for="padY">pad top (px)</label><input type="number" id="padY" value="60" min="0"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="boldFont"> bold text</label>
+    </div>
+
+    <!-- ======== TEXT: COLORS ======== -->
+    <div class="sec tmode">
+      <div class="t">// colors</div>
+      <div class="row">
+        <div class="field"><label for="cBg">background</label><input type="color" id="cBg" value="#000000"></div>
+        <div class="field"><label for="cTxt">text</label><input type="color" id="cTxt" value="#d0d0d0"></div>
+        <div class="field"><label for="cCursor">cursor</label><input type="color" id="cCursor" value="#d0d0d0"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="cOk">[OK]</label><input type="color" id="cOk" value="#2ecc40"></div>
+        <div class="field"><label for="cFail">[FAILED]</label><input type="color" id="cFail" value="#ff4136"></div>
+        <div class="field"><label for="cWarn">[WARN]</label><input type="color" id="cWarn" value="#ffdc00"></div>
+        <div class="field"><label for="cInfo">[INFO]</label><input type="color" id="cInfo" value="#39cccc"></div>
+      </div>
+    </div>
+
+    <!-- ======== TEXT: CURSOR ======== -->
+    <div class="sec tmode">
+      <div class="t">// cursor</div>
+      <div class="row">
+        <div class="field">
+          <label for="cursorChar">character (editable)</label>
+          <input type="text" id="cursorChar" list="curlist" value="█" maxlength="4">
+          <datalist id="curlist">
+            <option value="█"></option><option value="▌"></option><option value="▮"></option>
+            <option value="_"></option><option value="|"></option><option value="■"></option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label for="blinkFrames">blink interval (frames)</label>
+          <input type="number" id="blinkFrames" value="10" min="1">
+        </div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="cursorOn" checked> show cursor</label>
+      </div>
+      <div class="hint">blink interval 10 @ 20 fps = on 0.5s, off 0.5s.</div>
+    </div>
+
+    <!-- ======== TEXT: ANIMATION ======== -->
+    <div class="sec tmode">
+      <div class="t">// animation &amp; loop</div>
+      <div class="row">
+        <div class="field"><label for="fps">fps</label><input type="number" id="fps" value="20" min="1" max="60"></div>
+        <div class="field"><label for="fpl">frames per line</label><input type="number" id="fpl" value="2" min="1"></div>
+        <div class="field"><label for="hold">end hold (frames)</label><input type="number" id="hold" value="20" min="0"></div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="loopLast" checked> add part1 that loops the final screen forever</label>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="loopBlink" checked> keep cursor blinking in the loop</label>
+      </div>
+      <div class="hint">blinking loop = part1 holds 2 alternating frames (cursor on / off) at your blink interval. off = 1 static frame.</div>
+    </div>
+
+    <!-- ======== VIDEO: ANIMATION ======== -->
+    <div class="sec vmode hidden">
+      <div class="t">// animation</div>
+      <div class="row">
+        <div class="field"><label for="fpsV">fps (frame sampling rate)</label><input type="number" id="fpsV" value="20" min="1" max="60"></div>
+      </div>
+      <div class="hint">higher fps = smoother but way more frames = bigger zip. 15–24 is the sweet spot.</div>
+    </div>
+
+  </div>
+
+  <!-- ================= PREVIEW + EXPORT ================= -->
+  <div class="stage">
+    <div class="phone"><canvas id="preview"></canvas></div>
+    <div class="meter" id="meter"></div>
+    <div class="exportbox">
+      <button class="big" id="exportBtn">⬇ export bootanimation.zip</button>
+      <div class="bar" id="bar"><i id="barFill"></i></div>
+      <div class="exporthint">
+        zip is built with <b>store</b> (no compression) as android requires.
+        contains <b>desc.txt</b> + <b>part0/</b><span id="part1hint"> + <b>part1/</b></span> frames.
+        push to <b>/system/media/bootanimation.zip</b> (root) or ship it in a magisk module.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ---------------- presets ---------------- */
+const PRESET_BOOT = `[    0.000000] Linux version 6.9.1-android (winston@build) (gcc 13.2.0)
+[    0.041337] Command line: androidboot.hardware=qcom androidboot.mode=normal
+[OK] Mounted /system
+[OK] Mounted /vendor
+[OK] Mounted /data
+[OK] Started Service Manager
+[OK] Started Vold (volume daemon)
+[OK] Loaded SELinux policy
+[INFO] Battery: 87% — charger disconnected
+[OK] Started Zygote
+[OK] Started Netd (network daemon)
+[WARN] Thermal zone 4 reporting late, retrying...
+[OK] Thermal engine online
+[OK] Started SurfaceFlinger
+[OK] Started Audio HAL 7.1
+[OK] Fingerprint HAL ready
+[OK] Started System Server
+[OK] Reached target Boot Complete
+[INFO] Welcome.`;
+
+const PRESET_CRASH = `[OK] Mounted /system
+[OK] Mounted /vendor
+[FAILED] Failed to mount /data: Structure needs cleaning
+[WARN] Retrying mount (attempt 1/3)...
+[FAILED] Failed to mount /data: Structure needs cleaning
+[WARN] Retrying mount (attempt 2/3)...
+[FAILED] Failed to mount /data: I/O error
+[FAILED] err: e2fsck exited with status 8
+[FAILED] err: cannot open /dev/block/by-name/userdata
+[    4.201337] EXT4-fs error (device dm-4): __ext4_find_entry:1683
+[    4.201409] Aborting journal on device dm-4-8.
+[    4.202001] Kernel panic - not syncing: Attempted to kill init!
+[    4.202002] CPU: 6 PID: 1 Comm: init Tainted: G W
+[    4.202003] Call trace:
+[    4.202004]  dump_backtrace+0x0/0x1c8
+[    4.202005]  panic+0x148/0x3a0
+[    4.202006]  do_exit+0x9d0/0x9d8
+[    4.202099] ---[ end Kernel panic - not syncing ]---
+[FAILED] err: error here. it is so over.`;
+
+/* ---------------- elements ---------------- */
+const $ = id => document.getElementById(id);
+const els = {
+  log: $('logText'), resPreset: $('resPreset'), resW: $('resW'), resH: $('resH'),
+  fontFam: $('fontFam'), fontSize: $('fontSize'), lineH: $('lineH'),
+  padX: $('padX'), padY: $('padY'), boldFont: $('boldFont'),
+  cBg: $('cBg'), cTxt: $('cTxt'), cCursor: $('cCursor'),
+  cOk: $('cOk'), cFail: $('cFail'), cWarn: $('cWarn'), cInfo: $('cInfo'),
+  cursorChar: $('cursorChar'), blinkFrames: $('blinkFrames'), cursorOn: $('cursorOn'),
+  fps: $('fps'), fpl: $('fpl'), hold: $('hold'),
+  loopLast: $('loopLast'), loopBlink: $('loopBlink'),
+  fpsV: $('fpsV'), fitMode: $('fitMode'), cBgV: $('cBgV'),
+  vidMain: $('vidMain'), vidMainInfo: $('vidMainInfo'),
+  vidLoop: $('vidLoop'), vidLoopInfo: $('vidLoopInfo'),
+  trimStart: $('trimStart'), trimEnd: $('trimEnd'),
+  trimStartLbl: $('trimStartLbl'), trimEndLbl: $('trimEndLbl'),
+  vLoopMode: $('vLoopMode'), loopPoint: $('loopPoint'), loopPointLbl: $('loopPointLbl'),
+  loopPointRow: $('loopPointRow'), loopVidRow: $('loopVidRow'),
+  preview: $('preview'), meter: $('meter'),
+  exportBtn: $('exportBtn'), bar: $('bar'), barFill: $('barFill'),
+  part1hint: $('part1hint'),
+  tabText: $('tabText'), tabVideo: $('tabVideo'),
+};
+els.log.value = PRESET_BOOT;
+
+/* ---------------- mode ---------------- */
+let MODE = 'text';
+function setMode(m){
+  MODE = m;
+  els.tabText.classList.toggle('on', m === 'text');
+  els.tabVideo.classList.toggle('on', m === 'video');
+  document.querySelectorAll('.tmode').forEach(e => e.classList.toggle('hidden', m !== 'text'));
+  document.querySelectorAll('.vmode').forEach(e => e.classList.toggle('hidden', m !== 'video'));
+  restart();
+}
+els.tabText.addEventListener('click', () => setMode('text'));
+els.tabVideo.addEventListener('click', () => setMode('video'));
+
+/* ---------------- settings ---------------- */
+function readSettings(){
+  const w = Math.max(16, parseInt(els.resW.value) || 1080);
+  const h = Math.max(16, parseInt(els.resH.value) || 2400);
+  return {
+    mode: MODE, w, h,
+    /* text */
+    lines: els.log.value.replace(/\r/g,'').split('\n'),
+    fontFam: els.fontFam.value.trim() || 'monospace',
+    fontSize: Math.max(6, parseFloat(els.fontSize.value) || 28),
+    lineH: Math.max(0.8, parseFloat(els.lineH.value) || 1.4),
+    padX: Math.max(0, parseInt(els.padX.value) || 0),
+    padY: Math.max(0, parseInt(els.padY.value) || 0),
+    bold: els.boldFont.checked,
+    cBg: els.cBg.value, cTxt: els.cTxt.value, cCursor: els.cCursor.value,
+    tagColors: { OK: els.cOk.value, FAILED: els.cFail.value, FAIL: els.cFail.value,
+                 ERROR: els.cFail.value, ERR: els.cFail.value, BAD: els.cFail.value,
+                 WARN: els.cWarn.value, WARNING: els.cWarn.value,
+                 INFO: els.cInfo.value },
+    cursorChar: els.cursorChar.value || '█',
+    blinkFrames: Math.max(1, parseInt(els.blinkFrames.value) || 10),
+    cursorOn: els.cursorOn.checked,
+    fps: MODE === 'text'
+      ? Math.min(60, Math.max(1, parseInt(els.fps.value) || 20))
+      : Math.min(60, Math.max(1, parseInt(els.fpsV.value) || 20)),
+    fpl: Math.max(1, parseInt(els.fpl.value) || 2),
+    hold: Math.max(0, parseInt(els.hold.value) || 0),
+    loopLast: els.loopLast.checked,
+    loopBlink: els.loopBlink.checked,
+    /* video */
+    fitMode: els.fitMode.value,
+    cBgV: els.cBgV.value,
+    trimStart: parseFloat(els.trimStart.value) || 0,
+    trimEnd: parseFloat(els.trimEnd.value) || 0,
+    vLoopMode: els.vLoopMode.value,
+    loopPoint: parseFloat(els.loopPoint.value) || 0,
+  };
+}
+function textFrames(s){ return s.lines.length * s.fpl + s.hold; }
+
+/* ---------------- text frame renderer ---------------- */
+const TAG_RE = /^\[\s*([A-Za-z]+)\s*\]\s?(.*)$/;
+
+/* cursorOverride: null = normal blink, true = force on, false = force off */
+function drawTextFrame(ctx, s, frame, cursorOverride){
+  const {w,h} = s;
+  ctx.fillStyle = s.cBg;
+  ctx.fillRect(0,0,w,h);
+
+  const lh = s.fontSize * s.lineH;
+  ctx.font = (s.bold ? 'bold ' : '') + s.fontSize + 'px ' + s.fontFam;
+  ctx.textBaseline = 'top';
+
+  const visible = Math.min(s.lines.length, Math.floor(frame / s.fpl) + 1);
+  const maxRows = Math.max(1, Math.floor((h - s.padY) / lh));
+  const start = Math.max(0, visible - maxRows);
+
+  let lastX = s.padX, lastY = s.padY;
+  for (let i = start; i < visible; i++){
+    const y = s.padY + (i - start) * lh;
+    const line = s.lines[i];
+    let x = s.padX;
+    const m = line.match(TAG_RE);
+    if (m && s.tagColors[m[1].toUpperCase()]){
+      const tag = m[1], rest = m[2];
+      ctx.fillStyle = s.cTxt;
+      ctx.fillText('[', x, y); x += ctx.measureText('[').width;
+      ctx.fillStyle = s.tagColors[tag.toUpperCase()];
+      ctx.fillText(tag, x, y); x += ctx.measureText(tag).width;
+      ctx.fillStyle = s.cTxt;
+      ctx.fillText('] ', x, y); x += ctx.measureText('] ').width;
+      ctx.fillText(rest, x, y); x += ctx.measureText(rest).width;
+    } else {
+      ctx.fillStyle = s.cTxt;
+      ctx.fillText(line, x, y); x += ctx.measureText(line).width;
+    }
+    lastX = x; lastY = y;
+  }
+
+  if (s.cursorOn){
+    let on;
+    if (cursorOverride === true) on = true;
+    else if (cursorOverride === false) on = false;
+    else on = Math.floor(frame / s.blinkFrames) % 2 === 0;
+    if (on){
+      ctx.fillStyle = s.cCursor;
+      const cw = ctx.measureText(s.cursorChar).width || s.fontSize * 0.6;
+      const cx = (visible > 0) ? lastX + cw * 0.2 : s.padX;
+      const cy = (visible > 0) ? lastY : s.padY;
+      ctx.fillText(s.cursorChar, cx, cy);
+    }
+  }
+}
+
+/* ---------------- video machinery ---------------- */
+const vids = {
+  main: { el: null, url: null, dur: 0, ready: false },
+  loop: { el: null, url: null, dur: 0, ready: false },
+};
+
+function loadVideo(file, slot, infoEl, after){
+  const v = vids[slot];
+  if (v.url) URL.revokeObjectURL(v.url);
+  v.ready = false; v.dur = 0;
+  infoEl.textContent = 'loading…';
+  const el = document.createElement('video');
+  el.muted = true; el.playsInline = true; el.preload = 'auto';
+  v.el = el;
+  v.url = URL.createObjectURL(file);
+  el.src = v.url;
+  el.addEventListener('loadedmetadata', () => {
+    v.dur = el.duration;
+    v.ready = true;
+    infoEl.textContent = `✔ ${file.name} — ${el.videoWidth}×${el.videoHeight}, ${v.dur.toFixed(2)}s`;
+    if (after) after();
+    restart();
+  }, { once: true });
+  el.addEventListener('error', () => {
+    infoEl.textContent = '✘ could not decode this video in the browser';
+    restart();
+  }, { once: true });
+}
+
+els.vidMain.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  loadVideo(f, 'main', els.vidMainInfo, () => {
+    const d = vids.main.dur;
+    els.trimStart.max = d; els.trimStart.value = 0;
+    els.trimEnd.max = d;   els.trimEnd.value = d;
+    els.loopPoint.max = d; els.loopPoint.value = (d / 2).toFixed(2);
+  });
+});
+els.vidLoop.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  loadVideo(f, 'loop', els.vidLoopInfo, null);
+});
+
+els.vLoopMode.addEventListener('change', () => {
+  els.loopPointRow.classList.toggle('hidden', els.vLoopMode.value !== 'point');
+  els.loopVidRow.classList.toggle('hidden', els.vLoopMode.value !== 'video');
+});
+
+/* keep trim sane: start < end, loopPoint inside */
+function clampVideoControls(){
+  let a = parseFloat(els.trimStart.value), b = parseFloat(els.trimEnd.value);
+  if (a > b - 0.1) { a = Math.max(0, b - 0.1); els.trimStart.value = a; }
+  let lp = parseFloat(els.loopPoint.value);
+  lp = Math.min(Math.max(lp, a), b);
+  els.loopPoint.value = lp;
+  els.trimStartLbl.textContent = a.toFixed(2) + 's';
+  els.trimEndLbl.textContent = b.toFixed(2) + 's';
+  els.loopPointLbl.textContent = lp.toFixed(2) + 's';
+}
+
+function drawVideoFrame(ctx, videoEl, s){
+  const {w,h} = s;
+  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+  if (!vw || !vh) { ctx.fillStyle = s.cBgV; ctx.fillRect(0,0,w,h); return; }
+  if (s.fitMode === 'stretch'){
+    ctx.drawImage(videoEl, 0, 0, w, h);
+  } else if (s.fitMode === 'letterbox'){
+    ctx.fillStyle = s.cBgV; ctx.fillRect(0,0,w,h);
+    const sc = Math.min(w / vw, h / vh);
+    const dw = vw * sc, dh = vh * sc;
+    ctx.drawImage(videoEl, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  } else { /* crop to fill */
+    const sc = Math.max(w / vw, h / vh);
+    const sw = w / sc, sh = h / sc;
+    ctx.drawImage(videoEl, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, w, h);
+  }
+}
+
+/* video frame counts for desc + meter */
+function videoPlan(s){
+  if (!vids.main.ready) return null;
+  const t0 = s.trimStart, t1 = Math.min(s.trimEnd, vids.main.dur);
+  const total = Math.max(1, Math.round((t1 - t0) * s.fps));
+  if (s.vLoopMode === 'point'){
+    const lp = Math.min(Math.max(s.loopPoint, t0), t1);
+    let n0 = Math.round((lp - t0) * s.fps);
+    let n1 = total - n0;
+    if (n1 < 1) { n1 = 1; n0 = total - 1; }
+    return { t0, t1, total, n0: Math.max(0, n0), n1, loopT0: t0 + Math.max(0, n0) / s.fps, loopVideo: false };
+  }
+  if (s.vLoopMode === 'video'){
+    const m = vids.loop.ready ? Math.max(1, Math.round(vids.loop.dur * s.fps)) : 0;
+    return { t0, t1, total, n0: total, n1: m, loopVideo: true };
+  }
+  return { t0, t1, total, n0: total, n1: 1, holdLast: true }; /* hold */
+}
+
+/* ---------------- live preview ---------------- */
+const pctx = els.preview.getContext('2d');
+let curFrame = 0, lastTick = 0, S = readSettings();
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function fitPreview(){
+  els.preview.width = S.w;
+  els.preview.height = S.h;
+  const maxH = Math.max(260, window.innerHeight * 0.62);
+  const maxW = Math.min(420, els.preview.parentElement.parentElement.clientWidth - 60);
+  const scale = Math.min(maxW / S.w, maxH / S.h);
+  els.preview.style.width  = Math.round(S.w * scale) + 'px';
+  els.preview.style.height = Math.round(S.h * scale) + 'px';
+}
+
+function updateMeter(){
+  if (S.mode === 'text'){
+    const tf = textFrames(S);
+    const secs = (tf / S.fps).toFixed(1);
+    const p1 = S.loopLast ? (S.loopBlink && S.cursorOn ? 2 * S.blinkFrames : 1) : 0;
+    const heavy = tf > 800;
+    els.meter.innerHTML =
+      `<b>${S.w}×${S.h}</b> @ <b>${S.fps}</b> fps · part0 <b>${tf}</b> frames (~<b>${secs}s</b>)` +
+      (p1 ? ` · part1 <b>${p1}</b>` : '') +
+      (heavy ? ` · <span class="warn">⚠ heavy export</span>` : '');
+    els.part1hint.style.display = S.loopLast ? '' : 'none';
+  } else {
+    const plan = videoPlan(S);
+    if (!plan){
+      els.meter.innerHTML = `<span class="warn">no video loaded</span> — upload a main video to begin`;
+    } else {
+      const total = plan.n0 + plan.n1;
+      const heavy = total > 600;
+      els.meter.innerHTML =
+        `<b>${S.w}×${S.h}</b> @ <b>${S.fps}</b> fps · part0 <b>${plan.n0}</b> · part1 <b>${plan.n1}</b> frames` +
+        ` · ~<b>${((plan.t1 - plan.t0)).toFixed(1)}s</b> clip` +
+        (plan.loopVideo && !vids.loop.ready ? ` · <span class="warn">⚠ no loop video yet</span>` : '') +
+        (heavy ? ` · <span class="warn">⚠ ${total} png frames = big zip, slow export</span>` : '');
+    }
+    els.part1hint.style.display = '';
+  }
+}
+
+function previewVideoTick(){
+  const v = vids.main;
+  if (!v.ready){ pctx.fillStyle = '#000'; pctx.fillRect(0,0,S.w,S.h); return; }
+  const el = v.el;
+  /* keep playback looping inside trim window */
+  if (el.paused) { el.currentTime = S.trimStart; el.play().catch(()=>{}); }
+  if (el.currentTime < S.trimStart - 0.2 || el.currentTime >= Math.min(S.trimEnd, v.dur)){
+    el.currentTime = S.trimStart;
+  }
+  drawVideoFrame(pctx, el, S);
+}
+
+function loop(t){
+  requestAnimationFrame(loop);
+  const interval = 1000 / S.fps;
+  if (t - lastTick < interval) return;
+  lastTick = t;
+  if (S.mode === 'text'){
+    drawTextFrame(pctx, S, curFrame, null);
+    curFrame = (curFrame + 1) % textFrames(S);
+  } else {
+    previewVideoTick();
+  }
+}
+
+function restart(){
+  clampVideoControls();
+  S = readSettings();
+  curFrame = 0;
+  fitPreview();
+  updateMeter();
+  if (S.mode !== 'video' && vids.main.el) vids.main.el.pause();
+  if (reduced){
+    if (S.mode === 'text') drawTextFrame(pctx, S, textFrames(S) - 1, null);
+    else previewVideoTick();
+  }
+}
+
+document.querySelectorAll('input, select, textarea').forEach(el =>
+  el.addEventListener('input', restart));
+window.addEventListener('resize', fitPreview);
+
+els.resPreset.addEventListener('change', () => {
+  if (els.resPreset.value !== 'custom'){
+    const [w,h] = els.resPreset.value.split('x');
+    els.resW.value = w; els.resH.value = h;
+  }
+  restart();
+});
+[els.resW, els.resH].forEach(el => el.addEventListener('input', () => {
+  const v = els.resW.value + 'x' + els.resH.value;
+  if (![...els.resPreset.options].some(o => o.value === v)) els.resPreset.value = 'custom';
+}));
+
+$('presetBoot').addEventListener('click', () => { els.log.value = PRESET_BOOT; restart(); });
+$('presetCrash').addEventListener('click', () => { els.log.value = PRESET_CRASH; restart(); });
+
+/* ---------------- export ---------------- */
+function canvasToPng(canvas){
+  return new Promise((res, rej) =>
+    canvas.toBlob(b => b ? res(b) : rej(new Error('PNG encode failed')), 'image/png'));
+}
+function seekTo(v, t){
+  return new Promise(res => {
+    const done = () => { v.removeEventListener('seeked', done); res(); };
+    v.addEventListener('seeked', done);
+    v.currentTime = Math.min(Math.max(t, 0), Math.max(0, v.duration - 0.001));
+  });
+}
+const fname = i => String(i).padStart(5, '0') + '.png';
+const breathe = () => new Promise(r => setTimeout(r, 0));
+
+async function exportText(s, zip, setBar){
+  const tf = textFrames(s);
+  let desc = `${s.w} ${s.h} ${s.fps}\np 1 0 part0\n`;
+  if (s.loopLast) desc += `p 0 0 part1\n`;
+  zip.file('desc.txt', desc);
+
+  const off = document.createElement('canvas');
+  off.width = s.w; off.height = s.h;
+  const octx = off.getContext('2d');
+
+  for (let i = 0; i < tf; i++){
+    drawTextFrame(octx, s, i, null);
+    zip.file('part0/' + fname(i), await canvasToPng(off));
+    if (i % 5 === 0 || i === tf - 1){ setBar((i + 1) / tf * 90); await breathe(); }
+  }
+
+  if (s.loopLast){
+    const F = (s.lines.length - 1) * s.fpl; /* fully revealed */
+    if (s.loopBlink && s.cursorOn){
+      /* 2 unique frames, each repeated blinkFrames times so loop blinks at the same rate */
+      drawTextFrame(octx, s, F, true);
+      const onBlob = await canvasToPng(off);
+      drawTextFrame(octx, s, F, false);
+      const offBlob = await canvasToPng(off);
+      const B = s.blinkFrames;
+      for (let i = 0; i < B; i++)      zip.file('part1/' + fname(i), onBlob);
+      for (let i = 0; i < B; i++)      zip.file('part1/' + fname(B + i), offBlob);
+    } else {
+      drawTextFrame(octx, s, F, true);
+      zip.file('part1/' + fname(0), await canvasToPng(off));
+    }
+  }
+}
+
+async function exportVideo(s, zip, setBar){
+  const plan = videoPlan(s);
+  if (!plan) throw new Error('No main video loaded');
+  if (plan.loopVideo && !vids.loop.ready) throw new Error('Loop source is "separate loop video" but none is loaded');
+
+  const total = plan.n0 + plan.n1;
+  let desc = `${s.w} ${s.h} ${s.fps}\n`;
+  if (plan.n0 > 0) desc += `p 1 0 part0\n`;
+  desc += plan.n0 > 0 ? `p 0 0 part1\n` : `p 0 0 part0\n`;
+  zip.file('desc.txt', desc);
+
+  const off = document.createElement('canvas');
+  off.width = s.w; off.height = s.h;
+  const octx = off.getContext('2d');
+
+  const main = vids.main.el;
+  main.pause();
+  let done = 0;
+  const tick = async () => { setBar(++done / total * 90); if (done % 5 === 0) await breathe(); };
+
+  if (plan.holdLast){
+    /* all trimmed frames -> part0, last frame -> part1 */
+    let lastBlob = null;
+    for (let i = 0; i < plan.n0; i++){
+      await seekTo(main, plan.t0 + i / s.fps);
+      drawVideoFrame(octx, main, s);
+      lastBlob = await canvasToPng(off);
+      zip.file('part0/' + fname(i), lastBlob);
+      await tick();
+    }
+    zip.file('part1/' + fname(0), lastBlob);
+  } else if (!plan.loopVideo){
+    /* split one video at loop point */
+    const dir0 = plan.n0 > 0;
+    for (let i = 0; i < plan.n0; i++){
+      await seekTo(main, plan.t0 + i / s.fps);
+      drawVideoFrame(octx, main, s);
+      zip.file('part0/' + fname(i), await canvasToPng(off));
+      await tick();
+    }
+    for (let i = 0; i < plan.n1; i++){
+      await seekTo(main, plan.loopT0 + i / s.fps);
+      drawVideoFrame(octx, main, s);
+      zip.file((dir0 ? 'part1/' : 'part0/') + fname(i), await canvasToPng(off));
+      await tick();
+    }
+  } else {
+    /* main -> part0, separate loop video -> part1 */
+    for (let i = 0; i < plan.n0; i++){
+      await seekTo(main, plan.t0 + i / s.fps);
+      drawVideoFrame(octx, main, s);
+      zip.file('part0/' + fname(i), await canvasToPng(off));
+      await tick();
+    }
+    const lv = vids.loop.el;
+    lv.pause();
+    for (let i = 0; i < plan.n1; i++){
+      await seekTo(lv, i / s.fps);
+      drawVideoFrame(octx, lv, s);
+      zip.file('part1/' + fname(i), await canvasToPng(off));
+      await tick();
+    }
+  }
+}
+
+async function exportZip(){
+  const s = readSettings();
+  const total = s.mode === 'text'
+    ? textFrames(s)
+    : (videoPlan(s) ? videoPlan(s).n0 + videoPlan(s).n1 : 0);
+  if (s.mode === 'video' && !vids.main.ready){ alert('Upload a main video first.'); return; }
+  if (total > 1500 && !confirm(total + ' frames — this will be a huge zip and may take a while. Continue?')) return;
+
+  els.exportBtn.disabled = true;
+  els.exportBtn.textContent = 'rendering frames…';
+  els.bar.style.display = 'block';
+  els.barFill.style.width = '0%';
+  const setBar = p => { els.barFill.style.width = p.toFixed(1) + '%'; };
+
+  try {
+    const zip = new JSZip();
+    if (s.mode === 'text') await exportText(s, zip, setBar);
+    else await exportVideo(s, zip, setBar);
+
+    els.exportBtn.textContent = 'zipping…';
+    const out = await zip.generateAsync(
+      { type: 'blob', compression: 'STORE' },
+      meta => setBar(90 + meta.percent / 10)
+    );
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(out);
+    a.download = 'bootanimation.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch (err){
+    alert('Export failed: ' + err.message);
+  } finally {
+    els.exportBtn.disabled = false;
+    els.exportBtn.textContent = '⬇ export bootanimation.zip';
+    els.barFill.style.width = '0%';
+    els.bar.style.display = 'none';
+    if (MODE === 'video' && vids.main.ready) vids.main.el.play().catch(()=>{});
+  }
+}
+els.exportBtn.addEventListener('click', exportZip);
+
+/* ---------------- go ---------------- */
+restart();
+if (!reduced) requestAnimationFrame(loop);
+</script>
+
+<div data-include="/assets/layout/footer.html"></div>
+<script src="/assets/layout/include.js" defer></script>
+  <script src="/assets/layout/render.js" defer></script>
+</body>
+</html>

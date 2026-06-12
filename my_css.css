@@ -1,0 +1,396 @@
+/* ============================================================
+   CALAMYTRYX — shared pixel + grunge theme
+   pixel-art / terminal aesthetic, dark grunge + blood-red
+   ============================================================ */
+
+/* ---------- fonts (all mono / pixel) ---------- */
+/*  the font of old computers and in reciepts */
+@font-face{
+  font-family:'Departure Mono';
+  src:url('assets/fonts/DepartureMono-Regular.otf') format('opentype');
+  font-display:swap;
+}
+/*  minecraft style font mono/pixel */
+@font-face{
+  font-family:'Monocraft';
+  src:url('assets/fonts/Monocraft.ttf') format('truetype');
+  font-display:swap;
+}
+/*  bitmap style font mono/pixel */
+@font-face{
+  font-family:'Cozette';
+  src:url('assets/fonts/CozetteCrossedSevenVector.ttf') format('truetype');
+  font-display:swap;
+}
+/*  grungy panic stricken font */
+@font-face{
+  font-family:'ChaosMytryx';
+  src:url('assets/fonts/ChaosMytryx.ttf') format('truetype');
+  font-display:swap;
+}
+
+/* ---------- design tokens ---------- */
+:root{
+  --bg:#0a0a0c;
+  --panel:#141418;
+  --panel2:#1b1b21;
+  --line:#2a2a30;
+  --txt:#cdcdd2;
+  --dim:#6b6b73;
+  --blood:#d11c1c;
+  --rust:#7a0f12;
+  --ash:#3a3a40;
+
+  --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas',monospace;
+  --display:'Monocraft','Departure Mono',monospace;
+
+  --maxw:1300px;
+  --shadow:6px 6px 0 #000;
+}
+
+/* ---------- reset / base ---------- */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:16px;
+  line-height:1.6;
+  overflow-x:hidden;
+  position:relative;
+}
+img{image-rendering:pixelated;image-rendering:crisp-edges;max-width:100%;display:block}
+a{color:var(--blood);text-decoration:none}
+a:hover{color:#ff3b3b}
+::selection{background:var(--blood);color:#000}
+
+/* pixel scrollbar */
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--ash);border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--blood)}
+
+/* ---------- full-page grunge overlays ---------- */
+body::before,body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+}
+/* scanlines */
+body::before{
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,.22) 3px,
+    rgba(0,0,0,0) 4px
+  );
+  opacity:.5;
+}
+/* film grain (fractal noise) */
+body::after{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.04;
+  mix-blend-mode:screen;
+}
+
+/* ---------- layout helpers ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;width:100%}
+.section{padding:90px 0;position:relative}
+.spacer{height:80px}
+
+/* ---------- pixel-stepped divider ---------- */
+/* place <div class="divider"></div> between sections */
+.divider{
+  height:18px;
+  background:var(--blood);
+  -webkit-mask:repeating-linear-gradient(90deg,#000 0 14px,transparent 14px 28px);
+          mask:repeating-linear-gradient(90deg,#000 0 14px,transparent 14px 28px);
+  -webkit-mask-size:28px 100%;mask-size:28px 100%;
+  opacity:.9;
+}
+.divider.flip{transform:scaleY(-1)}
+
+/* ---------- typography ---------- */
+.display{font-family:var(--display);letter-spacing:1px;line-height:1.05;color:#fff}
+.h-xl{font-size:clamp(2.6rem,7vw,5rem)}
+.h-lg{font-size:clamp(2rem,5vw,3.2rem)}
+.h-md{font-size:clamp(1.5rem,3.5vw,2.2rem)}
+.eyebrow{color:var(--blood);letter-spacing:3px;text-transform:uppercase;font-size:.8rem}
+.muted{color:var(--dim)}
+.lead{font-size:1.05rem;color:var(--txt)}
+
+/* blinking block cursor after titles: add class "cursor" */
+.cursor::after{
+  content:"\2588";
+  color:var(--blood);
+  margin-left:.15em;
+  animation:blink 1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* hero glitch wordmark */
+.glitch{position:relative;color:#fff}
+.glitch::before,.glitch::after{
+  content:attr(data-text);position:absolute;top:0;left:0;width:100%;
+  overflow:hidden;
+}
+.glitch::before{color:var(--blood);clip-path:inset(0 0 55% 0);animation:gl1 2.4s infinite steps(2)}
+.glitch::after{color:#1fd1d1;clip-path:inset(55% 0 0 0);animation:gl2 3.1s infinite steps(2)}
+@keyframes gl1{0%,92%,100%{transform:translate(0,0)}94%{transform:translate(-4px,-2px)}96%{transform:translate(3px,1px)}}
+@keyframes gl2{0%,88%,100%{transform:translate(0,0)}90%{transform:translate(4px,2px)}94%{transform:translate(-3px,-1px)}}
+@media (prefers-reduced-motion:reduce){
+  .glitch::before,.glitch::after,.cursor::after{animation:none}
+  .glitch::before,.glitch::after{display:none}
+}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-block;
+  font-family:var(--mono);font-size:.95rem;letter-spacing:1px;text-transform:uppercase;
+  background:transparent;color:var(--blood);
+  border:2px solid var(--blood);
+  padding:10px 24px;cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:transform .05s,box-shadow .05s,background .1s,color .1s;
+}
+.btn:hover{background:var(--blood);color:#000;transform:translate(3px,3px);box-shadow:3px 3px 0 #000}
+.btn:active{transform:translate(6px,6px);box-shadow:0 0 0 #000}
+.btn.ghost{border-color:var(--line);color:var(--txt)}
+.btn.ghost:hover{background:var(--txt);color:#000;border-color:var(--txt)}
+
+/* ---------- cards / panels ---------- */
+.panel{
+  background:var(--panel);
+  border:2px solid var(--line);
+  box-shadow:var(--shadow);
+  padding:24px;
+}
+.card{
+  background:var(--panel);
+  border:2px solid var(--line);
+  box-shadow:var(--shadow);
+  padding:24px;
+  transition:transform .08s,box-shadow .08s,border-color .1s;
+}
+.card:hover{border-color:var(--blood);transform:translate(-2px,-2px);box-shadow:8px 8px 0 #000}
+
+/* ---------- navbar ---------- */
+.nav{
+  position:fixed;top:0;left:0;width:100%;z-index:50;
+  background:rgba(10,10,12,.92);
+  border-bottom:2px solid var(--line);
+  backdrop-filter:blur(2px);
+}
+.nav-inner{
+  max-width:var(--maxw);margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;gap:16px;
+}
+.nav-brand{
+  font-family:var(--mono);font-weight:700;font-size:1.5rem;letter-spacing:2px;
+  color:var(--txt);text-decoration:none;white-space:nowrap;line-height:1;
+}
+.nav-brand:hover{color:var(--blood)}
+.nav-brand .brand-hover{display:none}
+.nav-brand:hover .brand-idle{display:none}
+.nav-brand:hover .brand-hover{display:inline}
+.nav-links{display:flex;align-items:center;gap:26px;list-style:none}
+.nav-links a{
+  color:var(--txt);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;
+  padding:4px 2px;border-bottom:2px solid transparent;
+}
+.nav-links a:hover,.nav-links a.active{color:var(--blood);border-bottom-color:var(--blood)}
+.nav-toggle{
+  display:none;background:transparent;border:2px solid var(--line);
+  color:var(--txt);font-family:var(--mono);font-size:1.3rem;
+  padding:2px 10px;cursor:pointer;
+}
+.nav-toggle:hover{border-color:var(--blood);color:var(--blood)}
+
+@media (max-width:860px){
+  .nav-toggle{display:block}
+  .nav-links{
+    position:absolute;top:100%;left:0;width:100%;
+    flex-direction:column;gap:0;
+    background:var(--bg);border-bottom:2px solid var(--line);
+    max-height:0;overflow:hidden;transition:max-height .25s ease;
+  }
+  .nav-links.open{max-height:340px}
+  .nav-links li{width:100%;border-top:1px solid var(--line)}
+  .nav-links a{display:block;padding:14px 24px;border-bottom:none}
+}
+
+/* offset for fixed nav */
+.nav-offset{height:70px}
+
+/* ---------- social icons ---------- */
+.social-row{display:flex;gap:14px;flex-wrap:wrap}
+.social-row img{
+  height:40px;width:40px;
+  border:2px solid var(--line);padding:4px;background:var(--panel2);
+  transition:border-color .1s,transform .08s;
+}
+.social-row a:hover img{border-color:var(--blood);transform:translate(-2px,-2px)}
+
+/* big social cards on the socials section */
+.social-card{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.social-card .icon{
+  height:120px;width:120px;border:2px solid var(--line);background:var(--panel2);
+  padding:14px;
+}
+.social-card:hover .icon{border-color:var(--blood)}
+.social-card .url{font-size:.85rem;word-break:break-all;color:var(--dim)}
+.social-card:hover .url{color:var(--txt)}
+
+/* ---------- grids ---------- */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+@media (max-width:860px){
+  .grid-2,.grid-3{grid-template-columns:1fr}
+}
+
+/* ---------- media / iframe ---------- */
+.embed{position:relative;width:100%;aspect-ratio:16/9;border:2px solid var(--line);box-shadow:var(--shadow);background:#000}
+.embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* ---------- quote ---------- */
+.quote-mark{font-family:var(--display);color:var(--blood);font-size:clamp(4rem,12vw,9rem);line-height:.6}
+
+/* ---------- support / form ---------- */
+.field-row{display:flex;gap:0;max-width:640px;margin:24px auto 0;flex-wrap:wrap}
+.field-row input[type=email]{
+  flex:1;min-width:200px;
+  background:var(--panel);border:2px solid var(--line);color:var(--txt);
+  font-family:var(--mono);font-size:1rem;padding:12px 16px;
+}
+.field-row input[type=email]:focus{outline:none;border-color:var(--blood)}
+
+/* ---------- footer ---------- */
+.footer{
+  background:var(--panel);
+  border-top:2px solid var(--blood);
+  padding:70px 0 50px;
+  margin-top:0;
+}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+.footer h4{color:#fff;font-family:var(--display);font-size:1.1rem;margin-bottom:14px;letter-spacing:1px}
+.footer-links{list-style:none;margin:0;padding:0}
+.footer a{display:block;color:var(--dim);padding:5px 0;font-size:.92rem}
+.footer a:hover{color:var(--blood)}
+.footer .blurb{color:var(--dim);font-size:.92rem;margin:12px 0 18px;max-width:34ch}
+
+/* footer collapsibles (mobile, native <details>) */
+.footer details{border-top:1px solid var(--line)}
+.footer details summary{
+  list-style:none;cursor:pointer;color:#fff;font-family:var(--display);
+  padding:14px 0;letter-spacing:1px;display:flex;justify-content:space-between;
+}
+.footer details summary::-webkit-details-marker{display:none}
+.footer details summary::after{content:"+";color:var(--blood)}
+.footer details[open] summary::after{content:"\2212"}
+.footer .details-only{display:none}
+
+@media (max-width:860px){
+  .footer-grid{grid-template-columns:1fr;gap:0}
+  .footer .flex-only{display:none}
+  .footer .details-only{display:block}
+  .footer .brand-col{margin-bottom:24px}
+}
+
+/* ---------- lore terminal log ---------- */
+.logbox{
+  background:#0c0c0f;border:2px solid var(--line);box-shadow:var(--shadow);
+  padding:28px;font-size:1rem;line-height:1.8;color:var(--txt);
+}
+.logbox p{margin-bottom:1em}
+
+/* ---------- project cards listing ---------- */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.proj-card{display:flex;flex-direction:column;gap:10px;min-height:180px;justify-content:space-between}
+.proj-card .tag{color:var(--blood);font-size:.78rem;letter-spacing:2px;text-transform:uppercase}
+.proj-card h3{font-family:var(--display);color:#fff;font-size:1.4rem}
+.proj-card p{color:var(--dim);font-size:.92rem}
+.proj-card .go{color:var(--blood);font-size:.85rem;letter-spacing:1px}
+
+/* ---------- utilities ---------- */
+.text-center{text-align:center}
+.mt-1{margin-top:12px}.mt-2{margin-top:24px}.mt-3{margin-top:36px}
+.mb-1{margin-bottom:12px}.mb-2{margin-bottom:24px}
+.flex-col{display:flex;flex-direction:column}
+.gap-1{gap:12px}.gap-2{gap:24px}
+
+/* ============================================================
+   COMPONENTIZED ADDITIONS — inline pixel SVG icons + partials
+   ============================================================ */
+
+/* inline pixel SVG icons (currentColor) */
+.icon{width:1.1em;height:1.1em;display:inline-block;vertical-align:-0.15em;fill:currentColor;flex:none}
+
+/* dividers are now semantic <hr class="divider"> */
+hr.divider{border:0;margin:0}
+
+/* lists used for card grids shouldn't show bullets */
+.card-list{list-style:none;margin:0;padding:0}
+.card-list>li{list-style:none;display:flex}
+.card-list>li>.card{width:100%}
+
+/* nav hamburger renders an svg */
+.nav-toggle{display:none;line-height:0}
+.nav-toggle svg{width:24px;height:24px;fill:currentColor;display:block}
+@media (max-width:860px){ .nav-toggle{display:block} }
+
+/* optional leading icons on nav + footer menu links */
+.nav-links a,
+.footer .flex-only a,
+.footer details a{display:inline-flex;align-items:center;gap:6px}
+.nav-links a .icon,
+.footer a .icon{width:1em;height:1em;flex:none}
+.nav-links a .icon svg,
+.footer a .icon svg{width:100%;height:100%;fill:currentColor}
+
+/* footer / small social row now uses inline svg anchors */
+.social-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.social-row a{
+  display:inline-flex;color:var(--dim);
+  border:2px solid var(--line);padding:8px;background:var(--panel2);line-height:0;
+  transition:color .1s,border-color .1s,transform .08s;
+}
+.social-row a svg{width:24px;height:24px;fill:currentColor}
+.social-row a:hover{color:var(--blood);border-color:var(--blood);transform:translate(-2px,-2px)}
+
+/* big social cards in "where to find me" */
+.social-card{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.social-card .icon{
+  display:flex;align-items:center;justify-content:center;
+  height:96px;width:96px;padding:18px;
+  border:2px solid var(--line);background:var(--panel2);color:var(--txt);
+}
+.social-card .icon svg{width:100%;height:100%}
+.social-card:hover .icon{border-color:var(--blood);color:var(--blood)}
+.social-card .url{font-size:.85rem;word-break:break-all;color:var(--dim)}
+.social-card:hover .url{color:var(--txt)}
+.social-card.featured{border-color:var(--blood);box-shadow:8px 8px 0 var(--rust)}
+.social-card.featured .icon{border-color:var(--blood);color:var(--blood)}
+
+/* "live now" badge */
+.badge{
+  display:inline-block;background:var(--blood);color:#000;
+  font-size:.62rem;letter-spacing:1px;padding:2px 6px;margin-left:6px;
+  vertical-align:middle;animation:blink 1.2s steps(1) infinite;
+}
+@media (prefers-reduced-motion:reduce){ .badge{animation:none} }
+
+/* github repo / project card meta */
+.repo-meta{display:flex;gap:18px;align-items:center;color:var(--dim);font-size:.8rem;margin-top:10px;flex-wrap:wrap}
+.repo-lang{display:inline-flex;align-items:center}
+.repo-lang .dot{width:10px;height:10px;background:var(--blood);display:inline-block;margin-right:6px}
+.proj-card .go{display:inline-flex;align-items:center;gap:5px}
+.proj-card .go svg{width:1em;height:1em;fill:currentColor}
+
+/* quote block (semantic) */
+.quote{margin:0;text-align:center}
+.quote blockquote{margin:0;border:0}
+.quote figcaption{color:var(--dim);margin-top:24px}
+
+/* semantic <main> shouldn't add spacing of its own */
+main{display:block}

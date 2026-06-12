@@ -1,0 +1,25 @@
+{
+  "home": {
+    "sections": [
+      { "id": "hero", "label": "Hero", "include": "/assets/layout/body/home_hero.html", "enabled": true },
+      { "id": "socials", "label": "Where to find me", "include": "/assets/layout/body/home_socials.html", "enabled": true },
+      { "id": "merch", "label": "Merch", "include": "/assets/layout/body/home_merch.html", "enabled": true },
+      { "id": "fanart", "label": "Fan arts", "include": "/assets/layout/body/home_fanart.html", "enabled": true },
+      { "id": "about", "label": "Huh? (about)", "include": "/assets/layout/body/home_about.html", "enabled": true },
+      { "id": "stream", "label": "Explore the chaos (stream)", "include": "/assets/layout/body/home_stream.html", "enabled": true },
+      { "id": "cdc", "label": "Chaos / Disaster / Cataclysm", "include": "/assets/layout/body/home_cdc.html", "enabled": true },
+      { "id": "quote", "label": "Quote", "include": "/assets/layout/body/home_quote.html", "enabled": true },
+      { "id": "support", "label": "Support", "include": "/assets/layout/body/home_support.html", "enabled": true }
+    ]
+  },
+  "lore": {
+    "sections": [
+      { "id": "lore", "label": "Lore", "include": "/assets/layout/body/lore_lore.html", "enabled": true }
+    ]
+  },
+  "projects": {
+    "sections": [
+      { "id": "intro", "label": "Projects intro + repo grid", "include": "/assets/layout/body/projects_intro.html", "enabled": true }
+    ]
+  }
+}

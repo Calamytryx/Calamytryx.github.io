@@ -1,0 +1,36 @@
+{
+  "nav": [
+    { "label": "HOME", "href": "/index.html", "page": "home", "icon": "home" },
+    { "label": "SOCIALS", "href": "/index.html#socials", "page": "socials", "icon": "share" },
+    { "label": "MERCH", "href": "/index.html#merch", "page": "merch", "icon": "store" },
+    { "label": "WATCH ME", "href": "/index.html#live", "page": "live", "icon": "play" },
+    { "label": "PROJECTS", "href": "/pages/projects/index.html", "page": "projects", "icon": "code" },
+    { "label": "LORE", "href": "/pages/lore.html", "page": "lore", "icon": "skull" }
+  ],
+  "footer": [
+    {
+      "title": "About",
+      "links": [
+        { "label": "Lore", "href": "/pages/lore.html", "icon": "skull" },
+        { "label": "Socials", "href": "https://linktr.ee/calamytryx", "icon": "share" },
+        { "label": "Collab?", "href": "https://discord.gg/Sm4rNPyNgM", "icon": "discord" },
+        { "label": "Projects", "href": "/pages/projects/index.html", "icon": "code" }
+      ]
+    },
+    {
+      "title": "Watch",
+      "links": [
+        { "label": "TikTok", "href": "https://www.tiktok.com/@calamytryxvt", "icon": "tiktok" },
+        { "label": "Twitch", "href": "https://www.twitch.tv/calamytryx_/", "icon": "twitch" },
+        { "label": "YouTube", "href": "https://www.youtube.com/channel/calamytryx", "icon": "youtube" }
+      ]
+    },
+    {
+      "title": "Other",
+      "links": [
+        { "label": "Contact me?", "href": "https://facebook.com/calamytryx", "icon": "mail" },
+        { "label": "Support", "href": "https://ganknow.com/calamytryx", "icon": "heart" }
+      ]
+    }
+  ]
+}

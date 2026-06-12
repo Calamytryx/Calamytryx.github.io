@@ -1,0 +1,304 @@
+<!-- layout editing and presets to add new layouts -->
+<!-- DEV-ONLY tool. Edits assets/data/layout.json (section order/visibility) and can
+     scaffold new body partials from presets. Uses the File System Access API, so it
+     only ever touches a folder you pick yourself — harmless if hosted publicly. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>layout editor — calamytryx (dev)</title>
+<style>
+  :root{
+    --bg:#0a0a0c; --panel:#13171c; --panel2:#181d23; --line:#242b33;
+    --txt:#c5ced6; --dim:#6b7681; --blood:#d11c1c; --green:#39d353;
+    --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:13px;line-height:1.5}
+  header{display:flex;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:14px;letter-spacing:.5px} header h1 .dot{color:var(--blood)}
+  header .sp{flex:1}
+  button{font-family:var(--mono);font-size:12px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer}
+  button:hover{border-color:var(--blood);color:var(--blood)}
+  button.primary{background:var(--blood);color:#000;border-color:var(--blood);font-weight:700}
+  .status{font-size:11px;color:var(--dim)} .status.ok{color:var(--green)} .status.err{color:var(--blood)}
+  .wrap{display:grid;grid-template-columns:1.2fr 1fr;height:calc(100vh - 50px)}
+  .left{overflow-y:auto;border-right:1px solid var(--line);padding:14px 16px 80px}
+  .right{overflow-y:auto;padding:16px;background:#060608}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{background:var(--panel);color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:7px 12px;cursor:pointer;letter-spacing:.5px}
+  .tab.on{background:var(--panel2);color:var(--blood);border-color:var(--blood)}
+  .sec{border:1px solid var(--line);border-radius:5px;padding:8px 10px;margin:7px 0;background:var(--panel);display:flex;gap:8px;align-items:center}
+  .sec.off{opacity:.45}
+  .sec .grip{color:var(--dim);cursor:default}
+  .sec .meta{flex:1;min-width:0}
+  .sec .meta input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:4px 6px;border-radius:3px;margin:2px 0}
+  .sec .meta .inc{color:var(--dim);font-size:10px}
+  .sec .tools{display:flex;flex-direction:column;gap:3px}
+  .sec .tools button{padding:1px 8px;font-size:11px}
+  .check{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--dim)}
+  fieldset{border:1px solid var(--line);border-radius:5px;padding:10px 12px;margin:14px 0;background:var(--panel)}
+  legend{color:var(--blood);font-size:11px;letter-spacing:1px;padding:0 6px}
+  label.fl{display:block;color:var(--dim);font-size:11px;margin:6px 0 2px}
+  select,input.t{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px;padding:6px 8px;border-radius:4px}
+  .pv-h{color:var(--dim);font-size:11px;letter-spacing:1px;margin:10px 0 6px;text-transform:uppercase}
+  .order{list-style:none}
+  .order li{border-left:2px solid var(--blood);padding:5px 10px;margin:4px 0;background:var(--panel)}
+  .order li.off{border-color:var(--line);color:var(--dim);text-decoration:line-through}
+  .divider-note{color:var(--dim);font-size:10px;padding-left:10px}
+  pre{background:#000;border:1px solid var(--line);border-radius:4px;padding:10px;overflow:auto;font-size:11px;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<header>
+  <h1>layout<span class="dot">.</span>editor</h1>
+  <button id="openBtn" class="primary">open repo folder</button>
+  <button id="saveBtn" disabled>save layout.json</button>
+  <button id="dlBtn">download layout.json</button>
+  <span class="sp"></span>
+  <span class="status" id="status">open your repo folder to reorder sections and scaffold new ones</span>
+</header>
+
+<div class="wrap">
+  <div class="left">
+    <div class="tabs" id="tabs"></div>
+    <div id="sections"></div>
+
+    <fieldset>
+      <legend>add section from preset</legend>
+      <label class="fl">preset</label>
+      <select id="preset"></select>
+      <label class="fl">id (lowercase, used for filename + #anchor)</label>
+      <input class="t" id="newId" placeholder="e.g. schedule">
+      <label class="fl">label (shown in this editor)</label>
+      <input class="t" id="newLabel" placeholder="e.g. Stream schedule">
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="addBtn" class="primary">create + add to page</button>
+      </div>
+      <div class="status" id="addStatus" style="margin-top:6px"></div>
+    </fieldset>
+  </div>
+
+  <div class="right">
+    <div class="pv-h">render order — <span id="pageName"></span></div>
+    <ul class="order" id="order"></ul>
+    <div class="pv-h">selected preset markup</div>
+    <pre id="tpl"></pre>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+let rootHandle=null, dataHandle=null;     // repo root, assets/data
+let LAYOUT={}, page=null;
+const hasFS='showDirectoryPicker' in window;
+function setStatus(m,c){ const e=$('#status'); e.textContent=m; e.className='status'+(c?' '+c:''); }
+
+/* ---------- presets ---------- */
+const PRESETS = {
+  'two-column': {
+    label:'Two column (image + text)',
+    html:id=>`<section class="section" id="${id}">
+  <div class="wrap">
+    <div class="grid-2">
+      <figure><img src="/assets/media/home art.jpg" class="panel" style="padding:8px;width:100%" alt=""></figure>
+      <div class="flex-col gap-1">
+        <p class="eyebrow">// new section</p>
+        <h2 class="display h-lg">HEADLINE</h2>
+        <p class="lead mt-1">Body copy goes here. Wire it to sections.json later if you want it editable.</p>
+        <a href="#" class="btn mt-2" style="align-self:flex-start">Read More</a>
+      </div>
+    </div>
+  </div>
+</section>`
+  },
+  'centered-text': {
+    label:'Centered text block',
+    html:id=>`<section class="section" id="${id}">
+  <div class="wrap text-center" style="max-width:900px">
+    <h2 class="display h-lg cursor">HEADLINE</h2>
+    <p class="lead mt-2">Body copy goes here.</p>
+  </div>
+</section>`
+  },
+  'card-grid': {
+    label:'Three card grid',
+    html:id=>`<section class="section" id="${id}">
+  <div class="wrap">
+    <div class="grid-3">
+      <article class="card"><h3 class="display h-md" style="color:var(--blood)">One</h3><p class="muted mt-1">…</p></article>
+      <article class="card"><h3 class="display h-md" style="color:var(--blood)">Two</h3><p class="muted mt-1">…</p></article>
+      <article class="card"><h3 class="display h-md" style="color:var(--blood)">Three</h3><p class="muted mt-1">…</p></article>
+    </div>
+  </div>
+</section>`
+  },
+  'video-embed': {
+    label:'Video embed + heading',
+    html:id=>`<section class="section" id="${id}">
+  <div class="wrap">
+    <div class="grid-2">
+      <div class="embed"><iframe src="https://www.youtube.com/embed/3UDZjKDySKc" title="embed" allowfullscreen></iframe></div>
+      <div class="flex-col gap-1" style="text-align:right;align-items:flex-end">
+        <p class="eyebrow">// embed</p>
+        <h2 class="display h-lg">HEADLINE</h2>
+      </div>
+    </div>
+  </div>
+</section>`
+  },
+  'quote': {
+    label:'Quote block',
+    html:id=>`<section class="section" id="${id}">
+  <div class="wrap" style="max-width:900px">
+    <figure class="quote">
+      <span class="quote-mark" aria-hidden="true">"</span>
+      <blockquote><p class="display h-md" style="line-height:1.3">Your quote here</p></blockquote>
+      <figcaption>— Author</figcaption>
+    </figure>
+  </div>
+</section>`
+  }
+};
+function fillPresets(){
+  $('#preset').innerHTML = Object.keys(PRESETS).map(k=>`<option value="${k}">${PRESETS[k].label}</option>`).join('');
+  showTpl();
+}
+function showTpl(){ const k=$('#preset').value; const id=$('#newId').value.trim()||'newSection'; $('#tpl').textContent=PRESETS[k].html(id); }
+
+/* ---------- load / save ---------- */
+async function readLayout(){
+  if(dataHandle){ const fh=await dataHandle.getFileHandle('layout.json'); return JSON.parse(await (await fh.getFile()).text()); }
+  const r=await fetch('/assets/data/layout.json',{cache:'no-cache'}); return r.json();
+}
+async function loadAll(){
+  try{ LAYOUT=await readLayout(); page=page&&LAYOUT[page]?page:Object.keys(LAYOUT)[0];
+    renderTabs(); renderSections(); renderOrder();
+    setStatus(dataHandle?'editing live from disk':'loaded read-only (Open folder to save / scaffold files)','ok');
+  }catch(e){ setStatus('load failed: '+e.message,'err'); }
+}
+async function saveLayout(){
+  if(!dataHandle){ setStatus('no folder opened','err'); return; }
+  try{ const fh=await dataHandle.getFileHandle('layout.json',{create:true});
+    const w=await fh.createWritable(); await w.write(JSON.stringify(LAYOUT,null,2)+'\n'); await w.close();
+    setStatus('saved layout.json ✓ — reload the site','ok');
+  }catch(e){ setStatus('save failed: '+e.message,'err'); }
+}
+function downloadText(name, text, type){
+  const b=new Blob([text],{type:type||'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function downloadLayout(){ downloadText('layout.json', JSON.stringify(LAYOUT,null,2)+'\n', 'application/json'); }
+
+/* ---------- tabs / sections ---------- */
+function renderTabs(){
+  $('#tabs').innerHTML=Object.keys(LAYOUT).map(p=>`<button class="tab${p===page?' on':''}" data-p="${p}">${p}</button>`).join('');
+  $('#tabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ page=b.dataset.p; renderTabs(); renderSections(); renderOrder(); });
+  $('#pageName').textContent=page;
+}
+/* schema for a layout section row — add a field here and every row gets it */
+const SECTION_FIELDS = [
+  { k:'label',   ph:'label' },
+  { k:'include', ph:'/assets/layout/body/…' },
+  { k:'id',      ph:'id (for #anchor / filename)' }
+];
+function mkb(t,fn){ const b=document.createElement('button'); b.type='button'; b.textContent=t; b.onclick=fn; return b; }
+
+function renderSections(){
+  const arr=LAYOUT[page].sections, host=$('#sections'); host.innerHTML='';
+  const redraw=()=>{ renderSections(); renderOrder(); };
+  arr.forEach((s,i)=>{
+    const row=document.createElement('div'); row.className='sec'+(s.enabled===false?' off':'');
+    const grip=document.createElement('span'); grip.className='grip'; grip.textContent=String(i+1).padStart(2,'0');
+
+    const meta=document.createElement('div'); meta.className='meta';
+    SECTION_FIELDS.forEach(f=>{
+      const inp=document.createElement('input'); inp.value=s[f.k]||''; inp.placeholder=f.ph;
+      inp.oninput=()=>{ s[f.k]=inp.value; renderOrder(); };
+      meta.appendChild(inp);
+    });
+    const cl=document.createElement('label'); cl.className='check';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=s.enabled!==false;
+    cb.onchange=()=>{ s.enabled=cb.checked; redraw(); };
+    cl.appendChild(cb); cl.append(' enabled'); meta.appendChild(cl);
+
+    const tools=document.createElement('div'); tools.className='tools';
+    const up=mkb('↑',()=>{ if(i>0){ arr.splice(i-1,0,arr.splice(i,1)[0]); redraw(); } });
+    const dn=mkb('↓',()=>{ if(i<arr.length-1){ arr.splice(i+1,0,arr.splice(i,1)[0]); redraw(); } });
+    const rm=mkb('✕',()=>{ arr.splice(i,1); redraw(); }); rm.style.color='var(--blood)';
+    tools.append(up,dn,rm);
+
+    row.append(grip,meta,tools); host.appendChild(row);
+  });
+}
+function renderOrder(){
+  const on=LAYOUT[page].sections;
+  $('#order').innerHTML=on.map((s)=>{
+    const enabled=s.enabled!==false;
+    return `<li class="${enabled?'':'off'}">${esc(s.label||s.id||s.include)}${enabled?'':' (hidden)'}</li>`;
+  }).join('');
+}
+
+/* ---------- add from preset ---------- */
+async function addSection(){
+  const k=$('#preset').value;
+  const id=$('#newId').value.trim().replace(/[^a-z0-9\-]/gi,'').toLowerCase();
+  const label=$('#newLabel').value.trim()|| (id||'new section');
+  if(!id){ $('#addStatus').textContent='enter an id first'; $('#addStatus').className='status err'; return; }
+  const folder = page; // body/<page>/<id>.html
+  const include = `/assets/layout/body/${folder}/${id}.html`;
+  const markup = PRESETS[k].html(id);
+
+  if(dataHandle && rootHandle){
+    try{
+      const bodyDir = await (await (await rootHandle.getDirectoryHandle('assets')).getDirectoryHandle('layout')).getDirectoryHandle('body');
+      const pageDir = await bodyDir.getDirectoryHandle(folder, {create:true});
+      const fh = await pageDir.getFileHandle(id+'.html', {create:true});
+      const w = await fh.createWritable(); await w.write(markup); await w.close();
+      $('#addStatus').textContent='wrote '+include; $('#addStatus').className='status ok';
+    }catch(e){ $('#addStatus').textContent='file write failed: '+e.message; $('#addStatus').className='status err'; return; }
+  } else {
+    /* Firefox / Safari: can't write files — download the partial so you can drop it in */
+    downloadText(id+'.html', markup, 'text/html');
+    $('#addStatus').innerHTML='downloaded <b>'+esc(id)+'.html</b> → put it in <b>assets/layout/body/'+esc(folder)+'/</b>, then download layout.json'; $('#addStatus').className='status ok';
+  }
+  LAYOUT[page].sections.push({id, label, include, enabled:true});
+  renderSections(); renderOrder();
+}
+
+/* ---------- helpers ---------- */
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function attr(s){ return esc(s).replace(/"/g,'&quot;'); }
+
+/* ---------- wire ---------- */
+$('#openBtn').onclick=async()=>{
+  if(!hasFS){ setStatus('no File System Access API — use Chrome/Edge or download','err'); return; }
+  try{
+    rootHandle=await window.showDirectoryPicker();
+    dataHandle=await (await rootHandle.getDirectoryHandle('assets')).getDirectoryHandle('data');
+    $('#saveBtn').disabled=false; await loadAll();
+  }catch(e){ if(e.name!=='AbortError') setStatus('open failed: '+e.message,'err'); }
+};
+$('#saveBtn').onclick=saveLayout;
+$('#dlBtn').onclick=downloadLayout;
+$('#preset').onchange=showTpl;
+$('#newId').oninput=showTpl;
+$('#addBtn').onclick=addSection;
+if(!hasFS){
+  /* Firefox / Safari: no File System Access API — download is the save path */
+  $('#openBtn').textContent='live save N/A (use download)';
+  $('#openBtn').classList.remove('primary');
+  $('#dlBtn').classList.add('primary');
+  setStatus('your browser can\'t write files directly — reorder here, download layout.json, and "create + add" downloads the new section .html to drop into the repo','');
+}
+
+fillPresets();
+loadAll();
+</script>
+</body>
+</html>

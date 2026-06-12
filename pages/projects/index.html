@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calamytryx — Projects</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/include.js" defer></script>
+  <script src="/assets/layout/render.js" defer></script>
+</head>
+<body data-page="projects">
+
+  <div data-include="/assets/layout/header.html"></div>
+
+  <main data-sections>
+    <div data-include="/assets/layout/body/projects_intro.html"></div>
+  </main>
+
+  <div data-include="/assets/layout/footer.html"></div>
+
+  <!-- page-personalized script: pull public repos from GitHub -->
+  <script>
+    (function () {
+      'use strict';
+      var GH_USER = 'Calamytryx';
+
+      function esc(s) {
+        return (s || '').replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      function repoCard(r) {
+        var lang = r.language
+          ? '<span class="repo-lang"><span class="dot"></span>' + esc(r.language) + '</span>'
+          : '';
+        var stars = '<span>★ ' + (r.stargazers_count || 0) + '</span>';
+        var desc = r.description ? esc(r.description) : 'No description.';
+        return '<li><a class="card proj-card" href="' + esc(r.html_url) + '" target="_blank" rel="noopener">'
+          + '<div><span class="tag">// github</span>'
+          + '<h3 class="mt-1">' + esc(r.name) + '</h3>'
+          + '<p class="mt-1">' + desc + '</p></div>'
+          + '<div class="repo-meta">' + lang + stars + '</div></a></li>';
+      }
+
+      function loadRepos() {
+        var grid = document.getElementById('repoGrid');
+        var status = document.getElementById('repoStatus');
+        if (!grid) return;
+        fetch('https://api.github.com/users/' + GH_USER + '/repos?sort=updated&per_page=100')
+          .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+          .then(function (repos) {
+            var list = repos.filter(function (r) { return !r.fork; });
+            if (!list.length) { if (status) status.textContent = '// no public repositories found'; return; }
+            list.forEach(function (r) { grid.insertAdjacentHTML('beforeend', repoCard(r)); });
+            if (status) status.remove();
+          })
+          .catch(function (err) {
+            if (status) status.textContent = '// couldn\'t reach github (' + err.message + ')';
+          });
+      }
+
+      /* the projects intro is injected by include.js — wait for it */
+      document.addEventListener('includes:done', loadRepos);
+    })();
+  </script>
+
+</body>
+</html>
