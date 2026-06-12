@@ -131,6 +131,8 @@
   #preview{
     display:block;border-radius:12px;background:#000;max-width:100%;
   }
+  #preview.video-pan{cursor:grab;touch-action:none}
+  #preview.video-pan.dragging{cursor:grabbing}
   .meter{color:var(--dim);font-size:11px;text-align:center;max-width:440px}
   .meter b{color:var(--txt);font-weight:400}
   .meter .warn{color:var(--red)}
@@ -495,6 +497,8 @@ function readSettings(){
     trimEnd: parseFloat(els.trimEnd.value) || 0,
     vLoopMode: els.vLoopMode.value,
     loopPoint: parseFloat(els.loopPoint.value) || 0,
+    panX: videoPan.x,
+    panY: videoPan.y,
   };
 }
 function textFrames(s){ return s.lines.length * s.fpl + s.hold; }
@@ -558,6 +562,82 @@ const vids = {
   main: { el: null, url: null, dur: 0, ready: false },
   loop: { el: null, url: null, dur: 0, ready: false },
 };
+const videoPan = { x: 0, y: 0 };
+
+function resetVideoPan(){
+  videoPan.x = 0;
+  videoPan.y = 0;
+}
+
+function clampVideoPan(s, pan, vw, vh){
+  const px = Number.isFinite(pan.x) ? pan.x : 0;
+  const py = Number.isFinite(pan.y) ? pan.y : 0;
+  let dw = s.w, dh = s.h;
+  if (s.fitMode === 'letterbox' || s.fitMode === 'crop'){
+    const sc = s.fitMode === 'letterbox'
+      ? Math.min(s.w / vw, s.h / vh)
+      : Math.max(s.w / vw, s.h / vh);
+    dw = vw * sc;
+    dh = vh * sc;
+  }
+  let maxX = Math.abs(s.w - dw) / 2;
+  let maxY = Math.abs(s.h - dh) / 2;
+  if (s.fitMode === 'stretch'){
+    /* keep at least half of the frame visible when panning stretched video */
+    maxX = s.w / 2;
+    maxY = s.h / 2;
+  }
+  return {
+    x: Math.min(Math.max(px, -maxX), maxX),
+    y: Math.min(Math.max(py, -maxY), maxY),
+  };
+}
+
+let panDrag = null;
+function onPreviewPanStart(e){
+  if (S.mode !== 'video' || !vids.main.ready) return;
+  e.preventDefault();
+  const rect = els.preview.getBoundingClientRect();
+  panDrag = {
+    id: e.pointerId,
+    sx: e.clientX,
+    sy: e.clientY,
+    ox: videoPan.x,
+    oy: videoPan.y,
+    scaleX: S.w / rect.width,
+    scaleY: S.h / rect.height,
+  };
+  els.preview.setPointerCapture(e.pointerId);
+  els.preview.classList.add('dragging');
+}
+
+function onPreviewPanMove(e){
+  if (!panDrag || e.pointerId !== panDrag.id || S.mode !== 'video' || !vids.main.ready) return;
+  const v = vids.main.el;
+  const next = {
+    x: panDrag.ox + (e.clientX - panDrag.sx) * panDrag.scaleX,
+    y: panDrag.oy + (e.clientY - panDrag.sy) * panDrag.scaleY,
+  };
+  const clamped = clampVideoPan(S, next, v.videoWidth, v.videoHeight);
+  videoPan.x = clamped.x;
+  videoPan.y = clamped.y;
+  S.panX = clamped.x;
+  S.panY = clamped.y;
+  previewVideoTick();
+}
+
+function onPreviewPanEnd(e){
+  if (!panDrag || e.pointerId !== panDrag.id) return;
+  if (els.preview.hasPointerCapture(e.pointerId)) els.preview.releasePointerCapture(e.pointerId);
+  panDrag = null;
+  els.preview.classList.remove('dragging');
+}
+
+els.preview.classList.add('video-pan');
+els.preview.addEventListener('pointerdown', onPreviewPanStart);
+els.preview.addEventListener('pointermove', onPreviewPanMove);
+els.preview.addEventListener('pointerup', onPreviewPanEnd);
+els.preview.addEventListener('pointercancel', onPreviewPanEnd);
 
 function loadVideo(file, slot, infoEl, after){
   const v = vids[slot];
@@ -619,18 +699,22 @@ function drawVideoFrame(ctx, videoEl, s){
   const {w,h} = s;
   const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
   if (!vw || !vh) { ctx.fillStyle = s.cBgV; ctx.fillRect(0,0,w,h); return; }
-  if (s.fitMode === 'stretch'){
-    ctx.drawImage(videoEl, 0, 0, w, h);
-  } else if (s.fitMode === 'letterbox'){
-    ctx.fillStyle = s.cBgV; ctx.fillRect(0,0,w,h);
+  let dw = w, dh = h;
+  if (s.fitMode === 'letterbox'){
     const sc = Math.min(w / vw, h / vh);
-    const dw = vw * sc, dh = vh * sc;
-    ctx.drawImage(videoEl, (w - dw) / 2, (h - dh) / 2, dw, dh);
-  } else { /* crop to fill */
+    dw = vw * sc;
+    dh = vh * sc;
+  } else if (s.fitMode === 'crop'){
     const sc = Math.max(w / vw, h / vh);
-    const sw = w / sc, sh = h / sc;
-    ctx.drawImage(videoEl, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, w, h);
+    dw = vw * sc;
+    dh = vh * sc;
   }
+  const pan = clampVideoPan(s, { x: s.panX, y: s.panY }, vw, vh);
+  const dx = (w - dw) / 2 + pan.x;
+  const dy = (h - dh) / 2 + pan.y;
+  ctx.fillStyle = s.cBgV;
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(videoEl, dx, dy, dw, dh);
 }
 
 /* video frame counts for desc + meter */
@@ -704,7 +788,7 @@ function previewVideoTick(){
   if (el.currentTime < S.trimStart - 0.2 || el.currentTime >= Math.min(S.trimEnd, v.dur)){
     el.currentTime = S.trimStart;
   }
-  drawVideoFrame(pctx, el, S);
+  drawVideoFrame(pctx, el, { ...S, panX: videoPan.x, panY: videoPan.y });
 }
 
 function loop(t){
@@ -735,6 +819,10 @@ function restart(){
 
 document.querySelectorAll('input, select, textarea').forEach(el =>
   el.addEventListener('input', restart));
+els.fitMode.addEventListener('change', () => {
+  resetVideoPan();
+  restart();
+});
 window.addEventListener('resize', fitPreview);
 
 els.resPreset.addEventListener('change', () => {
