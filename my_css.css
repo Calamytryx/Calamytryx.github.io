@@ -65,11 +65,19 @@ a{color:var(--blood);text-decoration:none}
 a:hover{color:#ff3b3b}
 ::selection{background:var(--blood);color:#000}
 
-/* pixel scrollbar */
+/* pixel scrollbar Chromeium Based */
 ::-webkit-scrollbar{width:12px;height:12px}
 ::-webkit-scrollbar-track{background:var(--panel)}
-::-webkit-scrollbar-thumb{background:var(--ash);border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--rust);border:2px solid var(--bg)}
 ::-webkit-scrollbar-thumb:hover{background:var(--blood)}
+/* pixel scrollbar (Firefox only) */
+@-moz-document url-prefix() {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: var(--blood) var(--ash);
+    scrollbar-gutter: stable;
+  }
+}
 
 /* ---------- full-page grunge overlays ---------- */
 body::before,body::after{
