@@ -179,7 +179,7 @@ function scheduleMarkup(W,H){
   const bgLayer = cfg.bgImage ? 'background-image:url('+cfg.bgImage+');background-size:cover;background-position:center;' : '';
   const glitch = $('glitch').checked;
   const titleHtml = glitch
-    ? '<div style="position:relative;display:inline-block;color:'+tx+'"><span style="position:absolute;left:-4px;top:-4px;color:'+ac+'">'+esc($('title').value)+'</span><span style="position:absolute;left:4px;top:4px;color:#22d3ee">'+esc($('title').value)+'</span><span style="position:relative">'+esc($('title').value)+'</span></div>'
+    ? '<div style="position:relative;display:relative;color:'+tx+'"><span style="position:absolute;left:-4px;top:-4px;color:'+ac+'">'+esc($('title').value)+'</span><span style="position:absolute;left:4px;top:4px;color:#22d3ee">'+esc($('title').value)+'</span><span style="position:relative">'+esc($('title').value)+'</span></div>'
     : '<span style="color:'+tx+';text-shadow:4px 4px 0 '+ac+'">'+esc($('title').value)+'</span>';
   let rows='';
   DAYS.forEach((d,i)=>{
