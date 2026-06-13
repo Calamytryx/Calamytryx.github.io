@@ -1,74 +1,229 @@
-<section class="section" style="padding-bottom:40px">
-  <div class="wrap">
-    <p class="eyebrow">// ~/calamytryx/projects $ ls</p>
-    <h1 class="display h_xl cursor">PROJECTS</h1>
-    <p class="lead mt_2" style="max-width:60ch">
-      Tools, toys, and experiments born out of chaos — plus everything public on my GitHub.
-      Mostly half-finished, occasionally useful. Poke around.
-    </p>
+<style>
+/* ============ projects — title / featured / github panels ============ */
+.pi_wrap{max-width:1240px;margin:0 auto;padding:0 28px;width:100%}
+
+/* ---- 01 title ---- */
+.pi_titlerow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:48px}
+@media(max-width:920px){.pi_titlerow{grid-template-columns:1fr;gap:26px}}
+.pi_titleL h1{font-family:var(--display);color:#fff;font-size:clamp(3rem,12vw,8rem);line-height:.95;letter-spacing:3px}
+.pi_titleL .lead{max-width:54ch;margin-top:16px}
+/* guide button — grows + reveals a preview on hover */
+.guide_card{position:relative;display:block;width:340px;max-width:80vw;height:64px;background:var(--panel);border:2px solid var(--line);box-shadow:6px 6px 0 #000;overflow:hidden;transition:width .25s,height .25s,border-color .15s,box-shadow .15s;transform-origin:right center}
+.guide_card:hover{width:420px;height:230px;border-color:var(--blood);box-shadow:9px 9px 0 #000}
+.guide_card .gc_face{position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--txt);font-size:1rem;letter-spacing:1px;text-transform:uppercase}
+.guide_card .gc_prev{position:absolute;inset:64px 0 0;opacity:0;transition:opacity .2s .08s;background:#070709;font-size:11px;line-height:1.7;color:var(--dim);padding:14px 18px;border-top:1px solid var(--line)}
+.guide_card:hover .gc_prev{opacity:1}
+.guide_card .gc_prev b{color:#fff}.guide_card .gc_prev .c{color:var(--blood)}
+@media(max-width:920px){.guide_card:hover{width:100%}}
+
+/* ---- 02 featured gallery ---- */
+.pi_h2{font-family:var(--display);color:#fff;font-size:1.5rem;letter-spacing:2px;margin:0 0 4px;display:flex;align-items:center;gap:12px}
+.pi_h2::after{content:"";flex:1;height:2px;background:var(--line)}
+.pi_h2 .c{color:var(--blood)}
+.pi_sub{color:var(--dim);font-size:.9rem;margin-bottom:18px}
+.gallery_wrap{position:relative}
+.gallery{display:flex;gap:24px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 2px 18px;scrollbar-width:thin;scrollbar-color:var(--blood) var(--panel)}
+.gallery::-webkit-scrollbar{height:8px}.gallery::-webkit-scrollbar-thumb{background:var(--ash)}.gallery::-webkit-scrollbar-thumb:hover{background:var(--blood)}
+/* full-width cards — one shown at a time; screen + info side by side */
+.gcard{flex:0 0 100%;scroll-snap-align:center;background:var(--panel);border:2px solid var(--line);box-shadow:8px 8px 0 #000;display:grid;grid-template-columns:1.25fr 1fr;overflow:hidden;transition:border-color .15s}
+.gcard:hover{border-color:var(--blood)}
+.gc_screen{position:relative;min-height:clamp(280px,48vh,430px);background:#070709;border-right:2px solid var(--line);overflow:hidden}
+.gc_screen .slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:28px;opacity:0;transition:opacity .4s;image-rendering:pixelated}
+.gc_screen .slide.on{opacity:1}
+.gc_tag{position:absolute;bottom:11px;left:13px;z-index:2;color:var(--txt);font-size:.66rem;letter-spacing:2px;text-transform:uppercase;background:rgba(0,0,0,.6);padding:3px 9px;border:1px solid var(--line)}
+.gc_tag b{color:var(--blood)}
+.gc_dots{position:absolute;bottom:11px;right:13px;z-index:2;display:flex;gap:6px}
+.gc_dots i{width:8px;height:8px;border:1px solid var(--dim);background:transparent}
+.gc_dots i.on{background:var(--blood);border-color:var(--blood)}
+.gc_body{padding:30px 36px;display:flex;flex-direction:column;justify-content:center;gap:13px}
+.gc_body h3{font-family:var(--display);color:#fff;font-size:clamp(2.2rem,5vw,3.6rem);letter-spacing:1px;line-height:1}
+.gc_body h3 .dot{color:var(--blood)}
+.gc_body .gd{color:var(--txt);font-size:.98rem;line-height:1.55;max-width:42ch}
+.gc_feats{list-style:none;margin:4px 0 8px;padding:0;display:flex;flex-wrap:wrap;gap:7px}
+.gc_feats li{font-size:.7rem;letter-spacing:.5px;color:var(--txt);border:1px solid var(--line);padding:4px 9px;text-transform:uppercase}
+.gc_open{align-self:flex-start;color:var(--blood);font-size:.95rem;letter-spacing:1px;text-transform:uppercase}
+@media(max-width:760px){.gcard{grid-template-columns:1fr}.gc_screen{border-right:0;border-bottom:2px solid var(--line);min-height:240px}.gc_body{padding:22px 24px}}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:44px;height:44px;background:var(--panel);border:2px solid var(--blood);color:var(--blood);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:4px 4px 0 #000}
+.gnav:hover{background:var(--blood);color:#000}
+.gnav.prev{left:-16px}.gnav.next{right:-16px}
+@media(max-width:920px){.gnav{display:none}}
+
+/* --- mini mockups (slides) --- */
+.mk_chat{width:100%;display:flex;flex-direction:column;gap:7px;justify-content:flex-end;font-size:12px}
+.mk_chat .m{background:rgba(0,0,0,.5);border-left:3px solid var(--blood);padding:5px 9px;line-height:1.3}
+.mk_chat .u{font-weight:700;margin-right:6px}
+.mk_boot{width:100%;font-size:11px;line-height:1.6;color:#cdd3da}
+.mk_boot .ok{color:#39d353}.mk_boot .fail{color:#ff5a5a}.mk_boot .warn{color:#e8a33d}
+.mk_boot .cur{color:var(--blood);animation:piblink 1s steps(1) infinite}
+@keyframes piblink{50%{opacity:0}}
+.mk_scene{position:relative;width:100%;height:100%}
+.mk_scene .win{position:absolute;border:2px solid var(--blood);background:#0d0d12}
+.mk_scene .win::before{content:"";display:block;height:7px;background:var(--blood);opacity:.85}
+.mk_scene .game{left:2%;top:8%;width:60%;height:78%}
+.mk_scene .cam{right:2%;top:10%;width:32%;height:40%}
+.mk_scene .ch{right:2%;bottom:8%;width:32%;height:36%}
+.mk_alert{border:2px solid var(--blood);background:#0d0d12;box-shadow:5px 5px 0 rgba(0,0,0,.7);min-width:70%;text-align:center}
+.mk_alert .b{padding:4px 9px;background:var(--blood);color:#000;font-size:9px;letter-spacing:1px;display:flex;justify-content:space-between}
+.mk_alert .cc{padding:11px 8px}.mk_alert .t{color:#fff;font-size:13px;font-weight:700}.mk_alert .s{color:var(--dim);font-size:9.5px;margin-top:3px}
+.mk_timer{border-left:3px solid var(--blood);background:rgba(0,0,0,.5);padding:9px 16px;color:#fff;font-size:28px;font-weight:700;letter-spacing:2px}
+.mk_bar{position:absolute;left:0;right:0;bottom:0;height:30px;display:flex;align-items:center;gap:8px;padding:0 7px;background:rgba(0,0,0,.6);border-top:2px solid var(--blood);font-size:10px}
+.mk_bar .start{background:var(--blood);color:#000;font-weight:700;padding:4px 8px;letter-spacing:1px}
+.mk_bar .it{flex:1;color:var(--txt);letter-spacing:1px}.mk_bar .ck{color:var(--dim)}
+.mk_sting{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--blood)}
+.mk_sting span{position:relative;font-family:var(--display);color:#fff;letter-spacing:2px;font-size:22px}
+.mk_sting span::before{content:"CMYTRYX";position:absolute;inset:0;color:var(--glitch-alt);transform:translate(3px,2px);z-index:-1}
+.mk_video{position:absolute;inset:0;background:linear-gradient(135deg,#13202b,#0a0f14)}
+.mk_video::after{content:"\25B6";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;opacity:.8}
+.mk_sched{width:100%;border:2px solid var(--blood);padding:10px;font-size:11px}
+.mk_sched .t{color:var(--blood);font-weight:700;letter-spacing:1.5px;margin-bottom:6px}
+.mk_sched .r{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(209,28,28,.25)}
+.mk_sched .r b{color:var(--blood)}
+.mk_fmt{display:flex;align-items:flex-end;gap:14px}
+.mk_fmt i{display:block;border:2px solid var(--blood);background:#0d0d12}
+.mk_fmt .sq{width:60px;height:60px}.mk_fmt .wd{width:82px;height:46px}.mk_fmt .sty{width:36px;height:64px}
+.mk_emote{display:flex;align-items:flex-end;gap:16px}
+.mk_emote .e{line-height:1;filter:drop-shadow(2px 0 #fff) drop-shadow(-2px 0 #fff) drop-shadow(0 2px #fff) drop-shadow(0 -2px #fff)}
+.mk_emote .s1{font-size:66px}.mk_emote .s2{font-size:38px}.mk_emote .s3{font-size:22px}
+.mk_key{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--dim)}
+.mk_key .e{font-size:54px}
+.mk_key .chk{width:56px;height:56px;background-image:linear-gradient(45deg,#1a1a1f 25%,transparent 25%),linear-gradient(-45deg,#1a1a1f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1a1f 75%),linear-gradient(-45deg,transparent 75%,#1a1a1f 75%);background-size:10px 10px;display:flex;align-items:center;justify-content:center}
+
+/* ---- 03 github ---- */
+html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;display:block;padding:118px 0 80px}
+.repo_grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
+.repo_grid>li{list-style:none}
+.repo_card{position:relative;display:flex;flex-direction:column;height:268px;background:var(--panel);border:2px solid var(--line);box-shadow:6px 6px 0 #000;overflow:hidden;color:var(--txt);transition:border-color .12s,transform .1s,box-shadow .1s}
+.repo_card:hover{border-color:var(--blood);transform:translate(-2px,-2px);box-shadow:8px 8px 0 #000}
+.rc_top{position:relative;flex:1;min-height:0}
+.rc_face{position:absolute;inset:0;padding:18px;display:flex;flex-direction:column;gap:8px;transition:opacity .18s}
+.repo_card:hover .rc_face{opacity:0}
+.rc_face .tag{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase}
+.rc_face h3{font-family:var(--display);color:#fff;font-size:1.3rem;letter-spacing:1px;word-break:break-word}
+.rc_face .d{color:var(--dim);font-size:.85rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:4;line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.rc_readme{position:absolute;inset:0;opacity:0;transition:opacity .18s;background:#070709;display:flex;flex-direction:column;pointer-events:none}
+.repo_card:hover .rc_readme{opacity:1}
+.rc_readme .cap{flex:0 0 auto;display:flex;justify-content:space-between;padding:5px 12px;background:rgba(0,0,0,.55);border-bottom:1px solid var(--line);color:var(--dim);font-size:.64rem;letter-spacing:1.5px;text-transform:uppercase}
+.rc_readme .cap b{color:var(--blood)}
+.rc_readme .rd{flex:1;overflow:auto;padding:13px 16px;font-size:.82rem;line-height:1.55;color:var(--txt);white-space:pre-wrap}
+.rc_readme .rd .ld{color:var(--dim)}
+.rc_meta{flex:0 0 auto;display:flex;align-items:center;gap:16px;padding:9px 16px;border-top:2px solid var(--line);background:rgba(0,0,0,.25);color:var(--dim);font-size:.76rem;flex-wrap:wrap}
+.rc_meta .lang{display:inline-flex;align-items:center}
+.rc_meta .lang .dot{width:9px;height:9px;background:var(--blood);display:inline-block;margin-right:6px}
+.rc_meta .up{margin-left:auto;color:var(--dim)}
+#repo_status{color:var(--dim);margin-top:18px}
+#repo_status .retry{color:var(--blood);text-decoration:underline;cursor:pointer}
+</style>
+
+<!-- ===================== 01 · TITLE ===================== -->
+<section class="section" id="intro">
+  <div class="wrap pi_wrap pi_titlerow">
+    <div class="pi_titleL">
+      <p class="eyebrow">// ~/calamytryx/projects $ ls</p>
+      <h1 class="glitch" data-text="PROJECTS">PROJECTS</h1>
+      <p class="lead">Browser tools and experiments born out of chaos — every one runs 100% client-side, nothing uploaded. Swipe the featured tools, or jump to the GitHub repos.</p>
+    </div>
+    <div class="pi_titleR">
+      <a class="guide_card" href="/pages/projects/guide.html">
+        <span class="gc_face">📖 read the tool guide <span style="color:var(--blood)">→</span></span>
+        <span class="gc_prev">
+          <b># tool guide</b><br>
+          $ man stream.mk<br>
+          $ man bootanim.mk<br>
+          $ man schedule.mk<br>
+          $ man emote.mk<br>
+          <span class="c">$ _</span>
+        </span>
+      </a>
+    </div>
   </div>
 </section>
 
-<section class="section" style="padding-top:20px">
-  <div class="wrap">
-    <ul class="proj_grid card_list" id="repo_grid">
-      <!-- featured: the in-site tool (not a standalone repo) -->
-      <li>
-        <a href="/pages/projects/boot_animation_maker.html" class="card proj_card">
-          <div>
-            <span class="tag">// web tool · featured</span>
-            <h3 class="mt_1">bootanim.mk</h3>
-            <p class="mt_1">
-              Android <b>bootanimation.zip</b> maker in the browser — build boot logs or turn
-              a video into a looping boot animation, export the zip, push it to your phone.
-            </p>
+<!-- ===================== 02 · FEATURED ===================== -->
+<section class="section" id="featured">
+  <div class="wrap pi_wrap">
+    <h2 class="pi_h2"><span class="c">//</span> web tools</h2>
+    <p class="pi_sub">swipe ← → · hover a card to slideshow its example outputs</p>
+    <div class="gallery_wrap">
+      <button class="gnav prev" type="button" aria-label="previous">◀</button>
+      <div class="gallery" id="gallery">
+
+        <article class="gcard">
+          <div class="gc_screen">
+            <div class="slide on"><div class="mk_chat"><div class="m"><span class="u" style="color:#25f4ee">kawaii_uwu</span>hii from tiktok!</div><div class="m"><span class="u" style="color:#9146ff">DarkLord</span>poggers stream</div><div class="m"><span class="u" style="color:#ff0000">Gamer</span>first!!</div></div></div>
+            <div class="slide"><div class="mk_scene"><div class="win game"></div><div class="win cam"></div><div class="win ch"></div></div></div>
+            <div class="slide"><div class="mk_alert"><div class="b"><span>twitch · follow</span><span>– □ ×</span></div><div class="cc"><div class="t">xX_DarkLord</div><div class="s">welcome to the chaos</div></div></div></div>
+            <div class="slide"><div class="mk_timer">20:57:14</div></div>
+            <div class="slide"><div class="mk_bar"><span class="start">▣ start</span><span class="it">follow @calamytryx</span><span class="ck">8:57</span></div></div>
+            <div class="slide"><div class="mk_sting"><span data-text="CMYTRYX">CMYTRYX</span></div></div>
+            <div class="gc_tag"><b>//</b> <span class="cap">chat</span></div>
+            <div class="gc_dots"></div>
           </div>
-          <span class="go">open <span class="icon" aria-hidden="true" data-icon="external-link"></span></span>
-        </a>
-      </li>
-      <li>
-        <a href="/pages/projects/obs_widgets.html" class="card proj_card">
-          <div>
-            <span class="tag">// web tool · featured</span>
-            <h3 class="mt_1">stream.mk</h3>
-            <p class="mt_1">
-              OBS browser-source widget maker — merged multi-platform <b>chat</b> (Twitch, YouTube,
-              TikTok, Facebook), scene screens, timers, alerts &amp; banners. Download self-contained
-              <b>.html</b> overlays, no server needed.
-            </p>
+          <div class="gc_body">
+            <h3>stream<span class="dot">.</span>mk</h3>
+            <p class="gd">Self-contained OBS browser-source overlays — themed, downloaded, done.</p>
+            <ul class="gc_feats"><li>chat merger</li><li>scenes</li><li>timer</li><li>alerts</li><li>banner</li><li>stinger .webm</li></ul>
+            <a class="gc_open" href="/pages/projects/obs_widgets.html">open stream.mk →</a>
           </div>
-          <span class="go">open <span class="icon" aria-hidden="true" data-icon="external-link"></span></span>
-        </a>
-      </li>
-      <li>
-        <a href="/pages/projects/schedule_maker.html" class="card proj_card">
-          <div>
-            <span class="tag">// web tool · featured</span>
-            <h3 class="mt_1">schedule.mk</h3>
-            <p class="mt_1">
-              Weekly <b>stream schedule</b> maker — set your days, times &amp; games, pick the theme
-              and font, export one shareable <b>PNG</b> (square, wide, or story).
-            </p>
+        </article>
+
+        <article class="gcard">
+          <div class="gc_screen">
+            <div class="slide on"><div class="mk_boot"><div><span class="ok">[OK]</span> Mounted /system</div><div><span class="ok">[OK]</span> Started Zygote</div><div><span class="warn">[WARN]</span> battery 87%</div><div><span class="fail">[FAILED]</span> it is so over<span class="cur">█</span></div></div></div>
+            <div class="slide"><div class="mk_video"></div></div>
+            <div class="gc_tag"><b>//</b> <span class="cap">boot log</span></div>
+            <div class="gc_dots"></div>
           </div>
-          <span class="go">open <span class="icon" aria-hidden="true" data-icon="external-link"></span></span>
-        </a>
-      </li>
-      <li>
-        <a href="/pages/projects/emote_maker.html" class="card proj_card">
-          <div>
-            <span class="tag">// web tool · featured</span>
-            <h3 class="mt_1">emote.mk</h3>
-            <p class="mt_1">
-              <b>Emote · sticker · sub-badge</b> maker — import art, key out the background, add a
-              sticker outline, pixelate, then export <b>every platform size</b> (Twitch/Discord/YT)
-              at once as PNG, WebP or JPG.
-            </p>
+          <div class="gc_body">
+            <h3>bootanim<span class="dot">.</span>mk</h3>
+            <p class="gd">Android <b>bootanimation.zip</b> maker — fake boot logs or video loops.</p>
+            <ul class="gc_feats"><li>text mode</li><li>video mode</li><li>tag colors</li><li>exports zip</li></ul>
+            <a class="gc_open" href="/pages/projects/boot_animation_maker.html">open bootanim.mk →</a>
           </div>
-          <span class="go">open <span class="icon" aria-hidden="true" data-icon="external-link"></span></span>
-        </a>
-      </li>
-      <!-- GitHub repos injected here by the page script -->
-    </ul>
-    <p class="muted mt_2" id="repo_status">// loading repositories from github…</p>
+        </article>
+
+        <article class="gcard">
+          <div class="gc_screen">
+            <div class="slide on"><div class="mk_sched"><div class="t">// WEEKLY SCHEDULE</div><div class="r"><b>MON</b><span>8 PM</span><span>variety</span></div><div class="r"><b>WED</b><span>8 PM</span><span>games</span></div><div class="r"><b>FRI</b><span>8 PM</span><span>chaos</span></div></div></div>
+            <div class="slide"><div class="mk_fmt"><i class="sq"></i><i class="wd"></i><i class="sty"></i></div></div>
+            <div class="gc_tag"><b>//</b> <span class="cap">weekly</span></div>
+            <div class="gc_dots"></div>
+          </div>
+          <div class="gc_body">
+            <h3>schedule<span class="dot">.</span>mk</h3>
+            <p class="gd">Weekly stream schedule → one shareable PNG, any aspect.</p>
+            <ul class="gc_feats"><li>7 days</li><li>themes</li><li>fonts</li><li>square/wide/story</li></ul>
+            <a class="gc_open" href="/pages/projects/schedule_maker.html">open schedule.mk →</a>
+          </div>
+        </article>
+
+        <article class="gcard">
+          <div class="gc_screen">
+            <div class="slide on"><div class="mk_emote"><span class="e s1">😎</span></div></div>
+            <div class="slide"><div class="mk_key"><span class="chk">😼</span>→<span class="e">😼</span></div></div>
+            <div class="slide"><div class="mk_emote"><span class="e s1">🔥</span><span class="e s2">🔥</span><span class="e s3">🔥</span></div></div>
+            <div class="gc_tag"><b>//</b> <span class="cap">sticker</span></div>
+            <div class="gc_dots"></div>
+          </div>
+          <div class="gc_body">
+            <h3>emote<span class="dot">.</span>mk</h3>
+            <p class="gd">Emote · sticker · badge maker — key bg, outline, export every size.</p>
+            <ul class="gc_feats"><li>bg key</li><li>outline</li><li>pixelate</li><li>all sizes</li></ul>
+            <a class="gc_open" href="/pages/projects/emote_maker.html">open emote.mk →</a>
+          </div>
+        </article>
+
+      </div>
+      <button class="gnav next" type="button" aria-label="next">▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 03 · GITHUB ===================== -->
+<section class="section" id="github">
+  <div class="wrap pi_wrap">
+    <h2 class="pi_h2"><span class="c">//</span> github</h2>
+    <p class="pi_sub">everything public on <a href="https://github.com/Calamytryx" target="_blank" rel="noopener" style="color:var(--blood)">github.com/Calamytryx</a> — hover a repo to read its README.</p>
+    <ul class="repo_grid" id="repo_grid"></ul>
+    <p id="repo_status">// loading repositories from github…</p>
   </div>
 </section>

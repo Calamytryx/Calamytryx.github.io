@@ -25,14 +25,17 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
+  html,body{height:100%}
   body{
     background:var(--bg);
     color:var(--txt);
     font-family:var(--mono);
     font-size:13px;
     line-height:1.5;
+    overflow:hidden;display:flex;flex-direction:column;
   }
   .toolbar{
+    flex:0 0 auto;
     display:flex;align-items:baseline;gap:10px;
     padding:14px 18px;border-bottom:1px solid var(--line);
   }
@@ -42,11 +45,11 @@
   .app{
     display:grid;
     grid-template-columns:minmax(330px,430px) 1fr;
-    height:auto;
+    flex:1 1 auto;min-height:0;
   }
   /* ---------- controls ---------- */
   .controls{
-    overflow-y:auto;
+    overflow-y:auto;min-height:0;
     border-right:1px solid var(--line);
     padding:16px 18px 80px;
   }
@@ -119,7 +122,7 @@
   /* ---------- preview side ---------- */
   .stage{
     display:flex;flex-direction:column;align-items:center;
-    padding:20px;overflow-y:auto;gap:14px;
+    padding:20px;overflow-y:auto;min-height:0;gap:14px;
   }
   .phone{
     border:2px solid #2c343d;
@@ -154,16 +157,15 @@
   .bar i{display:block;height:100%;width:0;background:var(--green);transition:width .1s linear}
   .exporthint{color:var(--dim);font-size:11px;line-height:1.5}
   @media (max-width:860px){
-    .app{grid-template-columns:1fr;height:auto}
-    .controls{border-right:none;border-bottom:1px solid var(--line);padding-bottom:20px}
-    body{overflow:auto}
+    body{overflow:auto;display:block}
+    .app{grid-template-columns:1fr;display:block}
+    .controls{border-right:none;border-bottom:1px solid var(--line);padding-bottom:20px;overflow:visible}
+    .stage{overflow:visible}
   }
 </style>
   <script src="/assets/layout/cursors.js" defer></script>
 </head>
 <body data-page="projects">
-
-<div data-include="/assets/layout/header.html"></div>
 
 <header class="toolbar">
   <h1>bootanim<span class="dot">.</span>mk</h1>
@@ -1064,8 +1066,5 @@ restart();
 if (!reduced) requestAnimationFrame(loop);
 </script>
 
-<div data-include="/assets/layout/footer.html"></div>
-<script src="/assets/layout/include.js" defer></script>
-  <script src="/assets/layout/render.js" defer></script>
 </body>
 </html>

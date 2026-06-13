@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-snap>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/my_css.css">
   <script src="/assets/layout/include.js" defer></script>
   <script src="/assets/layout/render.js" defer></script>
+  <script src="/assets/layout/panels.js" defer></script>
   <script src="/assets/layout/cursors.js" defer></script>
 </head>
 <body data-page="projects">
@@ -25,45 +26,149 @@
     (function () {
       'use strict';
       var GH_USER = 'Calamytryx';
-
+      var FUNNY = [
+        '// no readme. it works on my machine ¯\\_(ツ)_/¯',
+        '// docs? the code IS the documentation.',
+        '// README.md not found. godspeed, soldier.',
+        '// undocumented chaos — dive in and find out.',
+        '// no readme. vibes-based engineering.',
+        '// here be dragons 🐉 (and zero docs)',
+        '// TODO: write a readme. (added ages ago)'
+      ];
       function esc(s) {
-        return (s || '').replace(/[&<>"]/g, function (c) {
+        return (s == null ? '' : String(s)).replace(/[&<>"]/g, function (c) {
           return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
         });
       }
+      function funny(name) { var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return FUNNY[h % FUNNY.length]; }
+      function ago(iso) {
+        var s = (Date.now() - new Date(iso).getTime()) / 1000, d = s / 86400;
+        if (d < 1) return 'today'; if (d < 2) return 'yesterday';
+        if (d < 30) return Math.floor(d) + 'd ago'; if (d < 365) return Math.floor(d / 30) + 'mo ago';
+        return Math.floor(d / 365) + 'y ago';
+      }
+      function cleanMd(s) {
+        return s.replace(/```[\s\S]*?```/g, ' ').replace(/<[^>]+>/g, ' ')
+          .replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+          .replace(/^\s*[#>*\-+|=]+/gm, ' ').replace(/[`*_~]+/g, '').replace(/\s+/g, ' ').trim();
+      }
+      var $ = function (id) { return document.getElementById(id); };
 
+      /* ---------------- featured gallery ---------------- */
+      var LAB = { mk_chat:'chat', mk_scene:'scene', mk_alert:'alert', mk_timer:'timer', mk_bar:'banner',
+        mk_sting:'stinger', mk_boot:'boot log', mk_video:'video', mk_sched:'weekly', mk_fmt:'formats', mk_emote:'export', mk_key:'bg key' };
+      function initGallery() {
+        var cards = [].slice.call(document.querySelectorAll('.gcard'));
+        /* per-card preview slideshow — ALWAYS playing (no hover needed) */
+        cards.forEach(function (card) {
+          var slides = [].slice.call(card.querySelectorAll('.slide'));
+          var dotsBox = card.querySelector('.gc_dots'), capEl = card.querySelector('.gc_tag .cap');
+          if (!slides.length) return;
+          var dots = slides.map(function () { var d = document.createElement('i'); dotsBox.appendChild(d); return d; });
+          var idx = 0;
+          function show(i) {
+            idx = (i + slides.length) % slides.length;
+            slides.forEach(function (s, j) { s.classList.toggle('on', j === idx); });
+            dots.forEach(function (d, j) { d.classList.toggle('on', j === idx); });
+            if (capEl) { var mk = slides[idx].querySelector('[class*=mk_]');
+              var key = mk ? (mk.className.match(/mk_\w+/) || [''])[0] : ''; capEl.textContent = LAB[key] || ('0' + (idx + 1)).slice(-2); }
+          }
+          show(0);
+          if (slides.length > 1) setInterval(function () { show(idx + 1); }, 1500);
+        });
+        /* looping carousel — auto-advances through the tools and wraps around */
+        var g = $('gallery'); if (!g || !cards.length) return;
+        var n = cards.length, cur = 0, auto = null, paused = false;
+        function stride() { return (cards.length > 1) ? (cards[1].offsetLeft - cards[0].offsetLeft) : g.clientWidth; }
+        function go(i) { cur = (i + n) % n; g.scrollTo({ left: cur * stride(), behavior: 'smooth' }); }
+        function start() { if (auto) clearInterval(auto); auto = setInterval(function () { if (!paused) go(cur + 1); }, 5000); }
+        var p = document.querySelector('.gnav.prev'), nx = document.querySelector('.gnav.next');
+        if (p) p.onclick = function () { go(cur - 1); start(); };
+        if (nx) nx.onclick = function () { go(cur + 1); start(); };
+        g.addEventListener('mouseenter', function () { paused = true; });   /* pause auto-loop while you look */
+        g.addEventListener('mouseleave', function () { paused = false; });
+        var st; g.addEventListener('scroll', function () { clearTimeout(st); st = setTimeout(function () { var s = stride(); if (s) cur = Math.round(g.scrollLeft / s); }, 140); });
+        start();
+      }
+
+      /* ---------------- github (cached + raw README, no API rate-limit issues) ---------------- */
+      var CACHE_KEY = 'cmytryx_repos_v2', CACHE_TTL = 12 * 60 * 60 * 1000; /* 12h — survives rate-limit windows */
       function repoCard(r) {
-        var lang = r.language
-          ? '<span class="repo_lang"><span class="dot"></span>' + esc(r.language) + '</span>'
-          : '';
+        var lang = r.language ? '<span class="lang"><span class="dot"></span>' + esc(r.language) + '</span>' : '<span class="lang" style="opacity:.55">— no lang</span>';
         var stars = '<span>★ ' + (r.stargazers_count || 0) + '</span>';
-        var desc = r.description ? esc(r.description) : 'No description.';
-        return '<li><a class="card proj_card" href="' + esc(r.html_url) + '" target="_blank" rel="noopener">'
-          + '<div><span class="tag">// github</span>'
-          + '<h3 class="mt_1">' + esc(r.name) + '</h3>'
-          + '<p class="mt_1">' + desc + '</p></div>'
-          + '<div class="repo_meta">' + lang + stars + '</div></a></li>';
+        var upd = r.updated_at ? '<span class="up">updated ' + ago(r.updated_at) + '</span>' : '';
+        return '<li><a class="repo_card" data-repo="' + esc(r.name) + '" data-branch="' + esc(r.default_branch || 'HEAD') + '" href="' + esc(r.html_url) + '" target="_blank" rel="noopener">'
+          + '<div class="rc_top">'
+          + '<div class="rc_face"><span class="tag">// github</span><h3>' + esc(r.name) + '</h3>'
+          + '<p class="d">' + (r.description ? esc(r.description) : 'no description.') + '</p></div>'
+          + '<div class="rc_readme"><div class="cap"><span>readme.md</span><b>' + esc(r.name) + '</b></div>'
+          + '<div class="rd"><span class="ld">// hover-loading readme…</span></div></div>'
+          + '</div><div class="rc_meta">' + lang + stars + upd + '</div></a></li>';
       }
-
-      function loadRepos() {
-        var grid = document.getElementById('repo_grid');
-        var status = document.getElementById('repo_status');
-        if (!grid) return;
-        fetch('https://api.github.com/users/' + GH_USER + '/repos?sort=updated&per_page=100')
-          .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-          .then(function (repos) {
-            var list = repos.filter(function (r) { return !r.fork; });
-            if (!list.length) { if (status) status.textContent = '// no public repositories found'; return; }
-            list.forEach(function (r) { grid.insertAdjacentHTML('beforeend', repoCard(r)); });
-            if (status) status.remove();
-          })
-          .catch(function (err) {
-            if (status) status.textContent = '// couldn\'t reach github (' + err.message + ')';
-          });
+      function loadReadme(a) {
+        if (a._rl) return; a._rl = true;
+        var name = a.getAttribute('data-repo'), br = a.getAttribute('data-branch') || 'HEAD', box = a.querySelector('.rd');
+        var base = 'https://raw.githubusercontent.com/' + GH_USER + '/' + name + '/';
+        var urls = [base + br + '/README.md', base + br + '/readme.md', base + 'HEAD/README.md'];
+        (function tryU(i) {
+          if (i >= urls.length) { box.textContent = funny(name); return; }
+          fetch(urls[i]).then(function (res) { if (!res.ok) throw 0; return res.text(); })
+            .then(function (t) { t = cleanMd(t); box.textContent = t ? (t.slice(0, 420) + (t.length > 420 ? '…' : '')) : funny(name); })
+            .catch(function () { tryU(i + 1); });
+        })(0);
       }
+      function renderRepos(list, status) {
+        var grid = $('repo_grid'); if (!grid) return;
+        grid.innerHTML = '';
+        list.forEach(function (r) { grid.insertAdjacentHTML('beforeend', repoCard(r)); });
+      }
+      function gh() {
+        var grid = $('repo_grid'), status = $('repo_status'); if (!grid) return;
+        grid.addEventListener('mouseover', function (e) { var a = e.target.closest('.repo_card'); if (a) loadReadme(a); });
+        grid.addEventListener('focusin', function (e) { var a = e.target.closest('.repo_card'); if (a) loadReadme(a); });
 
-      /* the projects intro is injected by include.js — wait for it */
-      document.addEventListener('includes:done', loadRepos);
+        var cached = null; try { cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) {}
+        if (cached && cached.list && cached.list.length && (Date.now() - cached.t) < CACHE_TTL) {
+          renderRepos(cached.list); if (status) status.remove(); return;
+        }
+
+        var shown = false;
+        /* refresh from the live API (best effort): updates stars/dates, or fills in if nothing showed yet */
+        function apiRefresh() {
+          fetch('https://api.github.com/users/' + GH_USER + '/repos?sort=updated&per_page=100')
+            .then(function (res) { if (res.status === 403) { var e = new Error('rate limit'); e.rl = true; throw e; } if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+            .then(function (repos) {
+              var list = repos.filter(function (r) { return !r.fork; }).map(function (r) {
+                return { name: r.name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, updated_at: r.updated_at, default_branch: r.default_branch };
+              });
+              if (!list.length) { if (!shown && status) status.textContent = '// no public repositories found'; return; }
+              try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), list: list })); } catch (e) {}
+              renderRepos(list); if (status) status.remove(); shown = true;
+            })
+            .catch(function (err) {
+              if (shown) return;                                  /* static/cache already on screen — ignore API failure */
+              if (cached && cached.list && cached.list.length) { renderRepos(cached.list); if (status) status.innerHTML = '// showing cached repos — github API is rate-limited (403) right now.'; return; }
+              rl403(status, err);
+            });
+        }
+
+        /* static bundled list FIRST — instant, no API call, no 403 (kept fresh by the daily GitHub Action) */
+        fetch('/assets/data/repos.json', { cache: 'no-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (s) { s = (s || []).filter(function (r) { return !r.fork; }); if (s.length) { renderRepos(s); if (status) status.remove(); shown = true; } })
+          .catch(function () {})
+          .then(apiRefresh);
+      }
+      function rl403(status, err) {
+        if (!status) return;
+        if (err && err.rl) {
+          status.innerHTML = '// github API hit its hourly rate limit (403) — it resets within the hour. <span class="retry">retry</span> · meanwhile see <a href="https://github.com/' + GH_USER + '" target="_blank" rel="noopener" style="color:var(--blood)">github.com/' + GH_USER + '</a>';
+          var rb = status.querySelector('.retry'); if (rb) rb.onclick = function () { status.textContent = '// retrying…'; gh(); };
+        } else { status.textContent = '// couldn\'t reach github (' + (err && err.message || 'error') + ')'; }
+      }
+      function initProjects() { initGallery(); gh(); }
+      if (window.__includesDone) initProjects();
+      else document.addEventListener('includes:done', initProjects);
     })();
   </script>
 

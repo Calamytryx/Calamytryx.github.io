@@ -1,0 +1,47 @@
+name: Update repo list
+
+# Bakes a static assets/data/repos.json so the projects page never needs the
+# (rate-limited) GitHub API at runtime. Runs daily + on demand.
+on:
+  schedule:
+    - cron: '0 6 * * *'      # every day ~06:00 UTC
+  workflow_dispatch:          # run manually from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repos-json
+  cancel-in-progress: true
+
+jobs:
+  repos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch public repos (authenticated → no rate-limit issues)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p assets/data
+          curl -sS --fail \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/users/${{ github.repository_owner }}/repos?sort=updated&per_page=100&type=owner" \
+          | jq '[ .[] | select(.fork | not) | {name, html_url, description, language, stargazers_count, updated_at, default_branch} ]' \
+          > assets/data/repos.json
+          echo "Repos written: $(jq length assets/data/repos.json)"
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- assets/data/repos.json; then
+            echo "No change."
+          else
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add assets/data/repos.json
+            git commit -m "chore: refresh repos.json [skip ci]"
+            git push
+          fi

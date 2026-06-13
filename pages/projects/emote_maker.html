@@ -8,13 +8,18 @@
 <link rel="icon" href="/assets/media/logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="/my_css.css">
-<script src="/assets/layout/include.js" defer></script>
-<script src="/assets/layout/render.js" defer></script>
 <script src="/assets/layout/cursors.js" defer></script>
 <style>
-  .app{display:grid;grid-template-columns:380px 1fr;min-height:100vh}
-  .panel_l{background:var(--panel);border-right:2px solid var(--line);padding:22px;overflow-y:auto;max-height:100vh}
-  .panel_r{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:26px;background:#070708}
+  html,body{height:100%}
+  body{overflow:hidden;display:flex;flex-direction:column}
+  .toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+  .toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+  .toolbar h1 .dot{color:var(--blood)}
+  .toolbar .tbsub{color:var(--dim);font-size:11px}
+  .toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+  .app{display:grid;grid-template-columns:380px 1fr;flex:1 1 auto;min-height:0}
+  .panel_l{background:var(--panel);border-right:2px solid var(--line);padding:22px;overflow-y:auto;min-height:0}
+  .panel_r{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:26px;background:#070708;overflow:auto;min-height:0}
   .app h1{font-family:var(--display);font-size:18px;color:#fff;letter-spacing:1px}
   .app .sub{color:var(--dim);font-size:11px;margin-bottom:14px}
   .sec{border-top:1px solid var(--line);padding:14px 0}
@@ -43,17 +48,19 @@
   .sizes .chip canvas{image-rendering:pixelated;background-image:linear-gradient(45deg,#1a1a1f 25%,transparent 25%),linear-gradient(-45deg,#1a1a1f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1a1f 75%),linear-gradient(-45deg,transparent 75%,#1a1a1f 75%);background-size:8px 8px}
   .sizes .chip span{color:var(--dim);font-size:10px}
   .back{color:var(--blood);text-decoration:none;font-size:12px}
-  @media(max-width:900px){.app{grid-template-columns:1fr}.panel_l{max-height:none}}
+  @media(max-width:900px){body{overflow:auto;display:block}.app{grid-template-columns:1fr;display:block}.panel_l{overflow:visible}.panel_r{overflow:visible}}
 </style>
 </head>
 <body data-page="projects">
 
-<div data-include="/assets/layout/header.html"></div>
+<header class="toolbar">
+  <h1>emote<span class="dot">.</span>mk</h1>
+  <span class="tbsub">emote · sticker · sub-badge maker — export every size at once</span>
+  <a href="index.html">← projects</a>
+</header>
 
 <div class="app">
   <div class="panel_l">
-    <h1>emote.mk</h1>
-    <div class="sub">make emotes · stickers · sub badges, export every size at once. <a class="back" href="index.html">← projects</a></div>
 
     <div class="sec">
       <div class="t">// image</div>
@@ -226,6 +233,5 @@ $('exportBtn').onclick=async function(){
 render();
 </script>
 
-<div data-include="/assets/layout/footer.html"></div>
 </body>
 </html>

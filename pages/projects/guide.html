@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tool guide — calamytryx</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/include.js" defer></script>
+<script src="/assets/layout/render.js" defer></script>
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+  .guide{max-width:900px;margin:0 auto;padding:90px 24px 80px}
+  .guide h2{font-family:var(--display);color:#fff;font-size:1.6rem;margin:38px 0 6px;letter-spacing:1px;border-bottom:2px solid var(--blood);padding-bottom:8px}
+  .guide h3{color:var(--blood);font-size:1.05rem;margin:22px 0 8px;letter-spacing:1px;text-transform:uppercase}
+  .guide p,.guide li{color:var(--txt);line-height:1.7}
+  .guide ul,.guide ol{margin:8px 0 8px 22px}
+  .guide code{background:var(--panel2);border:1px solid var(--line);padding:1px 6px;color:#ffd7d7;font-size:.92em}
+  .guide .toc{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+  .guide .toc a{border:2px solid var(--line);padding:6px 12px;font-size:.85rem;letter-spacing:1px}
+  .guide .toc a:hover{border-color:var(--blood)}
+  .guide .note{border-left:3px solid var(--blood);background:var(--panel);padding:12px 16px;margin:14px 0}
+  .guide a.open{display:inline-block;margin-top:6px;border:2px solid var(--blood);padding:6px 14px;font-size:.85rem;letter-spacing:1px;text-transform:uppercase}
+  .guide a.open:hover{background:var(--blood);color:#000}
+</style>
+</head>
+<body data-page="projects">
+
+<div data-include="/assets/layout/header.html"></div>
+
+<main class="guide">
+  <p class="eyebrow">// ~/calamytryx/projects $ man tools</p>
+  <h1 class="display h_lg cursor">TOOL GUIDE</h1>
+  <p class="lead mt_2">Everything here runs <b>100% in your browser</b> — nothing is uploaded, no account, no server. Each tool exports files you keep. This page explains all of them end to end.</p>
+
+  <div class="toc">
+    <a href="#obs">stream.mk (OBS widgets)</a>
+    <a href="#bridge">chat bridge setup</a>
+    <a href="#window">window theme</a>
+    <a href="#boot">bootanim.mk</a>
+    <a href="#schedule">schedule.mk</a>
+    <a href="#emote">emote.mk</a>
+  </div>
+
+  <!-- ===================== STREAM.MK ===================== -->
+  <h2 id="obs">stream.mk — OBS browser-source widgets</h2>
+  <p>A generator that builds <b>self-contained <code>.html</code> overlays</b> for OBS (or Streamlabs). Pick a widget, style it, hit export, and add the file to OBS — nothing phones home after download.</p>
+  <p><b>Add any widget to OBS:</b> <code>Sources → + → Browser → Local file</code> → pick the exported <code>.html</code> → set the width/height to your canvas (usually 1920×1080).</p>
+  <a class="open" href="obs_widgets.html">open stream.mk →</a>
+
+  <h3>Chat merger</h3>
+  <p>Merges live chat across platforms, priority <b>TikTok › Twitch › Facebook › YouTube</b>.</p>
+  <ul>
+    <li><b>Twitch</b> — works with zero setup: just type your channel name.</li>
+    <li><b>YouTube</b> — needs your free <b>Data API key</b> + the live video id.</li>
+    <li><b>TikTok &amp; Facebook</b> — come through the local <b>bridge</b> (see below).</li>
+  </ul>
+
+  <h3>Scene screens</h3>
+  <p>Start / BRB / End (centered hero, per-flavor position &amp; text-align), a <b>chat</b> layout (resizable, swappable cam + chat split), and a <b>game</b> layout (3 freely-placed elements — game window, cam, chat — each with editable position &amp; size). Custom background image, removable pixelated glow, and a <b>download-as-PNG</b> button (names files <code>start_1.png</code>, <code>game_1.png</code>…).</p>
+  <div class="note">A PNG is a still image — it won't run the countdown. For a live countdown or clock, drop the <b>Timer / clock</b> widget on top of the scene in OBS.</div>
+
+  <h3>Timer / clock</h3>
+  <p>A live clock, a count-up stream timer, or a countdown from <code>HH:MM:SS</code>.</p>
+
+  <h3>Alert box</h3>
+  <p>Full StreamElements/TikFinity-style alerts. Add <b>one row per event</b> (follow, sub, gift, raid, tip…), each with its own <b>title + subtitle</b>, image/GIF, sound, color, duration, and minimum amount (for tiered variations). Message tokens: <code>{user}</code> <code>{amount}</code> <code>{tier}</code> <code>{months}</code> <code>{message}</code> <code>{count}</code>. Add <code>?test</code> to the file URL to demo every type.</p>
+
+  <h3>Social banner</h3>
+  <p>A rotating lower-third — the bar stays put, the text swaps (one message per line).</p>
+
+  <h3>Stinger transition</h3>
+  <p>A full-screen transition that covers the cut and flashes your glitch wordmark. <b>6 styles:</b> wipe (4 directions), bars, shutter (blinds), split, iris (circle), zoom. Plays once on load; the preview loops.</p>
+  <div class="note">OBS's built-in <b>Stinger</b> transition needs a video file, so the tool has an <b>⬇ export stinger.webm (alpha)</b> button that <b>encodes</b> the animation frame-by-frame to an alpha <code>.webm</code> in your browser (WebCodecs — fast, not a screen-recording). In OBS: <b>Settings → Scene Transitions → + → Stinger</b>, pick the file, and set the <b>Transition Point</b> to the value the tool shows. (Alpha works in Firefox &amp; recent Chrome; if a browser drops the alpha you'll get a black background — use Firefox instead.) You can also use the exported <code>stinger.html</code> as a plain triggered browser-source overlay.</div>
+
+  <h3 id="window">Window theme (global)</h3>
+  <p>Every widget has a <b>Style</b> setting: <b>simple</b> or <b>window</b>. In window mode each <b>element</b> turns into its own little window/notification — chat messages become notification cards with a username title bar, the scene's cam/chat/game boxes each get a title bar, the timer and alert become notification windows, and the <b>social banner becomes a desktop taskbar</b> (start button + clock). Editable title-bar color, Windows/macOS buttons, and border color/width.</p>
+
+  <h3>Fonts</h3>
+  <p>Each widget's <b>Font</b> control has three sources: <b>this site's fonts</b> (embedded into the file, works offline in OBS), <b>Google Fonts</b> (searchable — loads over the network), or <b>upload</b> your own <code>.ttf/.otf/.woff</code> (embedded).</p>
+
+  <!-- ===================== BRIDGE ===================== -->
+  <h2 id="bridge">Chat / alert bridge (TikTok &amp; Facebook)</h2>
+  <p>Browsers can't read TikTok/Facebook live events directly, so a tiny <b>local Node bridge</b> does it and feeds your overlay over a WebSocket. One-time setup:</p>
+  <ol>
+    <li>Install <b>Node.js</b> (<code>nodejs.org</code>).</li>
+    <li>In stream.mk's Chat tab, download <b>bridge.js</b> and the launcher for your OS: <b>run-bridge.bat</b> (Windows) or <b>run-bridge.sh</b> (Linux/macOS). Keep all of them in one folder.</li>
+    <li><b>Windows:</b> double-click <code>run-bridge.bat</code>. <b>Linux/macOS:</b> <code>chmod +x run-bridge.sh</code> then <code>./run-bridge.sh</code>. The script installs the dependencies the first time and asks for your TikTok username.</li>
+    <li>Leave it running while you stream. In the widget, set the <b>Bridge</b> field to <code>ws://localhost:8787</code> (the default).</li>
+  </ol>
+  <div class="note"><b>Facebook</b> needs your own Page access token + live video id via the Graph API — see the comments inside <code>bridge.js</code> for where to plug it in.</div>
+
+  <!-- ===================== BOOTANIM ===================== -->
+  <h2 id="boot">bootanim.mk — Android boot animation maker</h2>
+  <p>Builds an Android <code>bootanimation.zip</code> in the browser. Two modes:</p>
+  <ul>
+    <li><b>Text mode</b> — type a fake boot log (lines starting with <code>[OK] [FAILED] [WARN] [INFO]</code> get colored), pick fonts/colors/resolution, optional blinking cursor.</li>
+    <li><b>Video mode</b> — turn a video into a looping boot animation.</li>
+  </ul>
+  <p>Export gives you a <code>bootanimation.zip</code> (store-compressed, as Android requires). Push it to <code>/system/media/bootanimation.zip</code> (root) or ship it in a Magisk module.</p>
+  <a class="open" href="boot_animation_maker.html">open bootanim.mk →</a>
+
+  <!-- ===================== SCHEDULE ===================== -->
+  <h2 id="schedule">schedule.mk — weekly schedule maker</h2>
+  <p>Turn your week into one shareable image. Toggle days on/off, set times and activities, pick the theme colors and font, optionally add a background image, then export a <b>PNG</b> in square (1080), wide (1920×1080), or story (1080×1920).</p>
+  <a class="open" href="schedule_maker.html">open schedule.mk →</a>
+
+  <!-- ===================== EMOTE ===================== -->
+  <h2 id="emote">emote.mk — emote / sticker / badge maker</h2>
+  <p>Import art (drag-drop or click), then:</p>
+  <ul>
+    <li><b>Frame</b> — zoom, move, pixelate, optional circle mask.</li>
+    <li><b>Background removal</b> — key out a color (with a "pick from corners" auto button) + tolerance.</li>
+    <li><b>Sticker outline</b> — add a colored contour of any thickness.</li>
+    <li><b>Fill</b> — transparent, or a solid background color.</li>
+  </ul>
+  <p>Export a whole preset at once — <b>Twitch emote</b> (112/56/28), <b>Twitch sub badge</b> (72/36/18), <b>Discord</b> emoji/sticker, <b>YouTube</b>, or generic — in <b>PNG, WebP, or JPG</b>. Multiple sizes come down as a <code>.zip</code>; a single size downloads directly.</p>
+  <a class="open" href="emote_maker.html">open emote.mk →</a>
+
+  <p class="muted mt_3">// everything here is free, offline-capable, and yours. report weirdness on github.</p>
+</main>
+
+<div data-include="/assets/layout/footer.html"></div>
+</body>
+</html>

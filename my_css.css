@@ -28,6 +28,12 @@
   src:url('assets/fonts/ChaosMytryx.ttf') format('truetype');
   font-display:swap;
 }
+/*  pixel emoji — so any emoji falls through to a pixelated glyph instead of the OS color emoji */
+@font-face{
+  font-family:'Serenity Emoji';
+  src:url('assets/fonts/SerenityOS-Emoji.ttf') format('truetype');
+  font-display:swap;
+}
 
 /* ---------- design tokens ---------- */
 :root{
@@ -40,9 +46,10 @@
   --blood:#d11c1c;
   --rust:#7a0f12;
   --ash:#3a3a40;
+  --glitch-alt:#2ee3e3;   /* glitch 2nd layer — complement of --blood; override to retheme */
 
-  --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas',monospace;
-  --display:'Monocraft','Departure Mono',monospace;
+  --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas','Serenity Emoji',monospace;
+  --display:'Monocraft','Departure Mono','Serenity Emoji',monospace;
 
   --maxw:1300px;
   --shadow:6px 6px 0 #000;
@@ -145,7 +152,7 @@ body::after{
   pointer-events:none;
 }
 .glitch::before{color:var(--blood);z-index:-2}   /* red, back  */
-.glitch::after{color:#22d3ee;z-index:-1}          /* blue, mid  */
+.glitch::after{color:var(--glitch-alt);z-index:-1} /* mid — tracks accent via token */
 @media (prefers-reduced-motion:no-preference){
   .glitch::before{animation:glitch_red 5s infinite}
   .glitch::after{animation:glitch_blue 5s infinite}
@@ -452,6 +459,16 @@ input[type=url], input[type=password], textarea{
 :disabled, [disabled], [aria-disabled="true"], .is-disabled{ cursor: var(--cur-deny); }
 [draggable="true"]{ cursor: var(--cur-grab); }
 [draggable="true"]:active{ cursor: var(--cur-grabbing); }
+
+/* fuller use of the cursor set — cursors.js auto-swaps these keywords to their pixel pngs */
+canvas, .stage{ cursor: crosshair; }                 /* drawing / preview surfaces */
+figure img, .embed, .social_card .icon, [data-zoom]{ cursor: zoom-in; }
+abbr[title], [title], .help, [data-help]{ cursor: help; }
+input[type=range]{ cursor: grab; }
+input[type=range]:active{ cursor: grabbing; }
+[data-wait], .is-loading, [aria-busy="true"]{ cursor: progress; }
+[data-move], .draghandle{ cursor: move; }
+input[type=color]{ cursor: copy; }
 
 /* ============================================================
    FULL-SCREEN PANELS — game-site style (opt-in via <html data-snap>)
