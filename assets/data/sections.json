@@ -12,17 +12,17 @@
     "title": "NO MERCH YET",
     "body": "T-shirts, stickers, wall art, home decor, and more designed and sold by independent artists. Find Calamytryx-inspired gifts and merchandise printed on quality products (none so far).",
     "cta": "Read More",
-    "ctaHref": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    "cta_href": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   },
   "fanart": {
     "eyebrow": "// the gallery",
     "title": "CALAMYTY'S FAN ARTS",
     "body": "You want to draw, sketch, sculpt, or even NSFW R34 — you could all be here, just use the #CalArts or #Calats or nsfw.",
-    "cta": "Read More"
+    "cta": "View More"
   },
   "about": {
     "title": "HUH?",
-    "body": "Calamyty Mytryx is a Vtuber who streams on TikTok and Twitch and posts on Twitter. He is also known as Calamytryx or Calamyty. He is a level 20 disaster who plays random games and interacts with his fans. He has a third character model that he plans to reveal soon. He is part of the PHVtuber community, which is a Group of Filipino Vtubers."
+    "body": "Calamyty Mytryx is a Vtuber who streams on TikTok and Twitch and posts on Twitter. He is also known as Calamytryx or Calamyty. He is a level {age} disaster who plays random games and interacts with his fans. He has a third character model that he plans to reveal soon. He is part of the PHVtuber community, which is a Group of Filipino Vtubers."
   },
   "stream": {
     "eyebrow": "// now streaming",

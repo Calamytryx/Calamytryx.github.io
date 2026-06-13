@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>schedule.mk — stream schedule maker</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/include.js" defer></script>
+<script src="/assets/layout/render.js" defer></script>
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+  .app{display:grid;grid-template-columns:380px 1fr;gap:0;min-height:100vh}
+  .panel_l{background:var(--panel);border-right:2px solid var(--line);padding:22px;overflow-y:auto;max-height:100vh}
+  .panel_r{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;padding:26px;background:#070708}
+  .app h1{font-family:var(--display);font-size:18px;color:#fff;letter-spacing:1px}
+  .app .sub{color:var(--dim);font-size:11px;margin-bottom:14px}
+  .sec{border-top:1px solid var(--line);padding:14px 0}
+  .sec .t{color:var(--blood);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+  .field label{color:var(--dim);font-size:11px}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  input,select,textarea{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:8px 10px}
+  input:focus,select,textarea:focus{outline:none;border-color:var(--blood)}
+  .day{display:grid;grid-template-columns:18px 70px 1fr;gap:8px;align-items:center;margin-bottom:7px}
+  .day input[type=checkbox]{width:16px;height:16px}
+  .day .dn{color:var(--txt);font-size:11px;letter-spacing:1px;text-transform:uppercase}
+  .day.off .dn{color:var(--dim)}
+  .crow{display:flex;gap:8px;align-items:center}
+  .crow input[type=color]{width:38px;height:30px;padding:2px;border:2px solid var(--line);background:none}
+  .hint{color:var(--dim);font-size:11px;margin-top:4px}
+  .big{width:100%;background:var(--blood);color:#000;border:0;font-family:var(--mono);font-weight:700;font-size:13px;padding:12px;letter-spacing:.5px;cursor:pointer;margin-top:8px}
+  .big:hover{background:#f23a3a}
+  .stagewrap{border:2px solid var(--line);background:#000;overflow:hidden;box-shadow:6px 6px 0 #000;max-width:100%}
+  .pmeta{color:var(--dim);font-size:11px}
+  .back{color:var(--blood);text-decoration:none;font-size:12px}
+  @media(max-width:900px){.app{grid-template-columns:1fr}.panel_l{max-height:none}}
+</style>
+</head>
+<body data-page="projects">
+
+<div data-include="/assets/layout/header.html"></div>
+
+<div class="app">
+  <!-- ================= CONTROLS ================= -->
+  <div class="panel_l">
+    <h1>schedule.mk</h1>
+    <div class="sub">weekly stream schedule → one shareable PNG. <a class="back" href="index.html">← projects</a></div>
+
+    <div class="sec">
+      <div class="t">// header</div>
+      <div class="field"><label>Title</label><input id="title" value="WEEKLY SCHEDULE"></div>
+      <div class="field"><label>Handle</label><input id="handle" value="@calamytryx"></div>
+      <div class="field"><label>Tagline / footer line</label><input id="tagline" value="tiktok · twitch · youtube — all times PHT"></div>
+      <label class="check" style="color:var(--txt);font-size:12px"><input type="checkbox" id="glitch" checked style="width:16px;height:16px"> glitch the title</label>
+    </div>
+
+    <div class="sec">
+      <div class="t">// days</div>
+      <div id="days"></div>
+    </div>
+
+    <div class="sec">
+      <div class="t">// look</div>
+      <div class="field"><label>Background</label><div class="crow"><input type="color" id="cBg" value="#0a0a0c"><span class="hint" id="cBgV">#0a0a0c</span></div></div>
+      <div class="field"><label>Accent</label><div class="crow"><input type="color" id="cAccent" value="#d11c1c"></div></div>
+      <div class="field"><label>Text</label><div class="crow"><input type="color" id="cText" value="#e8eef3"></div></div>
+      <div class="field"><label>Background image (optional)</label><input type="file" id="bgImg" accept="image/*"><div class="hint" id="bgImgInfo">none</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="t">// font</div>
+      <div class="field"><label>Source</label>
+        <select id="fontSrc"><option value="site">this site’s fonts</option><option value="google">Google Fonts (search)</option><option value="upload">upload a file</option></select>
+      </div>
+      <div class="field" id="fSiteWrap"><label>Site font</label><select id="fontSite"></select></div>
+      <div class="field" id="fGoogleWrap"><label>Search Google Fonts</label><input id="fontGoogle" list="gfonts" placeholder="e.g. Press Start 2P"><datalist id="gfonts"></datalist></div>
+      <div class="field" id="fUploadWrap"><label>Upload .ttf/.otf/.woff</label><input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2"></div>
+    </div>
+
+    <div class="sec">
+      <div class="t">// export</div>
+      <div class="field"><label>Format</label>
+        <select id="format"><option value="sq">square 1080×1080</option><option value="wide">wide 1920×1080</option><option value="story">story 1080×1920</option></select>
+      </div>
+      <button class="big" id="exportBtn">⬇ download schedule PNG</button>
+      <div class="hint">A still PNG using your fonts &amp; theme. Site/uploaded fonts embed; a Google font may fall back in the PNG (it renders fine in preview).</div>
+    </div>
+  </div>
+
+  <!-- ================= PREVIEW ================= -->
+  <div class="panel_r">
+    <div class="pmeta" id="pmeta">preview</div>
+    <div class="stagewrap" id="stagewrap"><div id="stage"></div></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const SITE_FONTS = [
+  {name:'Departure Mono', file:'/assets/fonts/DepartureMono-Regular.otf', ext:'otf'},
+  {name:'Monocraft',      file:'/assets/fonts/Monocraft.ttf',             ext:'ttf'},
+  {name:'Cozette',        file:'/assets/fonts/CozetteCrossedSevenVector.ttf', ext:'ttf'},
+  {name:'ChaosMytryx',    file:'/assets/fonts/ChaosMytryx.ttf',           ext:'ttf'}
+];
+const GOOGLE_FONTS = ['Press Start 2P','VT323','Silkscreen','Pixelify Sans','Handjet','DotGothic16','Jersey 10','Jersey 15','Micro 5','Share Tech Mono','Space Mono','JetBrains Mono','Major Mono Display','Orbitron','Audiowide','Bungee','Monoton','Wallpoet','Black Ops One','Rubik Glitch','Creepster','Nosifer','Pirata One','Special Elite','Bebas Neue','Anton','Oswald','Russo One','Teko','Chakra Petch','Michroma'];
+
+const cfg = {
+  font:'Departure Mono', fontB64:'', fontExt:'', fontGoogle:'', bgImage:'',
+  days: DAYS.map((d,i)=>({on:i<5, time:'8:00 PM', act: i<5 ? 'Variety / chaos' : (i===5?'Games night':'REST')}))
+};
+
+/* ---------- build day controls ---------- */
+function buildDays(){
+  const host = $('days'); host.innerHTML='';
+  DAYS.forEach((d,i)=>{
+    const row=document.createElement('div'); row.className='day'+(cfg.days[i].on?'':' off');
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=cfg.days[i].on;
+    cb.onchange=()=>{ cfg.days[i].on=cb.checked; row.classList.toggle('off',!cb.checked); render(); };
+    const nm=document.createElement('div'); nm.className='dn'; nm.textContent=d.slice(0,3);
+    const wrap=document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='6px';
+    const t=document.createElement('input'); t.value=cfg.days[i].time; t.placeholder='time'; t.style.flex='0 0 78px';
+    t.oninput=()=>{ cfg.days[i].time=t.value; render(); };
+    const a=document.createElement('input'); a.value=cfg.days[i].act; a.placeholder='activity'; a.style.flex='1';
+    a.oninput=()=>{ cfg.days[i].act=a.value; render(); };
+    wrap.append(t,a);
+    row.append(cb,nm,wrap); host.appendChild(row);
+  });
+}
+
+/* ---------- font picker ---------- */
+function famCss(){ return "'"+(cfg.fontGoogle||cfg.font||'Departure Mono')+"',monospace"; }
+function fontEmbedCss(){
+  if(cfg.fontGoogle) return "@import url('https://fonts.googleapis.com/css2?family="+cfg.fontGoogle.trim().replace(/\s+/g,'+')+":wght@400;700&display=swap');";
+  if(cfg.fontB64) return "@font-face{font-family:'"+cfg.font+"';src:url(data:font/"+cfg.fontExt+";base64,"+cfg.fontB64+")}";
+  return '';
+}
+$('fontSite').innerHTML = SITE_FONTS.map(s=>'<option value="'+s.name+'">'+s.name+'</option>').join('');
+$('gfonts').innerHTML = GOOGLE_FONTS.map(n=>'<option value="'+n+'">').join('');
+function embedSiteFont(name){
+  const sf = SITE_FONTS.find(x=>x.name===name); if(!sf) return;
+  cfg.font=name; cfg.fontGoogle='';
+  fetch(sf.file).then(r=>r.blob()).then(b=>{ const rd=new FileReader(); rd.onload=()=>{ cfg.fontB64=String(rd.result).split(',')[1]; cfg.fontExt=sf.ext; render(); }; rd.readAsDataURL(b); })
+    .catch(()=>{ cfg.fontB64=''; cfg.fontExt=sf.ext; render(); });
+}
+const fWraps = { site:$('fSiteWrap'), google:$('fGoogleWrap'), upload:$('fUploadWrap') };
+function showFontSrc(){ const v=$('fontSrc').value; for(const k in fWraps) fWraps[k].style.display = (k===v?'flex':'none');
+  if(v==='site') embedSiteFont($('fontSite').value);
+}
+$('fontSrc').onchange=showFontSrc;
+$('fontSite').onchange=()=>embedSiteFont($('fontSite').value);
+$('fontGoogle').oninput=()=>{ cfg.fontGoogle=$('fontGoogle').value.trim(); cfg.font=cfg.fontGoogle||'Departure Mono'; cfg.fontB64=''; cfg.fontExt='';
+  if(cfg.fontGoogle){ ensureGoogleLink(cfg.fontGoogle); } render(); };
+$('fontFile').onchange=()=>{ const f=$('fontFile').files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{ cfg.fontB64=String(rd.result).split(',')[1]; cfg.fontExt=(f.name.split('.').pop()||'otf').toLowerCase();
+    cfg.font=(f.name.replace(/\.[^.]+$/,'').replace(/[^A-Za-z0-9]/g,'')||'CustomFont'); cfg.fontGoogle='';
+    /* register for preview too */
+    const rd2=new FileReader(); rd2.onload=()=>{ try{ const ff=new FontFace(cfg.font, rd2.result); ff.load().then(x=>{document.fonts.add(x);render();}); }catch(_){ render(); } }; rd2.readAsArrayBuffer(f);
+  }; rd.readAsDataURL(f); };
+const gLinks={};
+function ensureGoogleLink(name){ if(gLinks[name]) return; const l=document.createElement('link'); l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family='+name.replace(/\s+/g,'+')+':wght@400;700&display=swap'; document.head.appendChild(l); gLinks[name]=1; }
+
+/* ---------- colors / bg ---------- */
+$('cBg').oninput=()=>{ $('cBgV').textContent=$('cBg').value; render(); };
+$('cAccent').oninput=render; $('cText').oninput=render;
+$('title').oninput=render; $('handle').oninput=render; $('tagline').oninput=render; $('glitch').onchange=render; $('format').onchange=render;
+$('bgImg').onchange=()=>{ const f=$('bgImg').files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ cfg.bgImage=String(rd.result); $('bgImgInfo').textContent='✔ '+f.name; render(); }; rd.readAsDataURL(f); };
+
+/* ---------- markup (inline styles so preview == export) ---------- */
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dims(){ return {sq:[1080,1080],wide:[1920,1080],story:[1080,1920]}[$('format').value]||[1080,1080]; }
+function scheduleMarkup(W,H){
+  const ac=$('cAccent').value, tx=$('cText').value, bg=$('cBg').value;
+  const fam=famCss();
+  const titleSize = Math.round(W*0.062), dayDn=Math.round(W*0.026), bodyS=Math.round(W*0.024);
+  const bgLayer = cfg.bgImage ? 'background-image:url('+cfg.bgImage+');background-size:cover;background-position:center;' : '';
+  const glitch = $('glitch').checked;
+  const titleHtml = glitch
+    ? '<div style="position:relative;display:inline-block;color:'+tx+'"><span style="position:absolute;left:-4px;top:-4px;color:'+ac+'">'+esc($('title').value)+'</span><span style="position:absolute;left:4px;top:4px;color:#22d3ee">'+esc($('title').value)+'</span><span style="position:relative">'+esc($('title').value)+'</span></div>'
+    : '<span style="color:'+tx+';text-shadow:4px 4px 0 '+ac+'">'+esc($('title').value)+'</span>';
+  let rows='';
+  DAYS.forEach((d,i)=>{
+    const D=cfg.days[i]; const dim = D.on?'1':'0.4';
+    rows += '<div style="display:flex;align-items:center;gap:'+Math.round(W*0.02)+'px;padding:'+Math.round(W*0.016)+'px 0;border-bottom:2px solid '+ac+'33;opacity:'+dim+'">'
+      + '<div style="flex:0 0 '+Math.round(W*0.20)+'px;color:'+ac+';font-weight:700;font-size:'+dayDn+'px;letter-spacing:2px;text-transform:uppercase">'+esc(d)+'</div>'
+      + '<div style="flex:0 0 '+Math.round(W*0.18)+'px;color:'+tx+';font-size:'+bodyS+'px">'+(D.on?esc(D.time):'')+'</div>'
+      + '<div style="flex:1;color:'+(D.on?tx:ac)+';font-size:'+bodyS+'px;letter-spacing:1px">'+esc(D.on?D.act:(D.act||'REST'))+'</div>'
+      + '</div>';
+  });
+  const pad=Math.round(W*0.055);
+  return '<div style="width:'+W+'px;height:'+H+'px;box-sizing:border-box;position:relative;background-color:'+bg+';'+bgLayer+'font-family:'+fam+';overflow:hidden;image-rendering:pixelated">'
+    + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,'+bg+'cc,'+bg+'66 45%,'+bg+'ee);"></div>'
+    + '<div style="position:relative;box-sizing:border-box;width:100%;height:100%;padding:'+pad+'px;border:'+Math.round(W*0.01)+'px solid '+ac+';display:flex;flex-direction:column">'
+    +   '<div style="color:'+ac+';letter-spacing:4px;text-transform:uppercase;font-size:'+Math.round(W*0.018)+'px">// weekly schedule</div>'
+    +   '<div style="font-weight:700;letter-spacing:3px;line-height:1.05;font-size:'+titleSize+'px;margin:'+Math.round(W*0.01)+'px 0">'+titleHtml+'</div>'
+    +   '<div style="color:'+tx+';opacity:.8;font-size:'+Math.round(W*0.024)+'px;letter-spacing:2px">'+esc($('handle').value)+'</div>'
+    +   '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin:'+Math.round(W*0.02)+'px 0">'+rows+'</div>'
+    +   '<div style="color:'+tx+';opacity:.6;font-size:'+Math.round(W*0.02)+'px;letter-spacing:2px">'+esc($('tagline').value)+'</div>'
+    + '</div></div>';
+}
+
+/* ---------- preview ---------- */
+let pngCount=0;
+function render(){
+  const [W,H]=dims();
+  const stage=$('stage');
+  stage.innerHTML = scheduleMarkup(W,H);
+  stage.style.width=W+'px'; stage.style.height=H+'px'; stage.style.transformOrigin='top left';
+  const wrap=$('stagewrap');
+  const avail = Math.min(wrap.parentElement.clientWidth-4, 760);
+  const scale = Math.min(avail/W, (window.innerHeight-160)/H);
+  stage.style.transform='scale('+scale+')';
+  wrap.style.width=(W*scale)+'px'; wrap.style.height=(H*scale)+'px';
+  $('pmeta').textContent='preview · '+W+'×'+H;
+}
+window.addEventListener('resize', render);
+
+/* ---------- export PNG ---------- */
+$('exportBtn').onclick=function(){
+  const [W,H]=dims();
+  let face=fontEmbedCss(); if(cfg.fontGoogle) face='';
+  const inner=scheduleMarkup(W,H);
+  const doc='<html xmlns="http://www.w3.org/1999/xhtml"><head><style>'+face+'*{margin:0;box-sizing:border-box}</style></head><body>'+inner+'</body></html>';
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject width="100%" height="100%">'+doc+'</foreignObject></svg>';
+  const img=new Image();
+  img.onload=function(){ const cv=document.createElement('canvas'); cv.width=W; cv.height=H; cv.getContext('2d').drawImage(img,0,0,W,H);
+    cv.toBlob(function(b){ if(!b){alert('PNG render failed.');return;} const a=document.createElement('a'); a.download='schedule_'+(++pngCount)+'.png'; a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); },'image/png'); };
+  img.onerror=function(){ alert('PNG render failed — try a site/uploaded font or remove a Google font for the PNG.'); };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+};
+
+/* ---------- go ---------- */
+buildDays(); showFontSrc(); render();
+</script>
+
+<div data-include="/assets/layout/footer.html"></div>
+</body>
+</html>

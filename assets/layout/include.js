@@ -8,11 +8,11 @@
 (function () {
   'use strict';
 
-  async function injectAll() {
+  async function inject_all() {
     /* section order/visibility is driven by /assets/data/layout.json.
        a <main data-sections> element gets its body partials (re)built from it;
        the markup already in the shell stays as a fallback if the fetch fails. */
-    await expandSections();
+    await expand_sections();
 
     var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-include]'));
     await Promise.all(nodes.map(async function (node) {
@@ -28,12 +28,12 @@
     }));
     window.__includesDone = true;
     document.dispatchEvent(new CustomEvent('includes:done'));
-    initChrome();
+    init_chrome();
   }
 
   /* build the <main data-sections> body from layout.json for this page.
      leaves the shell's fallback markup untouched if anything goes wrong. */
-  async function expandSections() {
+  async function expand_sections() {
     var host = document.querySelector('[data-sections]');
     if (!host) return;
     var page = document.body.getAttribute('data-page');
@@ -58,9 +58,9 @@
   }
 
   /* wire up nav + footer behaviour once the shared chrome is in the DOM */
-  function initChrome() {
-    var toggle = document.querySelector('.nav-toggle');
-    var links = document.getElementById('navLinks');
+  function init_chrome() {
+    var toggle = document.querySelector('.nav_toggle');
+    var links = document.getElementById('nav_links');
     if (toggle && links) {
       toggle.addEventListener('click', function () { links.classList.toggle('open'); });
       links.addEventListener('click', function (e) {
@@ -71,7 +71,7 @@
     /* highlight the link for the current page (set <body data-page="..."> ) */
     var page = document.body.getAttribute('data-page');
     if (page) {
-      var active = document.querySelector('.nav-links a[data-nav="' + page + '"]');
+      var active = document.querySelector('.nav_links a[data-nav="' + page + '"]');
       if (active) active.classList.add('active');
     }
 
@@ -81,8 +81,8 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectAll);
+    document.addEventListener('DOMContentLoaded', inject_all);
   } else {
-    injectAll();
+    inject_all();
   }
 })();

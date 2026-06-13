@@ -9,7 +9,7 @@
      [data-text="site.tagline"]      -> element.textContent
      [data-href="site.links.lore"]   -> element href     (+ [data-mailto] => mailto:)
      [data-src="sections.stream.embed"] -> element src
-     [data-render="socials-cards"]   -> list/component built by RENDER[name]
+     [data-render="socials_cards"]   -> list/component built by RENDER[name]
    Data namespaces: site, socials, menu, sections, icons
    ============================================================ */
 (function () {
@@ -23,9 +23,9 @@
     icons: '/assets/icons/icons_grid.json'
   };
 
-  var dataPromise = loadAll();
+  var data_promise = load_all();
 
-  function loadAll() {
+  function load_all() {
     var keys = Object.keys(FILES);
     return Promise.all(keys.map(function (k) {
       return fetch(FILES[k], { cache: 'no-cache' }).then(function (r) {
@@ -38,12 +38,12 @@
       /* icons_grid.json is the raw icon set: an array of
          { baseName, nameWithoutExtension, source, style } — fold it into a
          name -> svg map, preferring the "sharp" variant. */
-      if (Array.isArray(out.icons)) out.icons = buildIconMap(out.icons);
+      if (Array.isArray(out.icons)) out.icons = build_icon_map(out.icons);
       return out;
     });
   }
 
-  function buildIconMap(arr) {
+  function build_icon_map(arr) {
     var map = {};
     arr.forEach(function (e) {
       var name = e.baseName || e.nameWithoutExtension;
@@ -68,12 +68,12 @@
   function icon(D, name) { return (D.icons && D.icons[name]) || ''; }
 
   /* optional leading icon for a menu link/nav item ({ icon: "name" }) */
-  function linkIcon(D, item) {
+  function link_icon(D, item) {
     var svg = item && item.icon ? icon(D, item.icon) : '';
     return svg ? '<span class="icon" aria-hidden="true">' + svg + '</span>' : '';
   }
 
-  function computeAge(bday) {
+  function compute_age(bday) {
     var bd = new Date(bday);
     if (isNaN(bd.getTime())) return '';
     var now = new Date();
@@ -85,20 +85,20 @@
 
   /* ---- list / component renderers ---- */
   var RENDER = {
-    age: function (D) { return String(computeAge(get(D, 'site.birthday'))); },
+    age: function (D) { return String(compute_age(get(D, 'site.birthday'))); },
 
-    'socials-cards': function (D) {
+    'socials_cards': function (D) {
       return D.socials.filter(function (s) { return s.card !== false; }).map(function (s) {
         var badge = s.badge ? ' <span class="badge">' + esc(s.badge) + '</span>' : '';
         var feat = s.featured ? ' featured' : '';
-        return '<li><a href="' + esc(s.url) + '" target="_blank" rel="noopener" class="card social-card' + feat + '">'
+        return '<li><a href="' + esc(s.url) + '" target="_blank" rel="noopener" class="card social_card' + feat + '">'
           + '<span class="icon" aria-hidden="true">' + icon(D, s.icon) + '</span>'
           + '<h3 class="display" style="font-size:1.3rem">' + esc(s.name) + badge + '</h3>'
           + '<span class="url">' + esc(s.handle) + '</span></a></li>';
       }).join('');
     },
 
-    'socials-row': function (D) {
+    'socials_row': function (D) {
       return D.socials.filter(function (s) { return s.row !== false; }).map(function (s) {
         return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" aria-label="' + esc(s.name) + '">'
           + icon(D, s.icon) + '</a>';
@@ -110,20 +110,20 @@
       return D.menu.nav.map(function (n) {
         var active = (n.page && n.page === page) ? ' class="active"' : '';
         return '<li><a data-nav="' + esc(n.page || '') + '"' + active
-          + ' href="' + esc(n.href) + '">' + linkIcon(D, n) + esc(n.label) + '</a></li>';
+          + ' href="' + esc(n.href) + '">' + link_icon(D, n) + esc(n.label) + '</a></li>';
       }).join('');
     },
 
-    'footer-menu': function (D) {
+    'footer_menu': function (D) {
       function item(l) {
-        return '<li><a href="' + esc(l.href) + '">' + linkIcon(D, l) + esc(l.label) + '</a></li>';
+        return '<li><a href="' + esc(l.href) + '">' + link_icon(D, l) + esc(l.label) + '</a></li>';
       }
-      function list(c) { return '<ul class="footer-links">' + c.links.map(item).join('') + '</ul>'; }
+      function list(c) { return '<ul class="footer_links">' + c.links.map(item).join('') + '</ul>'; }
       var cols = D.menu.footer.map(function (c) {
-        return '<nav class="flex-only" aria-label="' + esc(c.title) + '"><h4>' + esc(c.title) + '</h4>'
+        return '<nav class="flex_only" aria-label="' + esc(c.title) + '"><h4>' + esc(c.title) + '</h4>'
           + list(c) + '</nav>';
       }).join('');
-      var det = '<div class="details-only" style="grid-column:1/-1">' + D.menu.footer.map(function (c) {
+      var det = '<div class="details_only" style="grid-column:1/-1">' + D.menu.footer.map(function (c) {
         return '<details><summary>' + esc(c.title) + '</summary>' + list(c) + '</details>';
       }).join('') + '</div>';
       return cols + det;
@@ -131,17 +131,25 @@
 
     cdc: function (D) {
       return D.sections.cdc.map(function (c) {
-        return '<article class="card"><h3 class="display h-md" style="color:var(--blood)">' + esc(c.title) + '</h3>'
-          + '<p class="muted mt-1">' + esc(c.body) + '</p></article>';
+        return '<article class="card"><h3 class="display h_md" style="color:var(--blood)">' + esc(c.title) + '</h3>'
+          + '<p class="muted mt_1">' + esc(c.body) + '</p></article>';
       }).join('');
     }
   };
 
   /* ---- apply everything ---- */
   function apply(D) {
+    /* tokens usable inside any bound string, e.g. "level {age} disaster" */
+    var tokens = { age: String(compute_age(get(D, 'site.birthday'))) };
+    function fill(s) {
+      return String(s).replace(/\{(\w+)\}/g, function (m, k) {
+        return (k in tokens) ? tokens[k] : m;
+      });
+    }
+
     document.querySelectorAll('[data-text]').forEach(function (el) {
       var v = get(D, el.getAttribute('data-text'));
-      if (v != null) el.textContent = v;
+      if (v != null) el.textContent = fill(v);
     });
 
     document.querySelectorAll('[data-href]').forEach(function (el) {
@@ -169,7 +177,7 @@
     });
 
     /* re-bind the hamburger to freshly rendered nav links */
-    var links = document.getElementById('navLinks');
+    var links = document.getElementById('nav_links');
     if (links && !links.__bound) {
       links.__bound = true;
       links.addEventListener('click', function (e) {
@@ -179,7 +187,7 @@
   }
 
   function run() {
-    dataPromise.then(apply).catch(function (e) { console.error('[render] data load failed:', e); });
+    data_promise.then(apply).catch(function (e) { console.error('[render] data load failed:', e); });
   }
 
   /* run after the shared partials are in the DOM (race-safe both ways) */

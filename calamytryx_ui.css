@@ -1,0 +1,488 @@
+/* ============================================================
+   CALAMYTRYX UI  —  pixel + grunge design-system library
+   a reusable, drop-in stylesheet for future projects.
+   dark grunge · blood-red · mono/pixel · terminal aesthetic.
+   ------------------------------------------------------------
+   USAGE
+     <link rel="stylesheet" href="calamytryx_ui.css">
+   ASSETS (optional — everything degrades without them)
+     keep an  assets/  folder NEXT TO this file:
+       assets/fonts/                  (the .otf/.ttf below)
+       assets/icons/cursors/png/      (the 32x32 cursor pngs)
+     or edit the @font-face src + --cur-* urls to point at yours.
+     paths here are RELATIVE to this css file.
+   OPT-IN HOOKS
+     <body class="grunge">     -> full-page scanline + grain overlay
+     <html data-snap>          -> full-screen scroll-snap panels
+   TOKENS  (override in your own :root to re-skin)
+     --bg --panel --panel2 --line --txt --dim
+     --blood --rust --ash --mono --display --maxw --shadow
+   CORE CLASSES
+     layout : .wrap .section .spacer .divider(.flip) .grid_2 .grid_3
+     type   : .display .h_xl .h_lg .h_md .eyebrow .muted .lead
+              .cursor (blinking block) .glitch[data-text] .quote_mark
+     ui     : .btn(.ghost) .panel .card .embed .badge .icon
+     nav    : .nav .nav_inner .nav_brand .nav_links .nav_toggle .nav_offset
+     footer : .footer .footer_grid .footer_links + native <details>
+     social : .social_row .social_card(.featured)
+     forms  : .field_row + input[type=email]
+     util   : .text_center .mt_1..3 .mb_1..2 .flex_col .gap_1 .gap_2
+   ============================================================ */
+
+/* ---------- fonts (all mono / pixel) ---------- */
+/* the font of old computers and receipts */
+@font-face{
+  font-family:'Departure Mono';
+  src:url('assets/fonts/DepartureMono-Regular.otf') format('opentype');
+  font-display:swap;
+}
+/* minecraft-style display font */
+@font-face{
+  font-family:'Monocraft';
+  src:url('assets/fonts/Monocraft.ttf') format('truetype');
+  font-display:swap;
+}
+/* bitmap-style font */
+@font-face{
+  font-family:'Cozette';
+  src:url('assets/fonts/CozetteCrossedSevenVector.ttf') format('truetype');
+  font-display:swap;
+}
+/* grungy, panic-stricken display font */
+@font-face{
+  font-family:'ChaosMytryx';
+  src:url('assets/fonts/ChaosMytryx.ttf') format('truetype');
+  font-display:swap;
+}
+
+/* ---------- design tokens ---------- */
+:root{
+  --bg:#0a0a0c;
+  --panel:#141418;
+  --panel2:#1b1b21;
+  --line:#2a2a30;
+  --txt:#cdcdd2;
+  --dim:#6b6b73;
+  --blood:#d11c1c;
+  --rust:#7a0f12;
+  --ash:#3a3a40;
+
+  /* strong system fallbacks so it still reads as a terminal without the bundled fonts */
+  --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas',ui-monospace,monospace;
+  --display:'Monocraft','Departure Mono',ui-monospace,monospace;
+
+  --maxw:1300px;
+  --shadow:6px 6px 0 #000;
+}
+
+/* ---------- reset / base ---------- */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:16px;
+  line-height:1.6;
+  overflow-x:hidden;
+  position:relative;
+}
+img{image-rendering:pixelated;image-rendering:crisp-edges;max-width:100%;display:block}
+a{color:var(--blood);text-decoration:none}
+a:hover{color:#ff3b3b}
+::selection{background:var(--blood);color:#000}
+
+/* pixel scrollbar */
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--ash);border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--blood)}
+
+/* ---------- full-page grunge overlays (opt-in: <body class="grunge">) ---------- */
+body.grunge::before,body.grunge::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+}
+/* scanlines */
+body.grunge::before{
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,.22) 3px,
+    rgba(0,0,0,0) 4px
+  );
+  opacity:.5;
+}
+/* film grain (fractal noise) */
+body.grunge::after{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.04;
+  mix-blend-mode:screen;
+}
+
+/* ---------- layout helpers ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;width:100%}
+.section{padding:90px 0;position:relative}
+.spacer{height:80px}
+
+/* ---------- pixel-stepped divider ---------- */
+/* <div class="divider"></div> or <hr class="divider"> between sections */
+.divider{
+  height:18px;
+  background:var(--blood);
+  -webkit-mask:repeating-linear-gradient(90deg,#000 0 14px,transparent 14px 28px);
+          mask:repeating-linear-gradient(90deg,#000 0 14px,transparent 14px 28px);
+  -webkit-mask-size:28px 100%;mask-size:28px 100%;
+  opacity:.9;
+}
+.divider.flip{transform:scaleY(-1)}
+hr.divider{border:0;margin:0}
+
+/* ---------- typography ---------- */
+.display{font-family:var(--display);letter-spacing:1px;line-height:1.05;color:#fff}
+.h_xl{font-size:clamp(2.6rem,7vw,5rem)}
+.h_lg{font-size:clamp(2rem,5vw,3.2rem)}
+.h_md{font-size:clamp(1.5rem,3.5vw,2.2rem)}
+.eyebrow{color:var(--blood);letter-spacing:3px;text-transform:uppercase;font-size:.8rem}
+.muted{color:var(--dim)}
+.lead{font-size:1.05rem;color:var(--txt)}
+
+/* blinking block cursor after a title: add class "cursor" */
+.cursor::after{
+  content:"\2588";
+  color:var(--blood);
+  margin-left:.15em;
+  animation:blink 1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* glitch wordmark — 3 stacked layers: red (back) / blue (mid) / white (top).
+   layers sit behind the white text and split apart only during bursts:
+   red -> top-left (-3,-3), blue -> bottom-right (+3,+3).
+   markup: <span class="glitch" data-text="CALAMYTRYX">CALAMYTRYX</span> */
+.glitch{position:relative;z-index:0;color:#fff}
+.glitch::before,.glitch::after{
+  content:attr(data-text);position:absolute;top:0;left:0;width:100%;
+  pointer-events:none;
+}
+.glitch::before{color:var(--blood);z-index:-2}   /* red, back */
+.glitch::after{color:#22d3ee;z-index:-1}          /* blue, mid */
+@media (prefers-reduced-motion:no-preference){
+  .glitch::before{animation:glitch_red 5s infinite}
+  .glitch::after{animation:glitch_blue 5s infinite}
+}
+@keyframes glitch_red{
+  0%,39%,45%,77%,83%,100%{transform:translate(0,0)}
+  40%,44%{transform:translate(-3px,-3px)}
+  78%,82%{transform:translate(-3px,-3px)}
+}
+@keyframes glitch_blue{
+  0%,39%,45%,77%,83%,100%{transform:translate(0,0)}
+  40%,44%{transform:translate(3px,3px)}
+  78%,82%{transform:translate(3px,3px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .glitch::before,.glitch::after{display:none}
+  .cursor::after{animation:none}
+}
+
+.quote_mark{font-family:var(--display);color:var(--blood);font-size:clamp(4rem,12vw,9rem);line-height:.6}
+.quote{margin:0;text-align:center}
+.quote blockquote{margin:0;border:0}
+.quote figcaption{color:var(--dim);margin-top:24px}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-block;
+  font-family:var(--mono);font-size:.95rem;letter-spacing:1px;text-transform:uppercase;
+  background:transparent;color:var(--blood);
+  border:2px solid var(--blood);
+  padding:10px 24px;cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:transform .05s,box-shadow .05s,background .1s,color .1s;
+}
+.btn:hover{background:var(--blood);color:#000;transform:translate(3px,3px);box-shadow:3px 3px 0 #000}
+.btn:active{transform:translate(6px,6px);box-shadow:0 0 0 #000}
+.btn.ghost{border-color:var(--line);color:var(--txt)}
+.btn.ghost:hover{background:var(--txt);color:#000;border-color:var(--txt)}
+
+/* ---------- cards / panels ---------- */
+.panel{
+  background:var(--panel);
+  border:2px solid var(--line);
+  box-shadow:var(--shadow);
+  padding:24px;
+}
+.card{
+  background:var(--panel);
+  border:2px solid var(--line);
+  box-shadow:var(--shadow);
+  padding:24px;
+  transition:transform .08s,box-shadow .08s,border-color .1s;
+}
+.card:hover{border-color:var(--blood);transform:translate(-2px,-2px);box-shadow:8px 8px 0 #000}
+
+/* lists used as card grids shouldn't show bullets */
+.card_list{list-style:none;margin:0;padding:0}
+.card_list>li{list-style:none;display:flex}
+.card_list>li>.card{width:100%}
+
+/* ---------- grids ---------- */
+.grid_2{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.grid_3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+@media (max-width:860px){
+  .grid_2,.grid_3{grid-template-columns:1fr}
+}
+
+/* ---------- media / iframe ---------- */
+.embed{position:relative;width:100%;aspect-ratio:16/9;border:2px solid var(--line);box-shadow:var(--shadow);background:#000}
+.embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* ---------- inline pixel SVG icons (fill=currentColor) ---------- */
+.icon{width:1.1em;height:1.1em;display:inline-block;vertical-align:-0.15em;fill:currentColor;flex:none}
+
+/* "live now" / tag badge */
+.badge{
+  display:inline-block;background:var(--blood);color:#000;
+  font-size:.62rem;letter-spacing:1px;padding:2px 6px;margin-left:6px;
+  vertical-align:middle;animation:blink 1.2s steps(1) infinite;
+}
+@media (prefers-reduced-motion:reduce){ .badge{animation:none} }
+
+/* ---------- forms ---------- */
+.field_row{display:flex;gap:0;max-width:640px;margin:24px auto 0;flex-wrap:wrap}
+.field_row input[type=email],
+.field_row input[type=text]{
+  flex:1;min-width:200px;
+  background:var(--panel);border:2px solid var(--line);color:var(--txt);
+  font-family:var(--mono);font-size:1rem;padding:12px 16px;
+}
+.field_row input:focus{outline:none;border-color:var(--blood)}
+
+/* ---------- navbar ---------- */
+.nav{
+  position:fixed;top:0;left:0;width:100%;z-index:50;
+  background:rgba(10,10,12,.92);
+  border-bottom:2px solid var(--line);
+  backdrop-filter:blur(2px);
+}
+.nav_inner{
+  max-width:var(--maxw);margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;gap:16px;
+}
+.nav_brand{
+  font-family:var(--mono);font-weight:700;font-size:1.5rem;letter-spacing:2px;
+  color:var(--txt);text-decoration:none;white-space:nowrap;line-height:1;
+}
+.nav_brand:hover{color:var(--blood)}
+.nav_brand .brand_hover{display:none}
+.nav_brand:hover .brand_idle{display:none}
+.nav_brand:hover .brand_hover{display:inline}
+.nav_links{display:flex;align-items:center;gap:26px;list-style:none}
+.nav_links a{
+  color:var(--txt);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;
+  padding:4px 2px;border-bottom:2px solid transparent;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.nav_links a:hover,.nav_links a.active{color:var(--blood);border-bottom-color:var(--blood)}
+.nav_links a .icon{width:1em;height:1em;flex:none}
+.nav_toggle{
+  display:none;background:transparent;border:2px solid var(--line);
+  color:var(--txt);font-family:var(--mono);font-size:1.3rem;
+  padding:2px 10px;cursor:pointer;line-height:0;
+}
+.nav_toggle:hover{border-color:var(--blood);color:var(--blood)}
+.nav_toggle svg{width:24px;height:24px;fill:currentColor;display:block}
+.nav_offset{height:70px}
+@media (max-width:860px){
+  .nav_toggle{display:block}
+  .nav_links{
+    position:absolute;top:100%;left:0;width:100%;
+    flex-direction:column;gap:0;
+    background:var(--bg);border-bottom:2px solid var(--line);
+    max-height:0;overflow:hidden;transition:max-height .25s ease;
+  }
+  .nav_links.open{max-height:340px}
+  .nav_links li{width:100%;border-top:1px solid var(--line)}
+  .nav_links a{display:block;padding:14px 24px;border-bottom:none}
+}
+
+/* ---------- social row + cards ---------- */
+.social_row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.social_row a{
+  display:inline-flex;color:var(--dim);
+  border:2px solid var(--line);padding:8px;background:var(--panel2);line-height:0;
+  transition:color .1s,border-color .1s,transform .08s;
+}
+.social_row a svg{width:24px;height:24px;fill:currentColor}
+.social_row a:hover{color:var(--blood);border-color:var(--blood);transform:translate(-2px,-2px)}
+
+.social_card{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.social_card .icon{
+  display:flex;align-items:center;justify-content:center;
+  height:96px;width:96px;padding:18px;
+  border:2px solid var(--line);background:var(--panel2);color:var(--txt);
+}
+.social_card .icon svg{width:100%;height:100%}
+.social_card:hover .icon{border-color:var(--blood);color:var(--blood)}
+.social_card .url{font-size:.85rem;word-break:break-all;color:var(--dim)}
+.social_card:hover .url{color:var(--txt)}
+.social_card.featured{border-color:var(--blood);box-shadow:8px 8px 0 var(--rust)}
+.social_card.featured .icon{border-color:var(--blood);color:var(--blood)}
+
+/* ---------- footer ---------- */
+.footer{
+  background:var(--panel);
+  border-top:2px solid var(--blood);
+  padding:70px 0 50px;
+}
+.footer_grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+.footer h4{color:#fff;font-family:var(--display);font-size:1.1rem;margin-bottom:14px;letter-spacing:1px}
+.footer_links{list-style:none;margin:0;padding:0}
+.footer a{display:block;color:var(--dim);padding:5px 0;font-size:.92rem}
+.footer a:hover{color:var(--blood)}
+.footer a .icon{width:1em;height:1em;flex:none}
+.footer .blurb{color:var(--dim);font-size:.92rem;margin:12px 0 18px;max-width:34ch}
+/* collapsible columns on mobile via native <details> */
+.footer details{border-top:1px solid var(--line)}
+.footer details summary{
+  list-style:none;cursor:pointer;color:#fff;font-family:var(--display);
+  padding:14px 0;letter-spacing:1px;display:flex;justify-content:space-between;
+}
+.footer details summary::-webkit-details-marker{display:none}
+.footer details summary::after{content:"+";color:var(--blood)}
+.footer details[open] summary::after{content:"\2212"}
+.footer .details_only{display:none}
+@media (max-width:860px){
+  .footer_grid{grid-template-columns:1fr;gap:0}
+  .footer .flex_only{display:none}
+  .footer .details_only{display:block}
+  .footer .brand_col{margin-bottom:24px}
+}
+
+/* ---------- terminal log panel ---------- */
+.logbox{
+  background:#0c0c0f;border:2px solid var(--line);box-shadow:var(--shadow);
+  padding:28px;font-size:1rem;line-height:1.8;color:var(--txt);
+}
+.logbox p{margin-bottom:1em}
+
+/* ---------- project / repo cards ---------- */
+.proj_grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+.proj_card{display:flex;flex-direction:column;gap:10px;min-height:180px;justify-content:space-between}
+.proj_card .tag{color:var(--blood);font-size:.78rem;letter-spacing:2px;text-transform:uppercase}
+.proj_card h3{font-family:var(--display);color:#fff;font-size:1.4rem}
+.proj_card p{color:var(--dim);font-size:.92rem}
+.proj_card .go{display:inline-flex;align-items:center;gap:5px;color:var(--blood);font-size:.85rem;letter-spacing:1px}
+.proj_card .go svg{width:1em;height:1em;fill:currentColor}
+.repo_meta{display:flex;gap:18px;align-items:center;color:var(--dim);font-size:.8rem;margin-top:10px;flex-wrap:wrap}
+.repo_lang{display:inline-flex;align-items:center}
+.repo_lang .dot{width:10px;height:10px;background:var(--blood);display:inline-block;margin-right:6px}
+
+/* ---------- utilities ---------- */
+.text_center{text-align:center}
+.mt_1{margin-top:12px}.mt_2{margin-top:24px}.mt_3{margin-top:36px}
+.mb_1{margin-bottom:12px}.mb_2{margin-bottom:24px}
+.flex_col{display:flex;flex-direction:column}
+.gap_1{gap:12px}.gap_2{gap:24px}
+main{display:block}
+
+/* ============================================================
+   CUSTOM PIXEL CURSORS
+   needs assets/icons/cursors/png/*.png (32x32, light-on-dark).
+   each rule ends in a standard keyword fallback, so missing
+   pngs degrade to the normal system cursor automatically.
+   ============================================================ */
+:root{
+  --cur-default: url('assets/icons/cursors/png/default.png') 4 2, auto;
+  --cur-pointer: url('assets/icons/cursors/png/pointer.png') 10 6, pointer;
+  --cur-text:    url('assets/icons/cursors/png/text.png') 11 12, text;
+  --cur-grab:    url('assets/icons/cursors/png/grab.png') 10 8, grab;
+  --cur-grabbing:url('assets/icons/cursors/png/grabbing.png') 10 8, grabbing;
+  --cur-deny:    url('assets/icons/cursors/png/not-allowed.png') 12 12, not-allowed;
+  --cur-help:    url('assets/icons/cursors/png/help.png') 4 2, help;
+  --cur-wait:    url('assets/icons/cursors/png/wait.png') 12 12, wait;
+}
+html, body{ cursor: var(--cur-default); }
+a, button, summary, label[for], select,
+.btn, .nav_toggle, .tab, .card, .social_card, .proj_card,
+input[type=checkbox], input[type=radio], input[type=range], input[type=color],
+input[type=submit], input[type=button], [role="button"], [data-nav]{
+  cursor: var(--cur-pointer);
+}
+input[type=text], input[type=email], input[type=number], input[type=search],
+input[type=url], input[type=password], textarea{
+  cursor: var(--cur-text);
+}
+:disabled, [disabled], [aria-disabled="true"], .is-disabled{ cursor: var(--cur-deny); }
+[draggable="true"]{ cursor: var(--cur-grab); }
+[draggable="true"]:active{ cursor: var(--cur-grabbing); }
+
+/* ============================================================
+   FULL-SCREEN PANELS — game-site style (opt-in via <html data-snap>)
+   mandatory scroll-snap, grunge overlay, ken-burns drift,
+   entrance animation. set each panel's art yourself, e.g.:
+     #intro::before{ background-image:url('your-art.jpg'); }
+   ============================================================ */
+html[data-snap]{ scroll-snap-type:y mandatory; scroll-behavior:smooth; }
+html[data-snap] .nav_offset{ display:none; }
+html[data-snap] .divider{ display:none; }
+
+html[data-snap] .section{
+  min-height:100vh; display:flex; flex-direction:column; justify-content:center;
+  scroll-snap-align:start; scroll-snap-stop:always;
+  position:relative; overflow:hidden; padding:96px 0 64px;
+}
+html[data-snap] .section > .wrap{ position:relative; z-index:2; width:100%; }
+
+/* backdrop layers: ::before = your art, ::after = grunge wash */
+html[data-snap] .section::before{
+  content:""; position:absolute; inset:0; z-index:0;
+  background:center/cover no-repeat; transform:scale(1.05);
+}
+html[data-snap] .section::after{
+  content:""; position:absolute; inset:0; z-index:1;
+  background:
+    linear-gradient(180deg, rgba(10,10,12,.72), rgba(10,10,12,.5) 42%, rgba(10,10,12,.88)),
+    radial-gradient(120% 75% at 50% 0%, rgba(209,28,28,.12), transparent 60%);
+}
+
+/* ken-burns drift once a panel scrolls into view (toggle .in_view via JS) */
+@media (prefers-reduced-motion:no-preference){
+  html[data-snap] .section.in_view::before{ animation:kenburns 20s ease-out forwards; }
+}
+@keyframes kenburns{ from{ transform:scale(1.05); } to{ transform:scale(1.17); } }
+
+/* entrance animation for panel content */
+html[data-snap] .section > .wrap{ opacity:0; transform:translateY(34px); transition:opacity .7s ease, transform .7s ease; }
+html[data-snap] .section.in_view > .wrap{ opacity:1; transform:none; }
+
+/* final footer panel snaps too */
+html[data-snap] .footer{ scroll-snap-align:start; min-height:100vh; display:flex; flex-direction:column; justify-content:center; }
+
+@media (prefers-reduced-motion:reduce){
+  html[data-snap]{ scroll-behavior:auto; }
+  html[data-snap] .section > .wrap{ opacity:1; transform:none; transition:none; }
+}
+
+/* ---- panel nav chrome (build the dots/counter/hint in JS) ---- */
+.panel_nav{ position:fixed; right:22px; top:50%; transform:translateY(-50%); z-index:40; display:flex; flex-direction:column; align-items:flex-end; gap:15px; }
+.panel_nav button{ position:relative; width:15px; height:15px; padding:0; background:none; border:0; display:flex; align-items:center; justify-content:center; }
+.panel_nav .dot{ width:11px; height:11px; border:2px solid var(--dim); background:transparent; transition:.2s; display:block; }
+.panel_nav .lbl{ position:absolute; right:100%; margin-right:12px; top:50%; transform:translateY(-50%) translateX(6px); white-space:nowrap; pointer-events:none; opacity:0; transition:.2s; font-size:.66rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); }
+.panel_nav button:hover .lbl, .panel_nav button.active .lbl{ opacity:1; transform:translateY(-50%) translateX(0); color:var(--txt); }
+.panel_nav button:hover .dot{ border-color:var(--txt); }
+.panel_nav button.active .dot{ background:var(--blood); border-color:var(--blood); box-shadow:0 0 10px var(--blood); }
+
+.panel_counter{ position:fixed; left:22px; bottom:22px; z-index:40; font-family:var(--display); color:var(--dim); font-size:.85rem; letter-spacing:3px; }
+.panel_counter b{ color:var(--blood); }
+
+.scroll_hint{ position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:40; background:none; border:0; color:var(--blood); font-size:1rem; line-height:1; padding:6px; }
+@media (prefers-reduced-motion:no-preference){ .scroll_hint{ animation:bob 1.6s ease-in-out infinite; } }
+@keyframes bob{ 0%,100%{ transform:translateX(-50%) translateY(0); } 50%{ transform:translateX(-50%) translateY(6px); } }
+
+@media (max-width:760px){
+  .panel_nav{ display:none; }
+  html[data-snap] .section{ padding:84px 0 72px; }
+}

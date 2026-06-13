@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/my_css.css">
   <script src="/assets/layout/include.js" defer></script>
   <script src="/assets/layout/render.js" defer></script>
+  <script src="/assets/layout/cursors.js" defer></script>
 </head>
 <body data-page="projects">
 
@@ -33,20 +34,20 @@
 
       function repoCard(r) {
         var lang = r.language
-          ? '<span class="repo-lang"><span class="dot"></span>' + esc(r.language) + '</span>'
+          ? '<span class="repo_lang"><span class="dot"></span>' + esc(r.language) + '</span>'
           : '';
         var stars = '<span>★ ' + (r.stargazers_count || 0) + '</span>';
         var desc = r.description ? esc(r.description) : 'No description.';
-        return '<li><a class="card proj-card" href="' + esc(r.html_url) + '" target="_blank" rel="noopener">'
+        return '<li><a class="card proj_card" href="' + esc(r.html_url) + '" target="_blank" rel="noopener">'
           + '<div><span class="tag">// github</span>'
-          + '<h3 class="mt-1">' + esc(r.name) + '</h3>'
-          + '<p class="mt-1">' + desc + '</p></div>'
-          + '<div class="repo-meta">' + lang + stars + '</div></a></li>';
+          + '<h3 class="mt_1">' + esc(r.name) + '</h3>'
+          + '<p class="mt_1">' + desc + '</p></div>'
+          + '<div class="repo_meta">' + lang + stars + '</div></a></li>';
       }
 
       function loadRepos() {
-        var grid = document.getElementById('repoGrid');
-        var status = document.getElementById('repoStatus');
+        var grid = document.getElementById('repo_grid');
+        var status = document.getElementById('repo_status');
         if (!grid) return;
         fetch('https://api.github.com/users/' + GH_USER + '/repos?sort=updated&per_page=100')
           .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })

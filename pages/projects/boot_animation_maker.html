@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>bootanim.mk — Android bootanimation.zip maker</title>
+<link rel="icon" href="/assets/media/logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="/my_css.css">
 <style>
@@ -158,6 +159,7 @@
     body{overflow:auto}
   }
 </style>
+  <script src="/assets/layout/cursors.js" defer></script>
 </head>
 <body data-page="projects">
 
@@ -271,22 +273,29 @@
     <div class="sec tmode">
       <div class="t">// typography</div>
       <div class="row">
-        <div class="field" style="flex:2">
-          <label for="fontFam">font family (editable)</label>
-          <input type="text" id="fontFam" list="fontlist" value="monospace">
-          <datalist id="fontlist">
-            <option value="monospace"></option>
-            <option value="Courier New"></option>
-            <option value="Consolas"></option>
-            <option value="Cascadia Mono"></option>
-            <option value="JetBrains Mono"></option>
-            <option value="Fira Mono"></option>
-            <option value="Ubuntu Mono"></option>
-            <option value="Liberation Mono"></option>
-            <option value="Lucida Console"></option>
-          </datalist>
+        <div class="field"><label for="fontSrc">font source</label>
+          <select id="fontSrc">
+            <option value="site">this site’s fonts</option>
+            <option value="google">Google Fonts (search)</option>
+            <option value="upload">upload a file</option>
+          </select>
         </div>
         <div class="field"><label for="fontSize">size (px)</label><input type="number" id="fontSize" value="28" min="6"></div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:2" id="fontSiteWrap">
+          <label for="fontSite">pick a site font</label>
+          <select id="fontSite"></select>
+        </div>
+        <div class="field" style="flex:2" id="fontSearchWrap">
+          <label for="fontFam">type to search Google Fonts (or any installed name)</label>
+          <input type="text" id="fontFam" list="fontlist" value="Departure Mono">
+          <datalist id="fontlist"></datalist>
+        </div>
+        <div class="field" style="flex:2" id="fontUploadWrap">
+          <label for="fontFile">upload .ttf / .otf / .woff</label>
+          <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2">
+        </div>
       </div>
       <div class="row">
         <div class="field"><label for="lineH">line height ×</label><input type="number" id="lineH" value="1.4" min="0.8" step="0.1"></div>
@@ -447,6 +456,55 @@ const els = {
   tabText: $('tabText'), tabVideo: $('tabVideo'),
 };
 els.log.value = PRESET_BOOT;
+
+/* ---------------- fonts: site fonts + searchable Google Fonts ---------------- */
+const SITE_FONTS = ['Departure Mono','Monocraft','Cozette','ChaosMytryx'];
+const GENERIC_FONTS = ['monospace','Courier New','Consolas','Cascadia Mono','Lucida Console'];
+const GOOGLE_FONTS = ['Press Start 2P','VT323','Silkscreen','Pixelify Sans','Handjet','DotGothic16','Jersey 10','Jersey 15','Jersey 25','Micro 5','Workbench','Nova Square','Nova Mono','Sixtyfour','Share Tech Mono','Space Mono','JetBrains Mono','Fira Code','Fira Mono','IBM Plex Mono','Source Code Pro','Roboto Mono','Ubuntu Mono','Inconsolata','PT Mono','Overpass Mono','Spline Sans Mono','Red Hat Mono','Martian Mono','Noto Sans Mono','Anonymous Pro','B612 Mono','Azeret Mono','Sometype Mono','Cutive Mono','Major Mono Display','Syne Mono','Xanh Mono','DM Mono','Orbitron','Audiowide','Bungee','Bungee Shade','Bungee Inline','Monoton','Wallpoet','Faster One','Black Ops One','Rubik Glitch','Rubik Wet Paint','Rubik Puddles','Rubik Burned','Rubik Glitch Pop','Rubik Maze','Rubik Iso','Creepster','Nosifer','Eater','Butcherman','Pirata One','Metal Mania','UnifrakturCook','Special Elite','Trade Winds','Tourney','Megrim','Frijole','Henny Penny','Griffy','Inter','Roboto','Open Sans','Montserrat','Poppins','Lato','Oswald','Raleway','Bebas Neue','Anton','Archivo','Teko','Russo One','Rajdhani','Saira','Chakra Petch','Exo 2','Michroma'];
+$('fontlist').innerHTML = GENERIC_FONTS.concat(GOOGLE_FONTS)
+  .map(n => '<option value="' + n + '"></option>').join('');
+/* site-font picker (so users who don't know the names can still find them) */
+const fontSiteEl = $('fontSite');
+fontSiteEl.innerHTML = SITE_FONTS.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+fontSiteEl.addEventListener('change', () => { els.fontFam.value = fontSiteEl.value; restart(); });
+/* font source switcher: site / google / upload */
+const fontSrcEl = $('fontSrc');
+const fontWraps = { site: $('fontSiteWrap'), google: $('fontSearchWrap'), upload: $('fontUploadWrap') };
+/* doRestart=false at load: restart()/the draw loop aren't initialised yet (calling early throws) */
+function showFontSrc(doRestart){ const v = fontSrcEl.value; for (const k in fontWraps) fontWraps[k].classList.toggle('hidden', k !== v);
+  if (v === 'site') { els.fontFam.value = fontSiteEl.value; if (doRestart) restart(); } }
+fontSrcEl.addEventListener('change', () => showFontSrc(true));
+showFontSrc(false);
+/* upload a font file -> register via FontFace API so the canvas can use it */
+$('fontFile').addEventListener('change', () => {
+  const f = $('fontFile').files[0]; if (!f) return;
+  const fam = (f.name.replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9]/g, '') || 'UploadedFont');
+  const rd = new FileReader();
+  rd.onload = () => { try {
+    const face = new FontFace(fam, rd.result);
+    face.load().then(ff => { document.fonts.add(ff); els.fontFam.value = fam; restart(); }).catch(() => alert('Could not load that font file.'));
+  } catch(_) { alert('Could not load that font file.'); } };
+  rd.readAsArrayBuffer(f);
+});
+
+const GFSET = new Set(GOOGLE_FONTS.map(n => n.toLowerCase()));
+const gfLoaded = {};
+/* a Google font is just a CSS link; inject it, then wait for the face to load so the canvas bakes it */
+function ensureGoogleFont(name){
+  name = (name || '').trim();
+  if (!name || !GFSET.has(name.toLowerCase())) return Promise.resolve();
+  if (!gfLoaded[name]){
+    const l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=' + name.replace(/\s+/g,'+') + ':wght@400;700&display=swap';
+    document.head.appendChild(l); gfLoaded[name] = true;
+  }
+  if (document.fonts && document.fonts.load){
+    return Promise.all([document.fonts.load('16px "'+name+'"'), document.fonts.load('bold 16px "'+name+'"')])
+      .then(() => document.fonts.ready).catch(() => {});
+  }
+  return Promise.resolve();
+}
+els.fontFam.addEventListener('input', () => { ensureGoogleFont(els.fontFam.value).then(restart); });
 
 /* ---------------- mode ---------------- */
 let MODE = 'text';
@@ -956,6 +1014,9 @@ async function exportVideo(s, zip, setBar){
 
 async function exportZip(){
   const s = readSettings();
+  /* make sure the chosen font (Google or site) is fully loaded before rasterizing frames */
+  await ensureGoogleFont(s.fontFam);
+  try { await document.fonts.load((s.bold ? 'bold ' : '') + s.fontSize + 'px "' + s.fontFam + '"'); await document.fonts.ready; } catch(_){}
   const total = s.mode === 'text'
     ? textFrames(s)
     : (videoPlan(s) ? videoPlan(s).n0 + videoPlan(s).n1 : 0);

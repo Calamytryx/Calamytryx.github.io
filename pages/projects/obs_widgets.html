@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<!-- stream.mk — OBS browser-source widget generator. Outputs self-contained
+     single .html widgets that need nothing from this site after download. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>stream.mk — OBS widget maker</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="stylesheet" href="/my_css.css">
+<style>
+  :root{
+    --bg:#0a0a0c; --panel:#13171c; --panel2:#181d23; --line:#242b33;
+    --txt:#c5ced6; --dim:#6b7681; --blood:#d11c1c; --green:#39d353;
+    --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:13px;line-height:1.5}
+  .toolbar{display:flex;align-items:baseline;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .toolbar h1{font-size:15px;font-weight:700;letter-spacing:.5px}
+  .toolbar h1 .dot{color:var(--blood)}
+  .toolbar .sub{color:var(--dim);font-size:11px}
+  .toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+  .app{display:grid;grid-template-columns:minmax(300px,400px) 1fr}
+  .controls{border-right:1px solid var(--line);padding:14px 16px 80px;overflow-y:auto}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .tab{flex:1;min-width:72px;background:var(--panel);color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:7px;cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.5px}
+  .tab.on{background:var(--panel2);color:var(--blood);border-color:var(--blood)}
+  .desc{color:var(--dim);font-size:11px;margin-bottom:14px;line-height:1.5}
+  .field{margin:9px 0}
+  .field>label{display:block;color:var(--dim);font-size:11px;margin-bottom:3px}
+  input[type=text],input[type=number],select,textarea{
+    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    font-family:var(--mono);font-size:13px;padding:6px 8px;border-radius:4px;
+  }
+  textarea{min-height:64px;resize:vertical;line-height:1.4}
+  input:focus,select:focus,textarea:focus{outline:1px solid var(--blood);outline-offset:-1px}
+  input[type=color]{width:46px;height:30px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:2px;cursor:pointer;flex:none}
+  input[type=range]{accent-color:var(--blood)}
+  input[type=file]{width:100%;font-size:11px;color:var(--dim);background:var(--bg);border:1px dashed var(--line);border-radius:4px;padding:7px}
+  input[type=file]::file-selector-button{font-family:var(--mono);font-size:11px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:4px;padding:4px 8px;margin-right:8px;cursor:pointer}
+  .check{display:flex;align-items:center;gap:8px;color:var(--txt);font-size:12px;cursor:pointer}
+  .check input{width:14px;height:14px;accent-color:var(--blood)}
+  .hint{color:var(--dim);font-size:10.5px;margin-top:4px;line-height:1.5}
+  .warn{color:#e8a33d}
+  .crow{display:flex;gap:8px;align-items:center}
+  .snd{border:1px dashed var(--line);border-radius:5px;padding:8px;margin:6px 0;background:var(--panel2)}
+  .snd .r{display:flex;gap:6px;margin-bottom:6px}
+  .snd select{font-size:12px;padding:4px}
+  button.act{font-family:var(--mono);font-size:12px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:4px;padding:7px 12px;cursor:pointer}
+  button.act:hover{border-color:var(--blood);color:var(--blood)}
+  button.x{padding:2px 8px;color:var(--blood)}
+  button.big{background:var(--blood);color:#000;border:none;font-weight:700;width:100%;padding:11px;letter-spacing:.5px;font-size:13px;margin-top:6px;cursor:pointer}
+  .stage{padding:18px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+  .frame{border:2px solid var(--line);border-radius:8px;background:#000 url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"%3E%3Crect width="10" height="10" fill="%23222"/%3E%3Crect x="10" y="10" width="10" height="10" fill="%23222"/%3E%3C/svg%3E');background-size:20px 20px;width:100%;aspect-ratio:16/9;overflow:hidden;position:relative}
+  .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .meta{color:var(--dim);font-size:11px;line-height:1.6}
+  .meta b{color:var(--txt)}
+  @media (max-width:880px){ .app{grid-template-columns:1fr} .controls{border-right:none;border-bottom:1px solid var(--line)} }
+</style>
+  <script src="/assets/layout/cursors.js" defer></script>
+</head>
+<body data-page="projects">
+
+<div data-include="/assets/layout/header.html"></div>
+
+<header class="toolbar">
+  <h1>stream<span class="dot">.</span>mk</h1>
+  <span class="sub">OBS browser-source widgets — download &amp; drop into OBS, no server needed</span>
+  <a href="index.html">← projects</a>
+</header>
+
+<div class="app">
+  <div class="controls">
+    <div class="tabs" id="tabs"></div>
+    <div class="desc" id="desc"></div>
+    <div id="fields"></div>
+    <button class="big" id="exportBtn">⬇ download widget (.html)</button>
+    <div id="extra"></div>
+  </div>
+
+  <div class="stage">
+    <div class="meta" id="howto"></div>
+    <div class="frame"><iframe id="preview" title="preview"></iframe></div>
+    <div class="meta">
+      Live preview (chat/alert show demo). In OBS: <b>Sources → + → Browser → Local file</b>,
+      pick the downloaded <b>.html</b>, set size to your canvas. Fully self-contained (font &amp; sounds embedded).
+    </div>
+  </div>
+</div>
+
+<div data-include="/assets/layout/footer.html"></div>
+<script src="/assets/layout/include.js" defer></script>
+<script src="/assets/layout/render.js" defer></script>
+
+<script>
+'use strict';
+/* ============================ shared bits ============================ */
+var ICONS = {
+  twitch:'<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M22 14h-2V4H6v12h2v4h2v2H4v-4H2V4h2V2h18v12Zm-4 4h-4v2h-4v-2h2v-2h6v2Zm2-2h-2v-2h2v2Zm-6-5h-2V7h2v4Zm4 0h-2V7h2v4Z\"/></svg>',
+  youtube:'<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M20 20H4v-2h16v2ZM4 18H2V6h2v12Zm18 0h-2V6h2v12ZM12 9h-2v6h2v2H8V7h4v2Zm3 6h-3v-2h3v2Zm2-2h-2v-2h2v2Zm-2-2h-3V9h3v2Zm5-5H4V4h16v2Z\"/></svg>',
+  tiktok:'<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M15 22H7v-2h8v2Zm-8-2H5v-2h2v2ZM17 8h2V6h2v4h-4v10h-2V6h2v2ZM5 18H3v-6h2v6ZM17 4h-4v14H9v-2h2v-2H9v-2h2v-2H7V8h4V2h6v2ZM9 16H7v-2h2v2Zm-2-4H5v-2h2v2Zm12-6h-2V4h2v2Z\"/></svg>',
+  facebook:'<svg viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M11 12H8v2h3v6h2v-6h4v-2h-4V6h4V4h-4V2h6v6h-4v2h4v6h-4v6H9v-6H6v-6h3V6h2v6Zm2-6h-2V4h2v2Z\"/></svg>'
+};
+var PCOL = { twitch:'#9146ff', youtube:'#ff0000', tiktok:'#25f4ee', facebook:'#1877f2' };
+var FONT_FMT = { ttf:'truetype', otf:'opentype', woff:'woff', woff2:'woff2' };
+
+/* bundled Departure Mono (base64) — embedded into exports when no font uploaded */
+var FONT_B64 = '';
+fetch('/assets/fonts/DepartureMono-Regular.otf').then(function(r){ return r.arrayBuffer(); }).then(function(buf){
+  var b = new Uint8Array(buf), s = '';
+  for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  FONT_B64 = btoa(s);
+  if (typeof update === 'function') update();
+}).catch(function(){});
+
+function fontFace(cfg){
+  /* Google font = just a CSS @import (needs network in OBS); @import must lead the stylesheet. */
+  if (cfg.fontGoogle) return "@import url('https://fonts.googleapis.com/css2?family=" + cfg.fontGoogle.trim().replace(/\s+/g,'+') + ":wght@400;700&display=swap');";
+  if (cfg.fontB64) return "@font-face{font-family:'" + cfg.font + "';src:url(data:font/" + cfg.fontExt + ";base64," + cfg.fontB64 + ") format('" + (FONT_FMT[cfg.fontExt] || 'opentype') + "')}";
+  if (FONT_B64) return "@font-face{font-family:'Departure Mono';src:url(data:font/otf;base64," + FONT_B64 + ") format('opentype')}";
+  return '';
+}
+function fam(cfg){ return "'" + (cfg.font || 'Departure Mono') + "',monospace"; }
+
+/* assemble a self-contained document. the inner closing-script tag is split
+   (scr+ipt) so it never closes THIS script; config is injected as window.CONFIG. */
+function doc(title, css, body, js, cfg){
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title>'
+    + '<style>' + fontFace(cfg) + css + '</style></head><body>' + body
+    + '<scr'+'ipt>window.CONFIG=' + JSON.stringify(cfg) + ';\n' + js + '\n</scr'+'ipt></body></html>';
+}
+function grunge(){
+  return 'background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(120% 80% at 50% 0%,rgba(209,28,28,.10),transparent 60%);';
+}
+var SHADOW = 'text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.6)';
+
+/* ============================ widget runtimes ============================ */
+var CHAT_JS = [
+"(function(){var C=window.CONFIG;var box=document.getElementById('chat');",
+"var IC="+JSON.stringify(ICONS)+";var PC="+JSON.stringify(PCOL)+";",
+"function esc(s){return (s==null?'':String(s)).replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c];});}",
+"function add(m){if(!m.text)return;var el=document.createElement('div');el.className='msg';",
+" var col=m.color||PC[m.platform]||C.accent;",
+" var ic=C.showIcons?('<span class=\"ic\" style=\"color:'+(PC[m.platform]||C.accent)+'\">'+(IC[m.platform]||'')+'</span>'):'';",
+" el.innerHTML=ic+'<span class=\"u\" style=\"color:'+col+'\">'+esc(m.user)+'</span><span class=\"t\">'+esc(m.text)+'</span>';",
+" box.appendChild(el);while(box.children.length>C.maxMessages)box.removeChild(box.firstChild);",
+" if(C.fadeAfter>0){setTimeout(function(){el.classList.add('out');setTimeout(function(){if(el.parentNode)el.remove();},600);},C.fadeAfter*1000);}",
+" box.scrollTop=box.scrollHeight;}",
+"if(C.twitch){try{var t=new WebSocket('wss://irc-ws.chat.twitch.tv:443');",
+" t.onopen=function(){t.send('CAP REQ :twitch.tv/tags');t.send('PASS SCHMOOPIIE');t.send('NICK justinfan'+Math.floor(Math.random()*99999));t.send('JOIN #'+C.twitch.toLowerCase());};",
+" t.onmessage=function(ev){ev.data.split('\\r\\n').forEach(function(line){if(!line)return;",
+"  if(line.indexOf('PING')===0){t.send('PONG :tmi.twitch.tv');return;}",
+"  var idx=line.indexOf('PRIVMSG');if(idx<0)return;var tags={};",
+"  if(line[0]==='@'){var sp=line.indexOf(' ');line.slice(1,sp).split(';').forEach(function(p){var i=p.indexOf('=');tags[p.slice(0,i)]=p.slice(i+1);});}",
+"  var msg=line.slice(line.indexOf(':',idx)+1);",
+"  var name=tags['display-name']||(line.indexOf('!')>-1?line.slice(line.indexOf(':')+1,line.indexOf('!')):'user');",
+"  add({platform:'twitch',user:name,color:tags.color||'',text:msg});});};}catch(e){}}",
+"if(C.youtube_key&&C.youtube_video){(function(){var first=true,pt='';",
+" fetch('https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id='+encodeURIComponent(C.youtube_video)+'&key='+C.youtube_key).then(function(r){return r.json();}).then(function(d){",
+"  var lc=d.items&&d.items[0]&&d.items[0].liveStreamingDetails&&d.items[0].liveStreamingDetails.activeLiveChatId;if(!lc)return;",
+"  function poll(){var u='https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId='+lc+'&part=snippet,authorDetails&key='+C.youtube_key+(pt?('&pageToken='+pt):'');",
+"   fetch(u).then(function(r){return r.json();}).then(function(j){if(!first){(j.items||[]).forEach(function(it){add({platform:'youtube',user:it.authorDetails.displayName,text:it.snippet.displayMessage});});}",
+"   first=false;pt=j.nextPageToken||'';setTimeout(poll,Math.max(2500,j.pollingIntervalMillis||4000));}).catch(function(){setTimeout(poll,6000);});}",
+"  poll();}).catch(function(){});})();}",
+"if(C.bridge){(function(){function conn(){try{var b=new WebSocket(C.bridge);",
+"  b.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='alert')return;add({platform:m.platform||'tiktok',user:m.user||m.nickname||m.name||'?',color:m.color||'',text:m.message||m.comment||m.text||''});}catch(_){}};",
+"  b.onclose=function(){setTimeout(conn,3000);};b.onerror=function(){try{b.close();}catch(_){}};}catch(e){setTimeout(conn,3000);}}conn();})();}",
+"if(C.demo){var D=[['tiktok','kawaii_uwu','HII FROM TIKTOK'],['twitch','xX_DarkLord_Xx','poggers stream'],['facebook','Tita_Baby','ang gwapo naman'],['youtube','GamerDude42','first!'],['tiktok','glizzy','fire fire fire'],['twitch','mod_andy','!socials']];",
+" var i=0;setInterval(function(){var d=D[i%D.length];i++;add({platform:d[0],user:d[1],text:d[2]});},1400);}",
+"})();"
+].join('\n');
+function chatCSS(c){
+  var pos = c.position==='right'?'right:0;left:auto;width:'+c.width+'px;' : (c.position==='left'?'left:0;width:'+c.width+'px;' : 'left:0;right:0;');
+  return '*{margin:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}'
+    + 'body{background:'+c.bg+';font-family:'+fam(c)+'}'
+    + '#chat{position:absolute;bottom:0;'+pos+'padding:12px;display:flex;flex-direction:column;justify-content:flex-end;gap:'+c.gap+'px;max-height:100%}'
+    + '.msg{background:'+c.bubbleColor+';border-left:3px solid '+c.accent+';padding:6px 10px;font-size:'+c.size+'px;color:'+c.fg+';line-height:1.35;word-break:break-word;animation:i .25s ease;'+SHADOW+'}'
+    + '.msg.out{opacity:0;transition:opacity .6s}'
+    + '.ic{display:inline-block;width:1em;height:1em;vertical-align:-.12em;margin-right:6px}.ic svg{width:100%;height:100%;fill:currentColor}'
+    + '.u{font-weight:700;margin-right:8px}'
+    + '@keyframes i{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}';
+}
+
+var DUR_PARSE = "function ps(s){var p=String(s||'').split(':').map(Number);if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return p[0]||0;}";
+var HMS = "function pz(n){return (n<10?'0':'')+n;}function hms(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return (h>0?pz(h)+':':'')+pz(m)+':'+pz(x);}";
+
+var SCENE_JS = [
+"(function(){var C=window.CONFIG;var t=document.getElementById('cd');if(!t||!C.duration)return;",
+DUR_PARSE, HMS,
+"var end=Date.now()+ps(C.duration)*1000;",
+"function tick(){t.textContent=hms(Math.max(0,Math.round((end-Date.now())/1000)));}",
+"tick();setInterval(tick,1000);})();"
+].join('\n');
+var POSMAP={top:'50% 0%',bottom:'50% 100%',left:'0% 50%',right:'100% 50%','top-left':'0% 0%','top-right':'100% 0%','bottom-left':'0% 100%','bottom-right':'100% 100%',center:'50% 50%'};
+var ANCHORS=['top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right'];
+function isHero(c){ return c.template==='start'||c.template==='brb'||c.template==='end'; }
+function isChat(c){ return c.template==='chat'; }
+function isGame(c){ return c.template==='game'; }
+/* absolute-position an element by a 9-point anchor */
+function anchorCSS(pos){
+  return {
+    'top-left':'top:3vh;left:3vw', 'top':'top:3vh;left:50%;transform:translateX(-50%)', 'top-right':'top:3vh;right:3vw',
+    'left':'top:50%;left:3vw;transform:translateY(-50%)', 'center':'top:50%;left:50%;transform:translate(-50%,-50%)', 'right':'top:50%;right:3vw;transform:translateY(-50%)',
+    'bottom-left':'bottom:3vh;left:3vw', 'bottom':'bottom:3vh;left:50%;transform:translateX(-50%)', 'bottom-right':'bottom:3vh;right:3vw'
+  }[pos] || 'top:50%;left:50%;transform:translate(-50%,-50%)';
+}
+/* hard-stop banded radial = stepped/pixelated glow (no smooth gradient) */
+function glowGrad(c){
+  var p=parseColor(c.glowColor||'rgba(209,28,28,0.35)');
+  var at=POSMAP[c.glowPos]||'50% 0%';
+  var a=Math.round(p.a*100);
+  var c1=makeColor(p.hex,a), c2=makeColor(p.hex,Math.round(a*0.6)), c3=makeColor(p.hex,Math.round(a*0.3));
+  return 'radial-gradient(72% 62% at '+at+','+c1+' 0%,'+c1+' 15%,'+c2+' 15%,'+c2+' 32%,'+c3+' 32%,'+c3+' 50%,transparent 50%)';
+}
+/* real pixelated glow: draw a tiny quantized falloff on a small canvas and let
+   image-rendering:pixelated blow it up into hard square pixels. baked as a PNG
+   data-URI so the export is self-contained; falls back to the banded gradient. */
+function glowImage(c){
+  try{
+    var p=parseColor(c.glowColor||'rgba(209,28,28,0.35)');
+    var at=(POSMAP[c.glowPos]||'50% 0%').split(' ');
+    var ax=parseFloat(at[0])/100, ay=parseFloat(at[1])/100;
+    var W=56, H=32;                                   /* chunky 16:9-ish pixel grid */
+    var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    var g=cv.getContext('2d'); if(!g) return glowGrad(c);
+    var r=parseInt(p.hex.slice(1,3),16), gn=parseInt(p.hex.slice(3,5),16), b=parseInt(p.hex.slice(5,7),16);
+    for(var y=0;y<H;y++){ for(var x=0;x<W;x++){
+      var dx=((x+0.5)/W-ax)*(16/9), dy=((y+0.5)/H-ay);
+      var t=1-Math.sqrt(dx*dx+dy*dy)/0.8; if(t<0)t=0;
+      t=Math.round(t*5)/5;                            /* quantize -> stepped pixel bands */
+      var a=t*p.a; if(a<=0) continue;
+      g.fillStyle='rgba('+r+','+gn+','+b+','+(Math.round(a*1000)/1000)+')';
+      g.fillRect(x,y,1,1);
+    }}
+    var url=cv.toDataURL('image/png');
+    return (typeof url==='string' && url.indexOf('data:')===0) ? 'url('+url+')' : glowGrad(c);
+  }catch(e){ return glowGrad(c); }
+}
+function sceneBg(c){
+  var layers=[], sizes=[], reps=[];
+  if(c.glow){ layers.push(glowImage(c)); sizes.push('100% 100%'); reps.push('no-repeat'); }
+  if(c.bgImage){ layers.push('url('+c.bgImage+')'); sizes.push('cover'); reps.push('no-repeat'); }  /* custom bg sits under glow, all modes — no scanlines */
+  var bgimg = layers.length ? ('background-image:'+layers.join(',')+';background-size:'+sizes.join(',')+';background-repeat:'+reps.join(',')+';background-position:center;') : '';
+  return 'background-color:'+c.bg+';'+bgimg+'image-rendering:pixelated;';
+}
+function sceneCSS(c){
+  /* shared element styling — every element's colors are editable */
+  var s='*{margin:0;box-sizing:border-box}html,body{height:100%}'
+    + 'body{'+sceneBg(c)+'font-family:'+fam(c)+';color:'+c.fg+';overflow:hidden;'+SHADOW+'}'
+    + '.eyebrow{color:'+c.accent+';letter-spacing:4px;text-transform:uppercase;font-size:16px}'
+    + '.title{font-weight:700;letter-spacing:3px;line-height:1;text-shadow:4px 4px 0 '+c.accent+'}'
+    + '.sub{opacity:.85}#cd{color:'+c.accent+';letter-spacing:3px}.socials{letter-spacing:2px;opacity:.75}'
+    + '.cam{border:3px solid '+c.camBorder+';background:'+c.camBg+';display:flex;align-items:center;justify-content:center;box-shadow:8px 8px 0 rgba(0,0,0,.4)}'
+    + '.cam span{color:'+c.fg+';opacity:.45;letter-spacing:4px;font-size:14px}'
+    + '.zone{border:2px dashed rgba(255,255,255,.18);background:'+c.zoneBg+';display:flex;align-items:center;justify-content:center;color:'+c.fg+';opacity:.55;font-size:13px;letter-spacing:2px;text-align:center;padding:16px}';
+  if(isChat(c)){
+    var camCol=Math.max(15,Math.min(85,c.camRatio)), chatCol=100-camCol;
+    var cols=(c.camSide==='right'?chatCol+'% '+camCol+'%':camCol+'% '+chatCol+'%');
+    return s + '.title{font-size:42px}.sub{font-size:17px}#cd{font-size:40px}.socials{font-size:15px}'
+      + '.split{display:grid;grid-template-columns:'+cols+';gap:30px;width:100%;height:100%;padding:40px;align-items:stretch}'
+      + '.cam{width:100%;height:'+c.chatCamH+'vh;align-self:center}'
+      + '.side{display:flex;flex-direction:column;gap:12px;height:100%;justify-content:center}'
+      + '.zone{flex:1;min-height:0}';
+  }
+  if(isGame(c)){
+    return s + '.title{font-size:26px}'
+      + '.gamewin{position:absolute;'+anchorCSS(c.gamePos)+';width:'+c.gameW+'vw;height:'+c.gameH+'vh;border:3px solid '+c.accent+';background:rgba(0,0,0,.45);color:'+c.fg+';display:flex;align-items:center;justify-content:center;opacity:.92;letter-spacing:3px;font-size:14px}'
+      + '.cambox{position:absolute;'+anchorCSS(c.camPos)+';width:'+c.camW+'vw;height:'+c.camH+'vh}'
+      + '.chatbox{position:absolute;'+anchorCSS(c.chatPos)+';width:'+c.chatW+'vw;height:'+c.chatH+'vh}';
+  }
+  /* hero — box freely positioned + text-aligned per flavor (start/brb/end) */
+  var ai={left:'flex-start',center:'center',right:'flex-end'}[c.heroAlign]||'center';
+  return s + '.title{font-size:72px}.sub{font-size:20px}#cd{font-size:54px}.socials{font-size:18px}'
+    + '.box{position:absolute;'+anchorCSS(c.heroPos)+';padding:40px;display:flex;flex-direction:column;gap:16px;align-items:'+ai+';text-align:'+(c.heroAlign||'center')+';background:'+c.boxBg+'}';
+}
+function sceneBody(c){
+  /* placeholder labels are guides for the editor only — stripped from the exported widget (c.demo) */
+  var camTxt=c.demo?'<span>CAM / AVATAR</span>':'';
+  var gameTxt=c.demo?'GAME CAPTURE':'';
+  var chatTxt=c.demo?'chat overlay here':'';
+  if(isChat(c)){
+    var cam='<div class="cam">'+camTxt+'</div>';
+    var side='<div class="side">'
+      + '<div class="eyebrow">'+escAttr(c.eyebrow)+'</div>'
+      + '<div class="title">'+escAttr(c.title)+'</div>'
+      + (c.sub?'<div class="sub">'+escAttr(c.sub)+'</div>':'')
+      + (c.duration?'<div id="cd"></div>':'')
+      + '<div class="zone">'+(c.demo?'drop your chat overlay here':'')+'</div>'
+      + (c.socials?'<div class="socials">'+escAttr(c.socials)+'</div>':'')
+      + '</div>';
+    return '<div class="split">'+(c.camSide==='right'?(side+cam):(cam+side))+'</div>';
+  }
+  if(isGame(c)){
+    return '<div class="gamewin">'+gameTxt+'</div>'
+      + '<div class="cambox cam">'+camTxt+'</div>'
+      + '<div class="chatbox zone">'+chatTxt+'</div>';
+  }
+  return '<div class="box">'
+    + '<div class="eyebrow">'+escAttr(c.eyebrow)+'</div>'
+    + '<div class="title">'+escAttr(c.title)+'</div>'
+    + (c.sub?'<div class="sub">'+escAttr(c.sub)+'</div>':'')
+    + (c.duration?'<div id="cd"></div>':'')
+    + (c.socials?'<div class="socials">'+escAttr(c.socials)+'</div>':'')
+    + '</div>';
+}
+
+var TIMER_JS = [
+"(function(){var C=window.CONFIG;var el=document.getElementById('tm');var start=Date.now();",
+DUR_PARSE, HMS,
+"var cdEnd=Date.now()+ps(C.duration)*1000;",
+"function tick(){var out='';",
+" if(C.mode==='clock'){var d=new Date();var hh=d.getHours();var ap='';if(!C.h24){ap=hh<12?' AM':' PM';hh=hh%12||12;}out=pz(hh)+':'+pz(d.getMinutes())+':'+pz(d.getSeconds())+ap;}",
+" else if(C.mode==='countup'){out=hms(Math.floor((Date.now()-start)/1000));}",
+" else{out=hms(Math.max(0,Math.round((cdEnd-Date.now())/1000)));}",
+" el.textContent=(C.prefix||'')+out;}",
+"tick();setInterval(tick,1000);})();"
+].join('\n');
+function timerCSS(c){
+  var a={'top-left':'top:16px;left:16px','top-right':'top:16px;right:16px','bottom-left':'bottom:16px;left:16px','bottom-right':'bottom:16px;right:16px','center':'top:50%;left:50%;transform:translate(-50%,-50%)'}[c.anchor]||'top:16px;left:16px';
+  return '*{margin:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}'
+    + 'body{background:'+c.bg+';font-family:'+fam(c)+'}'
+    + '#tm{position:absolute;'+a+';color:'+c.fg+';font-size:'+c.size+'px;font-weight:700;letter-spacing:2px;background:'+c.bubbleColor+';padding:8px 14px;border-left:3px solid '+c.accent+';'+SHADOW+'}';
+}
+
+var ALERT_JS = [
+"(function(){var C=window.CONFIG;var root=document.getElementById('al');",
+"var IC="+JSON.stringify(ICONS)+";var PC="+JSON.stringify(PCOL)+";",
+"function esc(s){return (s==null?'':String(s)).replace(/[&<>\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c];});}",
+/* fill {user}/{amount}/{tier}/{months}/{message}/{count} tokens; values escaped, template escaped */
+"function tmpl(str,ev){var g=function(k,d){return ev[k]==null?d:ev[k];};var amt=g('amount',g('count',g('repeatCount',1)));",
+" var map={user:g('user',g('name','Someone')),name:g('name',g('user','Someone')),amount:amt,count:g('count',amt),tier:g('tier','1'),months:g('months',1),message:g('message',g('comment','')),event:g('event','')};",
+" var out=esc(str==null?'':String(str));for(var k in map){out=out.split('{'+k+'}').join(esc(String(map[k])));}return out;}",
+/* choose the best-matching alert config; exact platform+event beats wildcards; higher satisfied min wins (tiered variations) */
+"function pickAlert(ev){var plat=(ev.platform||'').toLowerCase(),evt=(ev.event||'').toLowerCase(),amt=+(ev.amount||ev.count||ev.repeatCount||0);",
+" var L=C.alerts||[],best=null,bs=-1;for(var i=0;i<L.length;i++){var a=L[i];if(a.enabled===false)continue;",
+"  var ae=(a.event||'').toLowerCase();if(ae&&ae!=='any'&&ae!==evt)continue;var ap=(a.platform||'').toLowerCase();if(ap&&ap!=='any'&&ap!==plat)continue;",
+"  if(a.min&&amt<+a.min)continue;var sc=(ae&&ae!=='any'?2:0)+(ap&&ap!=='any'?2:0)+(a.min?+a.min/1e9:0);if(sc>bs){bs=sc;best=a;}}return best;}",
+"var Q=[],busy=false;function enqueue(ev){Q.push(ev);if(!busy)next();}",
+"function next(){if(!Q.length){busy=false;return;}busy=true;render(Q.shift());}",
+"function render(ev){var a=pickAlert(ev);if(!a&&C.strict){return next();}var plat=(ev.platform||'twitch').toLowerCase();",
+" var col=(a&&a.color)||PC[plat]||C.accent;",
+" var title=a?tmpl(a.title,ev):(esc(ev.user||'Someone')+' '+esc(ev.event||''));var sub=a?tmpl(a.sub,ev):esc(ev.message||'');",
+" var media='';if(a&&a.img){media='<div class=\"ic\"><img src=\"data:image/'+(a.imgFmt||'png')+';base64,'+a.img+'\" style=\"width:100%;height:100%;object-fit:contain;image-rendering:pixelated\"></div>';}",
+"  else if(C.showIcon){media='<div class=\"ic\" style=\"color:'+col+'\">'+(IC[plat]||'')+'</div>';}",
+" root.innerHTML='<div class=\"card\" style=\"background:'+C.bubbleColor+';border-color:'+col+';box-shadow:7px 7px 0 '+col+'\">'+media+'<div class=\"at\">'+title+'</div>'+(sub?'<div class=\"as\">'+sub+'</div>':'')+'</div>';",
+" var snd=(a&&a.b64)?a:null;if(snd){try{var au=new Audio('data:audio/'+(snd.fmt||'mpeg')+';base64,'+snd.b64);au.volume=(C.volume==null?1:C.volume);au.play().catch(function(){});}catch(_){}}",
+" var card=root.firstChild;requestAnimationFrame(function(){card.classList.add('in');});",
+" var dur=((a&&+a.dur)?+a.dur:C.duration)*1000;",
+" setTimeout(function(){if(root.firstChild)root.firstChild.classList.add('out');},dur);",
+" setTimeout(function(){root.innerHTML='';next();},dur+700);}",
+"if(C.bridge){function conn(){try{var b=new WebSocket(C.bridge);b.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='alert'||m.event){enqueue(m);}}catch(_){}};b.onclose=function(){setTimeout(conn,3000);};b.onerror=function(){try{b.close();}catch(_){}};}catch(e){setTimeout(conn,3000);}}conn();}",
+"if(/[?&]test/.test(location.search)||C.demo){var D=[{platform:'twitch',user:'xX_DarkLord_Xx',event:'follow'},{platform:'twitch',user:'pogchamp42',event:'sub',tier:'3',months:6},{platform:'tiktok',user:'kawaii_uwu',event:'gift',amount:99},{platform:'twitch',user:'RaidLeader',event:'raid',amount:128},{platform:'youtube',user:'GamerDude42',event:'member'},{platform:'youtube',user:'BigSpender',event:'superchat',amount:50,message:'love the chaos!'},{platform:'tiktok',user:'Tita_Baby',event:'share'},{platform:'any',user:'AnonGoblin',event:'donation',amount:25}];var i=0;function loop(){enqueue(D[i%D.length]);i++;setTimeout(loop,3200);}loop();}",
+"})();"
+].join('\n');
+function alertCSS(c){
+  var inT={slide:'translateY(16px) scale(.95)',fade:'scale(1)',pop:'scale(.6)','slide-left':'translateX(-32px)','slide-right':'translateX(32px)'}[c.anim]||'translateY(16px) scale(.95)';
+  var outT={slide:'translateY(-12px)',fade:'scale(1)',pop:'scale(.6)','slide-left':'translateX(32px)','slide-right':'translateX(-32px)'}[c.anim]||'translateY(-12px)';
+  return '*{margin:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}'
+    + 'body{background:'+c.bg+';font-family:'+fam(c)+';display:flex;align-items:center;justify-content:center}'
+    + '.card{background:'+c.bubbleColor+';border:3px solid '+c.accent+';box-shadow:7px 7px 0 '+c.accent+';padding:20px 30px;text-align:center;min-width:260px;max-width:80vw;opacity:0;transform:'+inT+';transition:.35s;'+SHADOW+'}'
+    + '.card.in{opacity:1;transform:none}.card.out{opacity:0;transform:'+outT+'}'
+    + '.ic{width:'+(c.iconSize||64)+'px;height:'+(c.iconSize||64)+'px;margin:0 auto 10px}.ic svg{width:100%;height:100%;fill:currentColor}'
+    + '.at{color:'+c.fg+';font-size:'+(c.titleSize||28)+'px;font-weight:700;letter-spacing:1px}.as{color:'+c.fg+';opacity:.82;margin-top:8px;font-size:'+(c.subSize||16)+'px}';
+}
+
+var BANNER_JS = [
+"(function(){var C=window.CONFIG;var el=document.getElementById('bntxt');var msgs=(C.messages||'').split('\\n').filter(function(x){return x.trim();});if(!el||!msgs.length)return;var i=0;",
+"function show(){el.style.opacity=0;setTimeout(function(){el.textContent=msgs[i%msgs.length];i++;el.style.opacity=1;},400);}",
+"show();if(msgs.length>1)setInterval(show,C.interval*1000);})();"
+].join('\n');
+function bannerCSS(c){
+  var a=c.anchor==='top'?'top:0':'bottom:0';
+  return '*{margin:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}'
+    + 'body{background:'+c.bg+';font-family:'+fam(c)+'}'
+    + '#bn{position:absolute;'+a+';left:0;right:0;padding:14px 22px;background:'+c.barColor+';border-'+(c.anchor==='top'?'bottom':'top')+':3px solid '+c.accent+';color:'+c.fg+';font-size:'+c.size+'px;letter-spacing:2px;text-align:center;'+SHADOW+'}'
+    + '#bntxt{transition:opacity .4s;display:inline-block}';
+}
+
+/* ----- stinger transition: full-screen wipe that covers the cut, then reveals ----- */
+var STINGER_JS = [
+"(function(){var C=window.CONFIG;",
+"var ease=C.ease==='smooth'?'cubic-bezier(.7,0,.3,1)':'steps(10)';",
+"var dur=+C.dur||0.5,hold=+C.hold||0.4,gap=+C.gap||1,stag=+C.stagger||0.06;",
+"var panels=[].slice.call(document.querySelectorAll('.panel,.bar'));var label=document.querySelector('.label');var dir=C.dir||'left';",
+"function tf(stage){ if(dir==='bars'){return stage==='cover'?'translateY(0)':(stage==='start'?'translateY(-110%)':'translateY(110%)');}",
+" var m={left:['translateX(-110%)','translateX(0)','translateX(110%)'],right:['translateX(110%)','translateX(0)','translateX(-110%)'],up:['translateY(-110%)','translateY(0)','translateY(110%)'],down:['translateY(110%)','translateY(0)','translateY(-110%)']}[dir]||['translateX(-110%)','translateX(0)','translateX(110%)'];",
+" return stage==='start'?m[0]:(stage==='cover'?m[1]:m[2]); }",
+"function setAll(stage,anim){ panels.forEach(function(p,i){ var d=(dir==='bars')?(i*stag):0; p.style.transition=anim?('transform '+dur+'s '+ease+' '+d+'s'):'none'; p.style.transform=tf(stage); }); }",
+"function play(){ setAll('start',false); if(label)label.style.opacity=0;",
+" requestAnimationFrame(function(){ setAll('cover',true);",
+"  setTimeout(function(){ if(label)label.style.opacity=1; }, dur*1000*0.45);",
+"  setTimeout(function(){ setAll('end',true); if(label)label.style.opacity=0; }, dur*1000+hold*1000); }); }",
+"play(); if(C.loop||C.demo){ setInterval(play,(dur*2+hold+gap)*1000); }",
+"})();"
+].join('\n');
+function stingerCSS(c){
+  return '*{margin:0;box-sizing:border-box}html,body{height:100%;overflow:hidden}'
+    + 'body{background:transparent;font-family:'+fam(c)+'}'
+    + '.cover{position:fixed;inset:0;pointer-events:none;overflow:hidden}'
+    + '.panel{position:absolute;inset:0;background:'+c.color+';image-rendering:pixelated}'
+    + '.bar{position:absolute;top:0;height:100%;background:'+c.color+'}'
+    + '.label{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:'+c.fg+';font-size:clamp(40px,8vw,110px);font-weight:700;letter-spacing:6px;opacity:0;transition:opacity .18s;text-shadow:5px 5px 0 '+c.accent+';z-index:5}'
+    + '.label.glitch{position:fixed}.label.glitch::before,.label.glitch::after{content:attr(data-text);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}'
+    + '.label.glitch::before{color:'+c.accent+';transform:translate(-4px,-4px)}.label.glitch::after{color:#22d3ee;transform:translate(4px,4px)}';
+}
+function stingerBody(c){
+  var label='<div class="label'+(c.glitch?' glitch':'')+'"'+(c.glitch?' data-text="'+escAttr(c.text)+'"':'')+'>'+escAttr(c.text)+'</div>';
+  var cover;
+  if(c.dir==='bars'){
+    var n=Math.max(2,Math.min(12,c.count||5)); var bars='';
+    for(var i=0;i<n;i++){ bars+='<div class="bar" style="left:'+(i*100/n)+'%;width:'+(100/n+0.4)+'%"></div>'; }
+    cover='<div class="cover">'+bars+'</div>';
+  } else { cover='<div class="cover"><div class="panel"></div></div>'; }
+  return cover+label;
+}
+
+function escAttr(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+/* ============================ widget registry ============================ */
+var SCENE_TPL = {
+  start:{eyebrow:'// stand by', title:'STARTING SOON', sub:'the chaos is loading...', pos:'top', align:'left'},
+  chat:{eyebrow:'// just chatting', title:"LET'S TALK", sub:'pull up — drop a message'},
+  game:{eyebrow:'// now playing', title:'GAME TIME', sub:'watch me cause a disaster'},
+  brb:{eyebrow:'// hold tight', title:'BE RIGHT BACK', sub:'grabbing a snack — back soon', pos:'center', align:'center'},
+  end:{eyebrow:'// gg', title:'STREAM ENDING', sub:'thanks for watching, you disasters', pos:'bottom', align:'right'}
+};
+var THEME = [
+  {k:'bg',label:'Background (alpha 0 = transparent for OBS)',type:'coloralpha',def:'rgba(10,10,12,0)'},
+  {k:'fg',label:'Text color',type:'coloralpha',def:'#e8eef3'},
+  {k:'accent',label:'Accent color',type:'coloralpha',def:'#d11c1c'},
+  {k:'font',label:'Font — site fonts, Google Fonts (search), or upload',type:'font',def:'Departure Mono'}
+];
+var WIDGETS = {
+  chat:{
+    label:'Chat merger', file:'chat-overlay.html', title:'stream.mk chat',
+    desc:'Merged live chat — priority TikTok › Twitch › Facebook › YouTube. TikTok & Facebook come through the bridge (download below); Twitch works with zero setup; YouTube needs your free Data API key + live video id.',
+    fields:[
+      {k:'bridge',label:'TikTok + Facebook bridge (WebSocket)',type:'text',def:'ws://localhost:8787'},
+      {k:'twitch',label:'Twitch channel (blank = off)',type:'text',def:'calamytryx_'},
+      {k:'youtube_key',label:'YouTube API key (blank = off)',type:'text',def:''},
+      {k:'youtube_video',label:'YouTube live video id',type:'text',def:''},
+      {k:'bubbleColor',label:'Message bubble',type:'coloralpha',def:'rgba(0,0,0,0.5)'},
+      {k:'position',label:'Layout',type:'select',opts:['full','left','right'],def:'left'},
+      {k:'width',label:'Column width (px, left/right)',type:'number',def:420},
+      {k:'size',label:'Font size (px)',type:'number',def:20},
+      {k:'gap',label:'Gap between messages (px)',type:'number',def:6},
+      {k:'maxMessages',label:'Max messages',type:'number',def:30},
+      {k:'fadeAfter',label:'Fade out after (s, 0 = never)',type:'number',def:0},
+      {k:'showIcons',label:'Show platform icons',type:'check',def:true}
+    ],
+    build:function(c){ return doc(this.title, chatCSS(c), '<div id="chat"></div>', CHAT_JS, c); },
+    extra:'bridge'
+  },
+  scene:{
+    label:'Scene screen', file:'scene.html', title:'stream.mk scene',
+    desc:'start / brb / end = centered hero. chat = resizable, swappable cam + chat split. game = 3 freely-placed elements (game window >=2/3 @ 16:9, cam, chat). Every element + color is editable; the avatar itself is a separate project. Pixelated glow is removable / recolorable / movable.',
+    fields:[
+      {k:'template',label:'Template',type:'select',opts:['start','chat','game','brb','end'],def:'start'},
+      {k:'eyebrow',label:'Eyebrow',type:'text',def:'// stand by',show:function(c){return isHero(c)||isChat(c);}},
+      {k:'title',label:'Title',type:'text',def:'STARTING SOON',show:function(c){return isHero(c)||isChat(c);}},
+      {k:'sub',label:'Subtitle',type:'text',def:'the chaos is loading...',show:function(c){return isHero(c)||isChat(c);}},
+      {k:'duration',label:'Countdown HH:MM:SS (blank = none)',type:'duration',def:'',show:function(c){return isHero(c)||isChat(c);}},
+      {k:'socials',label:'Socials line',type:'text',def:'tiktok / twitch / youtube  @calamytryx',show:function(c){return isHero(c)||isChat(c);}},
+      {k:'boxBg',label:'Panel background (behind text)',type:'coloralpha',def:'rgba(0,0,0,0)',show:isHero},
+      {k:'heroPos',label:'Panel position (per flavor)',type:'select',opts:ANCHORS,def:'center',show:isHero},
+      {k:'heroAlign',label:'Text align (per flavor)',type:'select',opts:['left','center','right'],def:'center',show:isHero},
+      {k:'camSide',label:'Cam side (swap with chat)',type:'select',opts:['left','right'],def:'left',show:isChat},
+      {k:'camRatio',label:'Cam width % (rest = chat space)',type:'number',def:50,show:isChat},
+      {k:'chatCamH',label:'Cam height (vh)',type:'number',def:90,show:isChat},
+      {k:'gameW',label:'Game window width (vw)',type:'number',def:67,show:isGame},
+      {k:'gameH',label:'Game window height (vh)',type:'number',def:67,show:isGame},
+      {k:'gamePos',label:'Game window position',type:'select',opts:ANCHORS,def:'top-left',show:isGame},
+      {k:'camPos',label:'Cam / avatar position',type:'select',opts:ANCHORS,def:'bottom-right',show:isGame},
+      {k:'camW',label:'Cam width (vw)',type:'number',def:25,show:isGame},
+      {k:'camH',label:'Cam height (vh)',type:'number',def:40,show:isGame},
+      {k:'chatPos',label:'Chat position',type:'select',opts:ANCHORS,def:'top-right',show:isGame},
+      {k:'chatW',label:'Chat width (vw)',type:'number',def:25,show:isGame},
+      {k:'chatH',label:'Chat height (vh)',type:'number',def:50,show:isGame},
+      {k:'camBorder',label:'Cam border (alpha 0 = none)',type:'coloralpha',def:'#d11c1c',show:function(c){return isChat(c)||isGame(c);}},
+      {k:'camBg',label:'Cam background',type:'coloralpha',def:'rgba(0,0,0,0.35)',show:function(c){return isChat(c)||isGame(c);}},
+      {k:'zoneBg',label:'Chat zone background',type:'coloralpha',def:'rgba(0,0,0,0.25)',show:function(c){return isChat(c)||isGame(c);}},
+      {k:'bgImage',label:'Custom background image (all modes, optional)',type:'image',def:''},
+      {k:'glow',label:'Glow overlay',type:'check',def:true},
+      {k:'glowColor',label:'Glow color',type:'coloralpha',def:'rgba(209,28,28,0.35)'},
+      {k:'glowPos',label:'Glow position',type:'select',opts:ANCHORS,def:'top'}
+    ],
+    build:function(c){ return doc(this.title, sceneCSS(c), sceneBody(c), SCENE_JS, c); }
+  },
+  timer:{
+    label:'Timer / clock', file:'timer.html', title:'stream.mk timer',
+    desc:'A live clock, a count-up stream timer, or a countdown. Countdown counts DOWN from the HH:MM:SS you set (restarts when the source loads).',
+    fields:[
+      {k:'mode',label:'Mode',type:'select',opts:['clock','countup','countdown'],def:'clock'},
+      {k:'duration',label:'Countdown length HH:MM:SS',type:'duration',def:'00:10:00',show:function(c){return c.mode==='countdown';}},
+      {k:'prefix',label:'Prefix text',type:'text',def:''},
+      {k:'h24',label:'24-hour clock (off = AM/PM)',type:'check',def:true},
+      {k:'anchor',label:'Position',type:'select',opts:['top-left','top-right','bottom-left','bottom-right','center'],def:'top-right'},
+      {k:'size',label:'Font size (px)',type:'number',def:32},
+      {k:'bubbleColor',label:'Background bubble',type:'coloralpha',def:'rgba(0,0,0,0.5)'}
+    ],
+    build:function(c){ return doc(this.title, timerCSS(c), '<div id="tm"></div>', TIMER_JS, c); }
+  },
+  alert:{
+    label:'Alert box', file:'alert.html', title:'stream.mk alert',
+    desc:'Full StreamElements/TikFinity-style alerts. Add one row PER event (follow, sub, gift, raid, tip…) — each with its OWN title + subtitle message, image/gif, sound, color, duration, and minimum amount (for tiered variations). Tokens: {user} {amount} {tier} {months} {message} {count}. Fires on bridge events; add ?test to demo every type.',
+    fields:[
+      {k:'bridge',label:'Bridge WebSocket (events)',type:'text',def:'ws://localhost:8787'},
+      {k:'bubbleColor',label:'Alert box background',type:'coloralpha',def:'rgba(0,0,0,0.6)'},
+      {k:'anim',label:'Animation',type:'select',opts:['slide','fade','pop','slide-left','slide-right'],def:'slide'},
+      {k:'duration',label:'Default on-screen seconds',type:'number',def:5},
+      {k:'volume',label:'Sound volume (0-1)',type:'number',def:1},
+      {k:'titleSize',label:'Title font size (px)',type:'number',def:28},
+      {k:'subSize',label:'Subtitle font size (px)',type:'number',def:16},
+      {k:'iconSize',label:'Icon / image size (px)',type:'number',def:64},
+      {k:'showIcon',label:'Show platform icon when no custom image',type:'check',def:true},
+      {k:'strict',label:'Only fire events that have a matching alert row',type:'check',def:false},
+      {k:'alerts',label:'Alerts (one per event)',type:'alerts',def:[
+        {enabled:true,platform:'any',event:'follow',title:'{user} just followed!',sub:'welcome to the disaster',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'twitch',event:'sub',title:'{user} just subscribed!',sub:'tier {tier} — {months} months of chaos',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'twitch',event:'resub',title:'{user} resubscribed!',sub:'{months} months strong',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'twitch',event:'cheer',title:'{user} cheered {amount} bits!',sub:'thanks for the bits',color:'',dur:0,min:1,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'twitch',event:'raid',title:'{user} raided with {amount}!',sub:'incoming chaos',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'tiktok',event:'gift',title:'{user} sent a gift x{amount}!',sub:'you absolute legend',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'tiktok',event:'like',title:'{user} dropped likes',sub:'tap tap tap',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'tiktok',event:'share',title:'{user} shared the stream',sub:'spread the disaster',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'youtube',event:'member',title:'{user} became a member!',sub:'welcome aboard',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'youtube',event:'superchat',title:'{user} sent a super chat!',sub:'{message}',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''},
+        {enabled:true,platform:'any',event:'donation',title:'{user} donated {amount}!',sub:'thank you so much',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''}
+      ]}
+    ],
+    build:function(c){ return doc(this.title, alertCSS(c), '<div id="al"></div>', ALERT_JS, c); }
+  },
+  banner:{
+    label:'Social banner', file:'banner.html', title:'stream.mk banner',
+    desc:'Rotating lower-third — the bar stays put, only the text swaps (one message per line).',
+    fields:[
+      {k:'messages',label:'Messages (one per line)',type:'textarea',def:'follow me @calamytryx on tiktok\n!discord to join the chaos\nnew vids every... whenever'},
+      {k:'interval',label:'Rotate every (s)',type:'number',def:6},
+      {k:'anchor',label:'Position',type:'select',opts:['bottom','top'],def:'bottom'},
+      {k:'size',label:'Font size (px)',type:'number',def:20},
+      {k:'barColor',label:'Bar color',type:'coloralpha',def:'rgba(0,0,0,0.55)'}
+    ],
+    build:function(c){ return doc(this.title, bannerCSS(c), '<div id="bn"><span id="bntxt"></span></div>', BANNER_JS, c); }
+  },
+  stinger:{
+    label:'Stinger transition', file:'stinger.html', title:'stream.mk stinger',
+    desc:'A full-screen wipe that covers the cut between scenes, flashes your wordmark, then reveals. Plays once on load. For a true OBS Stinger transition, screen-record this browser source to a .webm with alpha; or drop it in as a triggered browser-source overlay (reload to replay). Preview loops automatically.',
+    fields:[
+      {k:'dir',label:'Direction',type:'select',opts:['left','right','up','down','bars'],def:'left'},
+      {k:'count',label:'Bar count',type:'number',def:5,show:function(c){return c.dir==='bars';}},
+      {k:'stagger',label:'Bar stagger (s)',type:'number',def:0.06,show:function(c){return c.dir==='bars';}},
+      {k:'color',label:'Wipe color',type:'coloralpha',def:'#d11c1c'},
+      {k:'text',label:'Wordmark text',type:'text',def:'CALAMYTRYX'},
+      {k:'glitch',label:'Glitch the wordmark',type:'check',def:true},
+      {k:'dur',label:'Sweep time (s)',type:'number',def:0.5},
+      {k:'hold',label:'Hold covered (s)',type:'number',def:0.4},
+      {k:'ease',label:'Motion',type:'select',opts:['stepped','smooth'],def:'stepped'},
+      {k:'gap',label:'Loop gap for preview (s)',type:'number',def:1},
+      {k:'loop',label:'Loop forever in export too',type:'check',def:false}
+    ],
+    build:function(c){ return doc(this.title, stingerCSS(c), stingerBody(c), STINGER_JS, c); }
+  }
+};
+
+/* ============================ bridge script ============================ */
+function bridgeJS(port){
+  return [
+"// stream.mk — TikTok -> overlay bridge (Node).",
+"// SETUP:  install Node, then in this folder run:",
+"//   npm init -y && npm i tiktok-live-connector ws",
+"// RUN:    node bridge.js <tiktok_username>",
+"// Then set the chat/alert widget Bridge to  ws://localhost:"+port,
+"const { WebcastPushConnection } = require('tiktok-live-connector');",
+"const { WebSocketServer } = require('ws');",
+"const PORT = "+port+";",
+"const username = process.argv[2];",
+"if(!username){ console.error('usage: node bridge.js <tiktok_username>'); process.exit(1); }",
+"const wss = new WebSocketServer({ port: PORT });",
+"const clients = new Set();",
+"wss.on('connection', c => { clients.add(c); c.on('close', () => clients.delete(c)); });",
+"function broadcast(o){ const s = JSON.stringify(o); clients.forEach(c => { try { c.send(s); } catch(_){} }); }",
+"console.log('overlay bridge listening on ws://localhost:' + PORT);",
+"const tt = new WebcastPushConnection(username);",
+"tt.connect().then(() => console.log('connected to TikTok @' + username))",
+"  .catch(e => console.error('TikTok connect failed:', e.message));",
+"tt.on('chat', d => broadcast({ platform:'tiktok', user:d.nickname, message:d.comment }));",
+"tt.on('gift', d => { const n=d.repeatCount||1; broadcast({ platform:'tiktok', user:d.nickname, message:'sent a gift x'+n }); broadcast({ type:'alert', platform:'tiktok', user:d.nickname, event:'gift', amount:n }); });",
+"tt.on('member', d => broadcast({ type:'alert', platform:'tiktok', user:d.nickname, event:'join' }));",
+"tt.on('like', d => broadcast({ type:'alert', platform:'tiktok', user:d.nickname, event:'like', amount:(d.likeCount||1) }));",
+"tt.on('follow', d => broadcast({ type:'alert', platform:'tiktok', user:d.nickname, event:'follow' }));",
+"tt.on('share', d => broadcast({ type:'alert', platform:'tiktok', user:d.nickname, event:'share' }));",
+"// FACEBOOK (optional): FB Live needs a Page access token + live video id via the Graph API.",
+"// Poll https://graph.facebook.com/<LIVE_VIDEO_ID>/comments?access_token=... and call",
+"// broadcast({ platform:'facebook', user, message }). Requires your own FB app token."
+  ].join('\n');
+}
+
+/* ============================ generator UI ============================ */
+var $ = function(s){ return document.querySelector(s); };
+var current = 'chat';
+var cfg = {};
+
+/* ----- font sources: this site's fonts, Google Fonts (searchable), or upload ----- */
+var SITE_FONTS = [
+  {name:'Departure Mono', file:'/assets/fonts/DepartureMono-Regular.otf', ext:'otf'},
+  {name:'Monocraft',      file:'/assets/fonts/Monocraft.ttf',             ext:'ttf'},
+  {name:'Cozette',        file:'/assets/fonts/CozetteCrossedSevenVector.ttf', ext:'ttf'},
+  {name:'ChaosMytryx',    file:'/assets/fonts/ChaosMytryx.ttf',           ext:'ttf'}
+];
+var GOOGLE_FONTS = ['Press Start 2P','VT323','Silkscreen','Pixelify Sans','Handjet','DotGothic16','Jersey 10','Jersey 15','Jersey 25','Micro 5','Workbench','Nova Square','Nova Mono','Sixtyfour','Share Tech Mono','Space Mono','JetBrains Mono','Fira Code','Fira Mono','IBM Plex Mono','Source Code Pro','Roboto Mono','Ubuntu Mono','Inconsolata','PT Mono','Overpass Mono','Spline Sans Mono','Red Hat Mono','Martian Mono','Noto Sans Mono','Anonymous Pro','B612 Mono','Azeret Mono','Sometype Mono','Cutive Mono','Major Mono Display','Syne Mono','Xanh Mono','DM Mono','Orbitron','Audiowide','Bungee','Bungee Shade','Bungee Inline','Monoton','Wallpoet','Faster One','Black Ops One','Rubik Glitch','Rubik Wet Paint','Rubik Puddles','Rubik Burned','Rubik Glitch Pop','Rubik Maze','Rubik Iso','Creepster','Nosifer','Eater','Butcherman','Pirata One','Metal Mania','UnifrakturCook','Special Elite','Trade Winds','Tourney','Megrim','Frijole','Henny Penny','Griffy','Inter','Roboto','Open Sans','Montserrat','Poppins','Lato','Oswald','Raleway','Bebas Neue','Anton','Archivo','Teko','Russo One','Rajdhani','Saira','Chakra Petch','Exo 2','Michroma'];
+/* fetch a site font + base64-embed it so the exported widget renders offline in OBS */
+function embedSiteFont(name){
+  var sf=null; SITE_FONTS.forEach(function(x){ if(x.name===name) sf=x; }); if(!sf) return;
+  cfg.font=name; cfg.fontGoogle='';
+  fetch(sf.file).then(function(r){ return r.blob(); }).then(function(b){
+    var rd=new FileReader(); rd.onload=function(){ cfg.fontB64=String(rd.result).split(',')[1]; cfg.fontExt=sf.ext; renderFields(); update(); }; rd.readAsDataURL(b);
+  }).catch(function(){ cfg.fontB64=''; cfg.fontExt=sf.ext; renderFields(); update(); });
+}
+/* one combined input, no source dropdown: site name -> embed, anything else -> Google @import */
+function applyFontName(name){
+  name=(name||'').trim();
+  if(!name){ cfg.font='Departure Mono'; cfg.fontGoogle=''; cfg.fontB64=''; cfg.fontExt=''; update(); return; }
+  var site=null; SITE_FONTS.forEach(function(s){ if(s.name.toLowerCase()===name.toLowerCase()) site=s; });
+  if(site){ embedSiteFont(site.name); return; }
+  cfg.fontGoogle=name; cfg.font=name; cfg.fontB64=''; cfg.fontExt=''; update();
+}
+
+function fieldsFor(id){ return THEME.concat(WIDGETS[id].fields); }
+function defaults(id){
+  var o = { demo:false };
+  fieldsFor(id).forEach(function(f){ o[f.k] = Array.isArray(f.def) ? JSON.parse(JSON.stringify(f.def)) : f.def; });
+  return o;
+}
+
+/* ----- color helpers (color picker + alpha => rgba) ----- */
+function hx(c){ c=Math.max(0,Math.min(255,c|0)).toString(16); return c.length<2?'0'+c:c; }
+function parseColor(str){
+  str=(str||'').trim();
+  if(str==='transparent') return {hex:'#000000',a:0};
+  var m=str.match(/rgba?\(([^)]+)\)/);
+  if(m){ var p=m[1].split(',').map(function(x){return parseFloat(x);}); return {hex:'#'+hx(p[0])+hx(p[1])+hx(p[2]), a:(p[3]==null?1:p[3])}; }
+  if(str[0]==='#'){ if(str.length>=7) return {hex:str.slice(0,7), a:(str.length===9?parseInt(str.slice(7,9),16)/255:1)}; }
+  return {hex:'#000000',a:1};
+}
+function makeColor(hex,aPct){ var a=aPct/100; if(a>=1) return hex; var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+(Math.round(a*100)/100)+')'; }
+
+function renderTabs(){
+  $('#tabs').innerHTML = Object.keys(WIDGETS).map(function(id){
+    return '<button class="tab'+(id===current?' on':'')+'" data-id="'+id+'">'+WIDGETS[id].label+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('#tabs').querySelectorAll('.tab'), function(b){
+    b.onclick=function(){ current=b.dataset.id; cfg=defaults(current); renderTabs(); renderFields(); update(); };
+  });
+  $('#desc').textContent = WIDGETS[current].desc;
+}
+
+function renderFields(){
+  var host=$('#fields'); host.innerHTML='';
+  fieldsFor(current).forEach(function(f){
+    if(f.show && !f.show(cfg)) return;   /* per-template / per-mode conditional fields */
+    var wrap=document.createElement('div'); wrap.className='field';
+    if(f.type==='check'){
+      var l=document.createElement('label'); l.className='check';
+      var cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!cfg[f.k];
+      cb.onchange=function(){ cfg[f.k]=cb.checked; renderFields(); update(); };
+      l.appendChild(cb); l.append(' '+f.label); wrap.appendChild(l); host.appendChild(wrap); return;
+    }
+    var lab=document.createElement('label'); lab.textContent=f.label; wrap.appendChild(lab);
+
+    if(f.type==='coloralpha'){
+      var pcv=parseColor(cfg[f.k]);
+      var crow=document.createElement('div'); crow.className='crow';
+      var col=document.createElement('input'); col.type='color'; col.value=pcv.hex;
+      var al=document.createElement('input'); al.type='range'; al.min=0; al.max=100; al.value=Math.round(pcv.a*100); al.style.flex='1';
+      var pct=document.createElement('span'); pct.className='hint'; pct.style.minWidth='34px'; pct.textContent=Math.round(pcv.a*100)+'%';
+      var setc=function(){ cfg[f.k]=makeColor(col.value,+al.value); pct.textContent=al.value+'%'; update(); };
+      col.oninput=setc; al.oninput=setc;
+      crow.append(col,al,pct); wrap.appendChild(crow);
+    }
+    else if(f.type==='font'){
+      var src=cfg.fontSource||'site';
+      var ss=document.createElement('select');
+      [['site','This site’s fonts'],['google','Google Fonts (search)'],['upload','Upload a file']].forEach(function(o){ var op=document.createElement('option'); op.value=o[0]; op.textContent=o[1]; if(o[0]===src) op.selected=true; ss.appendChild(op); });
+      ss.onchange=function(){ cfg.fontSource=ss.value; renderFields(); update(); };
+      wrap.appendChild(ss);
+
+      if(src==='site'){
+        var sel=document.createElement('select'); sel.style.marginTop='6px';
+        SITE_FONTS.forEach(function(sf){ var op=document.createElement('option'); op.value=sf.name; op.textContent=sf.name; if(sf.name===cfg.font) op.selected=true; sel.appendChild(op); });
+        sel.onchange=function(){ embedSiteFont(sel.value); };
+        wrap.appendChild(sel);
+      } else if(src==='google'){
+        if(!document.getElementById('gfonts_list')){ var dl=document.createElement('datalist'); dl.id='gfonts_list'; dl.innerHTML=GOOGLE_FONTS.map(function(n){return '<option value="'+n+'">';}).join(''); document.body.appendChild(dl); }
+        var gi=document.createElement('input'); gi.type='text'; gi.setAttribute('list','gfonts_list'); gi.placeholder='type to search Google Fonts…'; gi.value=cfg.fontGoogle||''; gi.style.marginTop='6px';
+        gi.oninput=function(){ cfg.fontGoogle=gi.value.trim(); cfg.font=cfg.fontGoogle||'Departure Mono'; cfg.fontB64=''; cfg.fontExt=''; update(); };
+        wrap.appendChild(gi);
+      } else {
+        var fi=document.createElement('input'); fi.type='file'; fi.accept='.ttf,.otf,.woff,.woff2'; fi.style.marginTop='6px';
+        fi.onchange=function(){ var file=fi.files[0]; if(!file) return; var rd=new FileReader();
+          rd.onload=function(){ cfg.fontB64=String(rd.result).split(',')[1]; cfg.fontExt=(file.name.split('.').pop()||'otf').toLowerCase();
+            cfg.font=(file.name.replace(/\.[^.]+$/,'').replace(/[^A-Za-z0-9]/g,'')||'CustomFont'); cfg.fontGoogle=''; renderFields(); update(); };
+          rd.readAsDataURL(file); };
+        wrap.appendChild(fi);
+      }
+      var info=document.createElement('div'); info.className='hint';
+      info.textContent='current: '+(cfg.font||'Departure Mono')+(cfg.fontGoogle?' (Google Font — needs network in OBS)':(cfg.fontB64?' (embedded — offline-safe)':' (Departure Mono, bundled)'));
+      wrap.appendChild(info);
+    }
+    else if(f.type==='image'){
+      var imf=document.createElement('input'); imf.type='file'; imf.accept='image/*';
+      var iminfo=document.createElement('div'); iminfo.className='hint'; iminfo.textContent=cfg[f.k]?'✔ image set':'none';
+      imf.onchange=function(){ var file=imf.files[0]; if(!file) return; var rd=new FileReader();
+        rd.onload=function(){ cfg[f.k]=String(rd.result); iminfo.textContent='✔ '+file.name; update(); }; rd.readAsDataURL(file); };
+      var imclr=document.createElement('button'); imclr.className='act'; imclr.textContent='clear'; imclr.style.marginLeft='8px';
+      imclr.onclick=function(){ cfg[f.k]=''; imf.value=''; iminfo.textContent='none'; update(); };
+      wrap.appendChild(imf); wrap.appendChild(imclr); wrap.appendChild(iminfo);
+    }
+    else if(f.type==='duration'){
+      var di=document.createElement('input'); di.type='text'; di.value=cfg[f.k]||''; di.placeholder='HH:MM:SS  e.g. 00:10:00';
+      di.oninput=function(){ cfg[f.k]=di.value; update(); };
+      wrap.appendChild(di);
+    }
+    else if(f.type==='sounds'){
+      wrap.appendChild(buildSounds(f.k));
+    }
+    else if(f.type==='alerts'){
+      wrap.appendChild(buildAlerts(f.k));
+    }
+    else if(f.type==='select'){
+      var sel=document.createElement('select'); sel.innerHTML=f.opts.map(function(o){return '<option'+(o===cfg[f.k]?' selected':'')+'>'+o+'</option>';}).join('');
+      sel.onchange=function(){ cfg[f.k]=sel.value;
+        if(current==='scene' && f.k==='template' && SCENE_TPL[sel.value]){ var t=SCENE_TPL[sel.value]; cfg.eyebrow=t.eyebrow; cfg.title=t.title; cfg.sub=t.sub; if(t.pos)cfg.heroPos=t.pos; if(t.align)cfg.heroAlign=t.align; }
+        renderFields(); update(); };   /* reflow conditional fields */
+      wrap.appendChild(sel);
+    }
+    else if(f.type==='textarea'){
+      var ta=document.createElement('textarea'); ta.value=cfg[f.k]; ta.oninput=function(){ cfg[f.k]=ta.value; update(); }; wrap.appendChild(ta);
+    }
+    else {
+      var inp=document.createElement('input'); inp.type=(f.type==='number')?'number':'text'; inp.value=cfg[f.k];
+      inp.oninput=function(){ cfg[f.k]=(f.type==='number')?(+inp.value||0):inp.value; update(); }; wrap.appendChild(inp);
+    }
+    host.appendChild(wrap);
+  });
+
+  var extra=$('#extra'); extra.innerHTML='';
+  if(WIDGETS[current].extra==='bridge'){
+    var note=document.createElement('div'); note.className='hint';
+    note.innerHTML='<span class="warn">TikTok/Facebook need the bridge.</span> Download it, run <b>node bridge.js &lt;tiktok_user&gt;</b>, and it feeds this overlay. Facebook needs your own Graph token (see file comments).';
+    var b=document.createElement('button'); b.className='act'; b.style.marginTop='8px'; b.textContent='⬇ download TikTok bridge (bridge.js)';
+    b.onclick=function(){ var port=(/:(\d+)/.exec(cfg.bridge||'')||[])[1]||'8787'; download('bridge.js', bridgeJS(port), 'text/javascript'); };
+    extra.appendChild(note); extra.appendChild(b);
+  }
+  if(current==='scene'){
+    var pn=document.createElement('button'); pn.className='act'; pn.style.marginTop='8px'; pn.textContent='⬇ download scene as PNG';
+    pn.onclick=scenePng;
+    var ph=document.createElement('div'); ph.className='hint'; ph.style.marginTop='6px';
+    ph.innerHTML='Saves a 1920×1080 snapshot named <b>'+(cfg.template||'scene')+'_N.png</b>. <span class="warn">A PNG is a still image — it won\'t run the countdown.</span> For a live countdown or clock, use the <b>Timer / clock</b> widget on top of the scene.';
+    extra.appendChild(pn); extra.appendChild(ph);
+  }
+}
+
+/* ----- render the scene preview to a 1920x1080 PNG (SVG foreignObject) ----- */
+var pngCount={};
+function scenePng(){
+  var W=1920,H=1080;
+  var face=fontFace(cfg); if(cfg.fontGoogle) face='';  /* external @import won't rasterize inside an SVG image */
+  var css=sceneCSS(cfg);
+  var body=sceneBody(Object.assign({},cfg,{demo:false}));
+  var doc='<html xmlns="http://www.w3.org/1999/xhtml"><head><style>'+face+css+'</style></head><body>'+body+'</body></html>';
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject x="0" y="0" width="100%" height="100%">'+doc+'</foreignObject></svg>';
+  var url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  var img=new Image();
+  img.onload=function(){
+    var cv=document.createElement('canvas'); cv.width=W; cv.height=H; var g=cv.getContext('2d');
+    g.drawImage(img,0,0,W,H);
+    cv.toBlob(function(blob){
+      if(!blob){ alert('PNG render failed.'); return; }
+      var t=cfg.template||'scene'; var n=(pngCount[t]=(pngCount[t]||0)+1);
+      download(t+'_'+n+'.png', blob, 'image/png');
+    },'image/png');
+  };
+  img.onerror=function(){ alert('PNG render failed — a Google font or external asset blocked it. Use a site/uploaded font or a custom background image (those embed) for PNG export.'); };
+  img.src=url;
+}
+
+/* ----- sounds matrix editor ----- */
+var EVENTS=['any','follow','sub','gift','cheer','raid','share','member','superchat','like','join','donation'];
+var PLATS=['any','tiktok','twitch','youtube','facebook'];
+function buildSounds(key){
+  var box=document.createElement('div');
+  function draw(){
+    box.innerHTML='';
+    (cfg[key]||[]).forEach(function(s,i){
+      var row=document.createElement('div'); row.className='snd';
+      var r=document.createElement('div'); r.className='r';
+      var ps=document.createElement('select'); ps.innerHTML=PLATS.map(function(p){return '<option'+(p===s.platform?' selected':'')+'>'+p+'</option>';}).join(''); ps.onchange=function(){s.platform=ps.value;};
+      var es=document.createElement('select'); es.innerHTML=EVENTS.map(function(e){return '<option'+(e===s.event?' selected':'')+'>'+e+'</option>';}).join(''); es.onchange=function(){s.event=es.value;};
+      var rm=document.createElement('button'); rm.className='act x'; rm.textContent='✕'; rm.onclick=function(){ cfg[key].splice(i,1); draw(); update(); };
+      r.append(ps,es,rm); row.appendChild(r);
+      var fi=document.createElement('input'); fi.type='file'; fi.accept='audio/*';
+      var info=document.createElement('div'); info.className='hint'; info.textContent=s.b64?('✔ sound loaded ('+(s.fmt||'audio')+')'):'no sound yet';
+      fi.onchange=function(){ var f=fi.files[0]; if(!f)return; var rd=new FileReader(); rd.onload=function(){ s.b64=String(rd.result).split(',')[1]; s.fmt=(f.type.split('/')[1]||'mpeg'); info.textContent='✔ '+f.name; update(); }; rd.readAsDataURL(f); };
+      row.appendChild(fi); row.appendChild(info);
+      box.appendChild(row);
+    });
+    var add=document.createElement('button'); add.className='act'; add.textContent='+ add sound';
+    add.onclick=function(){ if(!cfg[key])cfg[key]=[]; cfg[key].push({platform:'any',event:'follow',b64:'',fmt:''}); draw(); };
+    box.appendChild(add);
+  }
+  draw(); return box;
+}
+
+/* ----- alerts editor: one fully-configurable card per event ----- */
+var A_EVENTS=['any','follow','sub','resub','gift','cheer','raid','host','member','superchat','donation','tip','like','share','join'];
+function mkSel(opts,val,on){ var s=document.createElement('select'); s.innerHTML=opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+o+'</option>';}).join(''); s.onchange=function(){on(s.value);}; return s; }
+function mkField(labelText,val,type,on){
+  var w=document.createElement('div'); w.className='field'; w.style.margin='6px 0 0';
+  var l=document.createElement('label'); l.textContent=labelText; l.style.fontSize='11px'; w.appendChild(l);
+  var i=document.createElement('input'); i.type=(type==='number')?'number':'text'; i.value=(val==null?'':val);
+  i.oninput=function(){ on(type==='number'?(+i.value||0):i.value); }; w.appendChild(i); return w;
+}
+function buildAlerts(key){
+  var box=document.createElement('div');
+  var tip=document.createElement('div'); tip.className='hint'; tip.style.marginBottom='8px';
+  tip.innerHTML='Tokens: <b>{user}</b> <b>{amount}</b> <b>{tier}</b> <b>{months}</b> <b>{message}</b> <b>{count}</b>. Set a <b>min amount</b> on duplicate events for tiered alerts (e.g. gift x1 vs gift x100). Image/sound optional.';
+  function draw(){
+    box.innerHTML=''; box.appendChild(tip);
+    (cfg[key]||[]).forEach(function(a,i){
+      var card=document.createElement('div'); card.className='snd';
+      var top=document.createElement('div'); top.className='r';
+      var en=document.createElement('label'); en.className='check'; en.style.flex='0 0 auto';
+      var cb=document.createElement('input'); cb.type='checkbox'; cb.checked=a.enabled!==false; cb.onchange=function(){a.enabled=cb.checked;update();}; en.appendChild(cb);
+      var ps=mkSel(PLATS,a.platform||'any',function(v){a.platform=v;update();});
+      var es=mkSel(A_EVENTS,a.event||'follow',function(v){a.event=v;update();});
+      var up=document.createElement('button'); up.className='act'; up.textContent='↑'; up.onclick=function(){ if(i>0){var t=cfg[key][i-1];cfg[key][i-1]=a;cfg[key][i]=t;draw();update();} };
+      var rm=document.createElement('button'); rm.className='act x'; rm.textContent='✕'; rm.onclick=function(){ cfg[key].splice(i,1); draw(); update(); };
+      top.append(en,ps,es,up,rm); card.appendChild(top);
+      card.appendChild(mkField('Title (message)',a.title,'text',function(v){a.title=v;update();}));
+      card.appendChild(mkField('Subtitle',a.sub,'text',function(v){a.sub=v;update();}));
+      var nums=document.createElement('div'); nums.className='r'; nums.style.marginTop='6px';
+      nums.appendChild(mkField('Min amount',a.min||0,'number',function(v){a.min=v;update();}));
+      nums.appendChild(mkField('Seconds (0=default)',a.dur||0,'number',function(v){a.dur=v;update();}));
+      card.appendChild(nums);
+      var cw=document.createElement('div'); cw.className='field'; cw.style.margin='6px 0 0';
+      var cl=document.createElement('label'); cl.textContent='Accent color (blank = platform color)'; cl.style.fontSize='11px'; cw.appendChild(cl);
+      var crow=document.createElement('div'); crow.className='crow';
+      var pcv=parseColor(a.color||'#d11c1c');
+      var col=document.createElement('input'); col.type='color'; col.value=pcv.hex; col.oninput=function(){a.color=col.value;update();};
+      var clr=document.createElement('button'); clr.className='act'; clr.textContent='use platform'; clr.onclick=function(){a.color='';update();};
+      crow.append(col,clr); cw.appendChild(crow); card.appendChild(cw);
+      /* image / gif */
+      var imw=document.createElement('div'); imw.className='field'; imw.style.margin='6px 0 0';
+      var iml=document.createElement('label'); iml.textContent='Image / GIF (optional)'; iml.style.fontSize='11px'; imw.appendChild(iml);
+      var imf=document.createElement('input'); imf.type='file'; imf.accept='image/*';
+      var imi=document.createElement('span'); imi.className='hint'; imi.style.marginLeft='8px'; imi.textContent=a.img?'✔ set':'none';
+      imf.onchange=function(){ var f=imf.files[0]; if(!f)return; var rd=new FileReader(); rd.onload=function(){ a.img=String(rd.result).split(',')[1]; a.imgFmt=(f.type.split('/')[1]||'png'); imi.textContent='✔ '+f.name; update(); }; rd.readAsDataURL(f); };
+      imw.appendChild(imf); imw.appendChild(imi); card.appendChild(imw);
+      /* sound */
+      var sw=document.createElement('div'); sw.className='field'; sw.style.margin='6px 0 0';
+      var sl=document.createElement('label'); sl.textContent='Sound (optional)'; sl.style.fontSize='11px'; sw.appendChild(sl);
+      var sf=document.createElement('input'); sf.type='file'; sf.accept='audio/*';
+      var si=document.createElement('span'); si.className='hint'; si.style.marginLeft='8px'; si.textContent=a.b64?'✔ set':'none';
+      sf.onchange=function(){ var f=sf.files[0]; if(!f)return; var rd=new FileReader(); rd.onload=function(){ a.b64=String(rd.result).split(',')[1]; a.fmt=(f.type.split('/')[1]||'mpeg'); si.textContent='✔ '+f.name; update(); }; rd.readAsDataURL(f); };
+      sw.appendChild(sf); sw.appendChild(si); card.appendChild(sw);
+      box.appendChild(card);
+    });
+    var add=document.createElement('button'); add.className='act'; add.textContent='+ add alert';
+    add.onclick=function(){ if(!cfg[key])cfg[key]=[]; cfg[key].push({enabled:true,platform:'any',event:'follow',title:'{user} just followed!',sub:'',color:'',dur:0,min:0,img:'',imgFmt:'',b64:'',fmt:''}); draw(); update(); };
+    box.appendChild(add);
+  }
+  draw(); return box;
+}
+
+function howto(){
+  $('#howto').innerHTML='<b>'+WIDGETS[current].label+'</b> → exports <b>'+WIDGETS[current].file+'</b>. '+
+    (current==='chat'?'Twitch is live with no setup; preview shows demo messages.':
+     current==='alert'?'Add <b>?test</b> to the file URL to demo all platforms.':'');
+}
+/* pixel cursors for the PREVIEW only (absolute /assets paths resolve to site root inside srcdoc);
+   injected here so it never ends up in the exported widget. */
+var CURSOR_CSS="html,body{cursor:url('/assets/icons/cursors/png/default.png') 4 2,auto}"
+  +"a,button,select,summary,label,[role=button],input[type=range],input[type=color],input[type=checkbox]{cursor:url('/assets/icons/cursors/png/pointer.png') 10 6,pointer}"
+  +"input[type=text],input[type=number],textarea{cursor:url('/assets/icons/cursors/png/text.png') 11 12,text}";
+function update(){
+  try{
+    var html=WIDGETS[current].build(Object.assign({}, cfg, {demo:true}));
+    html=html.replace('</head>','<style>'+CURSOR_CSS+'</style></head>');
+    $('#preview').srcdoc=html;
+  }catch(e){ console.error(e); }
+  howto();
+}
+function download(name, data, type){
+  var blob=(data instanceof Blob)?data:new Blob([data],{type:type||'text/html'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+}
+$('#exportBtn').onclick=function(){ download(WIDGETS[current].file, WIDGETS[current].build(Object.assign({}, cfg, {demo:false}))); };
+
+cfg=defaults(current);
+renderTabs(); renderFields(); update();
+</script>
+</body>
+</html>

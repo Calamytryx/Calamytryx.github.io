@@ -9,6 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>content editor — calamytryx (dev)</title>
+<link rel="icon" href="/assets/media/logo.png">
 <style>
   :root{
     --bg:#0a0a0c; --panel:#13171c; --panel2:#181d23; --line:#242b33;
@@ -51,24 +52,25 @@
   /* icon search modal */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50}
   .modal.open{display:flex}
-  .modal-box{background:var(--panel);border:1px solid var(--blood);border-radius:6px;width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;padding:14px}
+  .modal_box{background:var(--panel);border:1px solid var(--blood);border-radius:6px;width:min(680px,92vw);max-height:80vh;display:flex;flex-direction:column;padding:14px}
   .icongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;overflow-y:auto;margin-top:10px}
   .icongrid button{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;color:var(--txt)}
   .icongrid button svg{width:22px;height:22px;fill:currentColor}
   .icongrid button .nm{font-size:8px;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* preview */
-  .pv-h{color:var(--dim);font-size:11px;letter-spacing:1px;margin:14px 0 6px;text-transform:uppercase}
-  .pv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-  .pv-card{border:2px solid var(--line);background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:8px}
-  .pv-card.featured{border-color:var(--blood);box-shadow:5px 5px 0 #3a0d0d}
-  .pv-card .ic{width:46px;height:46px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--txt)}
-  .pv-card .ic svg{width:28px;height:28px;fill:currentColor}
-  .pv-card h4{font-size:14px}
-  .pv-card .u{font-size:10px;color:var(--dim);word-break:break-all}
-  .pv-badge{background:var(--blood);color:#000;font-size:9px;padding:1px 5px;margin-left:5px}
-  .pv-sec{border-left:2px solid var(--blood);padding-left:10px;margin:8px 0}
-  .pv-sec b{color:#fff} .pv-sec p{color:var(--dim);font-size:12px}
+  .pv_h{color:var(--dim);font-size:11px;letter-spacing:1px;margin:14px 0 6px;text-transform:uppercase}
+  .pv_cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .pv_card{border:2px solid var(--line);background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:8px}
+  .pv_card.featured{border-color:var(--blood);box-shadow:5px 5px 0 #3a0d0d}
+  .pv_card .ic{width:46px;height:46px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--txt)}
+  .pv_card .ic svg{width:28px;height:28px;fill:currentColor}
+  .pv_card h4{font-size:14px}
+  .pv_card .u{font-size:10px;color:var(--dim);word-break:break-all}
+  .pv_badge{background:var(--blood);color:#000;font-size:9px;padding:1px 5px;margin-left:5px}
+  .pv_sec{border-left:2px solid var(--blood);padding-left:10px;margin:8px 0}
+  .pv_sec b{color:#fff} .pv_sec p{color:var(--dim);font-size:12px}
 </style>
+  <script src="/assets/layout/cursors.js" defer></script>
 </head>
 <body>
 <header>
@@ -91,7 +93,7 @@
 
 <!-- icon search modal -->
 <div class="modal" id="iconModal">
-  <div class="modal-box">
+  <div class="modal_box">
     <div style="display:flex;gap:8px;align-items:center">
       <input type="text" id="iconSearch" placeholder="search icons… (e.g. tiktok, heart, arrow)" style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);padding:7px;border-radius:4px">
       <button id="iconClose">close</button>
@@ -332,20 +334,20 @@ $('#iconModal').onclick = e=>{ if(e.target.id==='iconModal') $('#iconModal').cla
 function renderPreview(){
   const p=$('#preview'); const S=DATA.sections||{}; const soc=DATA.socials||[];
   const cards = soc.filter(s=>s.card!==false).map(s=>`
-    <div class="pv-card${s.featured?' featured':''}">
+    <div class="pv_card${s.featured?' featured':''}">
       <span class="ic">${ICONS[s.icon]||'?'}</span>
-      <h4>${esc(s.name)}${s.badge?`<span class="pv-badge">${esc(s.badge)}</span>`:''}</h4>
+      <h4>${esc(s.name)}${s.badge?`<span class="pv_badge">${esc(s.badge)}</span>`:''}</h4>
       <span class="u">${esc(s.handle||'')}</span>
     </div>`).join('');
   const secs = ['merch','fanart','about','stream','support'].filter(k=>S[k]).map(k=>`
-    <div class="pv-sec"><b>${esc(S[k].title||k)}</b><p>${esc(S[k].body||'')}</p></div>`).join('');
-  const cdc = (S.cdc||[]).map(c=>`<div class="pv-sec"><b>${esc(c.title)}</b><p>${esc(c.body)}</p></div>`).join('');
+    <div class="pv_sec"><b>${esc(S[k].title||k)}</b><p>${esc(S[k].body||'')}</p></div>`).join('');
+  const cdc = (S.cdc||[]).map(c=>`<div class="pv_sec"><b>${esc(c.title)}</b><p>${esc(c.body)}</p></div>`).join('');
   p.innerHTML =
-    `<div class="pv-h">${esc((DATA.site&&DATA.site.name)||'')} — ${esc((DATA.site&&DATA.site.tagline)||'')}</div>`+
-    `<div class="pv-h">socials cards (${soc.filter(s=>s.card!==false).length})</div><div class="pv-cards">${cards}</div>`+
-    `<div class="pv-h">sections</div>${secs}`+
-    `<div class="pv-h">chaos / disaster / cataclysm</div>${cdc}`+
-    (S.quote?`<div class="pv-h">quote</div><div class="pv-sec"><p>"${esc(S.quote.text||'')}"</p><b>— ${esc(S.quote.author||'')}</b></div>`:'');
+    `<div class="pv_h">${esc((DATA.site&&DATA.site.name)||'')} — ${esc((DATA.site&&DATA.site.tagline)||'')}</div>`+
+    `<div class="pv_h">socials cards (${soc.filter(s=>s.card!==false).length})</div><div class="pv_cards">${cards}</div>`+
+    `<div class="pv_h">sections</div>${secs}`+
+    `<div class="pv_h">chaos / disaster / cataclysm</div>${cdc}`+
+    (S.quote?`<div class="pv_h">quote</div><div class="pv_sec"><p>"${esc(S.quote.text||'')}"</p><b>— ${esc(S.quote.author||'')}</b></div>`:'');
 }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 

@@ -9,6 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>layout editor — calamytryx (dev)</title>
+<link rel="icon" href="/assets/media/logo.png">
 <style>
   :root{
     --bg:#0a0a0c; --panel:#13171c; --panel2:#181d23; --line:#242b33;
@@ -43,13 +44,14 @@
   legend{color:var(--blood);font-size:11px;letter-spacing:1px;padding:0 6px}
   label.fl{display:block;color:var(--dim);font-size:11px;margin:6px 0 2px}
   select,input.t{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px;padding:6px 8px;border-radius:4px}
-  .pv-h{color:var(--dim);font-size:11px;letter-spacing:1px;margin:10px 0 6px;text-transform:uppercase}
+  .pv_h{color:var(--dim);font-size:11px;letter-spacing:1px;margin:10px 0 6px;text-transform:uppercase}
   .order{list-style:none}
   .order li{border-left:2px solid var(--blood);padding:5px 10px;margin:4px 0;background:var(--panel)}
   .order li.off{border-color:var(--line);color:var(--dim);text-decoration:line-through}
   .divider-note{color:var(--dim);font-size:10px;padding-left:10px}
   pre{background:#000;border:1px solid var(--line);border-radius:4px;padding:10px;overflow:auto;font-size:11px;color:var(--txt);white-space:pre-wrap;word-break:break-word}
 </style>
+  <script src="/assets/layout/cursors.js" defer></script>
 </head>
 <body>
 <header>
@@ -82,9 +84,9 @@
   </div>
 
   <div class="right">
-    <div class="pv-h">render order — <span id="pageName"></span></div>
+    <div class="pv_h">render order — <span id="pageName"></span></div>
     <ul class="order" id="order"></ul>
-    <div class="pv-h">selected preset markup</div>
+    <div class="pv_h">selected preset markup</div>
     <pre id="tpl"></pre>
   </div>
 </div>
@@ -103,13 +105,13 @@ const PRESETS = {
     label:'Two column (image + text)',
     html:id=>`<section class="section" id="${id}">
   <div class="wrap">
-    <div class="grid-2">
+    <div class="grid_2">
       <figure><img src="/assets/media/home art.jpg" class="panel" style="padding:8px;width:100%" alt=""></figure>
-      <div class="flex-col gap-1">
+      <div class="flex_col gap_1">
         <p class="eyebrow">// new section</p>
-        <h2 class="display h-lg">HEADLINE</h2>
-        <p class="lead mt-1">Body copy goes here. Wire it to sections.json later if you want it editable.</p>
-        <a href="#" class="btn mt-2" style="align-self:flex-start">Read More</a>
+        <h2 class="display h_lg">HEADLINE</h2>
+        <p class="lead mt_1">Body copy goes here. Wire it to sections.json later if you want it editable.</p>
+        <a href="#" class="btn mt_2" style="align-self:flex-start">Read More</a>
       </div>
     </div>
   </div>
@@ -118,9 +120,9 @@ const PRESETS = {
   'centered-text': {
     label:'Centered text block',
     html:id=>`<section class="section" id="${id}">
-  <div class="wrap text-center" style="max-width:900px">
-    <h2 class="display h-lg cursor">HEADLINE</h2>
-    <p class="lead mt-2">Body copy goes here.</p>
+  <div class="wrap text_center" style="max-width:900px">
+    <h2 class="display h_lg cursor">HEADLINE</h2>
+    <p class="lead mt_2">Body copy goes here.</p>
   </div>
 </section>`
   },
@@ -128,10 +130,10 @@ const PRESETS = {
     label:'Three card grid',
     html:id=>`<section class="section" id="${id}">
   <div class="wrap">
-    <div class="grid-3">
-      <article class="card"><h3 class="display h-md" style="color:var(--blood)">One</h3><p class="muted mt-1">…</p></article>
-      <article class="card"><h3 class="display h-md" style="color:var(--blood)">Two</h3><p class="muted mt-1">…</p></article>
-      <article class="card"><h3 class="display h-md" style="color:var(--blood)">Three</h3><p class="muted mt-1">…</p></article>
+    <div class="grid_3">
+      <article class="card"><h3 class="display h_md" style="color:var(--blood)">One</h3><p class="muted mt_1">…</p></article>
+      <article class="card"><h3 class="display h_md" style="color:var(--blood)">Two</h3><p class="muted mt_1">…</p></article>
+      <article class="card"><h3 class="display h_md" style="color:var(--blood)">Three</h3><p class="muted mt_1">…</p></article>
     </div>
   </div>
 </section>`
@@ -140,11 +142,11 @@ const PRESETS = {
     label:'Video embed + heading',
     html:id=>`<section class="section" id="${id}">
   <div class="wrap">
-    <div class="grid-2">
+    <div class="grid_2">
       <div class="embed"><iframe src="https://www.youtube.com/embed/3UDZjKDySKc" title="embed" allowfullscreen></iframe></div>
-      <div class="flex-col gap-1" style="text-align:right;align-items:flex-end">
+      <div class="flex_col gap_1" style="text-align:right;align-items:flex-end">
         <p class="eyebrow">// embed</p>
-        <h2 class="display h-lg">HEADLINE</h2>
+        <h2 class="display h_lg">HEADLINE</h2>
       </div>
     </div>
   </div>
@@ -155,8 +157,8 @@ const PRESETS = {
     html:id=>`<section class="section" id="${id}">
   <div class="wrap" style="max-width:900px">
     <figure class="quote">
-      <span class="quote-mark" aria-hidden="true">"</span>
-      <blockquote><p class="display h-md" style="line-height:1.3">Your quote here</p></blockquote>
+      <span class="quote_mark" aria-hidden="true">"</span>
+      <blockquote><p class="display h_md" style="line-height:1.3">Your quote here</p></blockquote>
       <figcaption>— Author</figcaption>
     </figure>
   </div>
@@ -250,22 +252,21 @@ async function addSection(){
   const id=$('#newId').value.trim().replace(/[^a-z0-9\-]/gi,'').toLowerCase();
   const label=$('#newLabel').value.trim()|| (id||'new section');
   if(!id){ $('#addStatus').textContent='enter an id first'; $('#addStatus').className='status err'; return; }
-  const folder = page; // body/<page>/<id>.html
-  const include = `/assets/layout/body/${folder}/${id}.html`;
+  const fname = `${page}_${id}.html`;           // flat: body/<page>_<id>.html
+  const include = `/assets/layout/body/${fname}`;
   const markup = PRESETS[k].html(id);
 
   if(dataHandle && rootHandle){
     try{
       const bodyDir = await (await (await rootHandle.getDirectoryHandle('assets')).getDirectoryHandle('layout')).getDirectoryHandle('body');
-      const pageDir = await bodyDir.getDirectoryHandle(folder, {create:true});
-      const fh = await pageDir.getFileHandle(id+'.html', {create:true});
+      const fh = await bodyDir.getFileHandle(fname, {create:true});
       const w = await fh.createWritable(); await w.write(markup); await w.close();
       $('#addStatus').textContent='wrote '+include; $('#addStatus').className='status ok';
     }catch(e){ $('#addStatus').textContent='file write failed: '+e.message; $('#addStatus').className='status err'; return; }
   } else {
     /* Firefox / Safari: can't write files — download the partial so you can drop it in */
-    downloadText(id+'.html', markup, 'text/html');
-    $('#addStatus').innerHTML='downloaded <b>'+esc(id)+'.html</b> → put it in <b>assets/layout/body/'+esc(folder)+'/</b>, then download layout.json'; $('#addStatus').className='status ok';
+    downloadText(fname, markup, 'text/html');
+    $('#addStatus').innerHTML='downloaded <b>'+esc(fname)+'</b> → put it in <b>assets/layout/body/</b>, then download layout.json'; $('#addStatus').className='status ok';
   }
   LAYOUT[page].sections.push({id, label, include, enabled:true});
   renderSections(); renderOrder();
