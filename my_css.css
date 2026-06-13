@@ -498,16 +498,11 @@ html[data-snap] .section::after{
     radial-gradient(120% 75% at 50% 0%, rgba(209,28,28,.12), transparent 60%);
 }
 
-/* art-backed panels: use the image full-bleed, hide the inline figure */
-html[data-snap] #top::before{ background-image:url('/assets/media/home art.jpg'); }
-html[data-snap] #merch::before{ background-image:url('/assets/media/merch art.png'); }
-html[data-snap] #fanart::before{ background-image:url('/assets/media/fanart.jpg'); }
-html[data-snap] #top figure,
-html[data-snap] #merch figure,
-html[data-snap] #fanart figure{ display:none; }
-html[data-snap] #top .grid_2,
-html[data-snap] #merch .grid_2,
-html[data-snap] #fanart .grid_2{ grid-template-columns:1fr; max-width:760px; }
+/* art panels: image sits beside the text (two-column), not as a full-bleed backdrop.
+   the inline <figure> stays visible and the grid keeps its two columns. */
+html[data-snap] #top figure img,
+html[data-snap] #merch figure img,
+html[data-snap] #fanart figure img{ box-shadow:8px 8px 0 #000; }
 
 /* ken-burns drift once a panel is in view */
 @media (prefers-reduced-motion:no-preference){
