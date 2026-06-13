@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>emote.mk — picrew-style emote / avatar maker</title>
+<title>emote.mk — pixel-art emote / vtuber avatar maker</title>
 <link rel="icon" href="/assets/media/logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="/my_css.css">
@@ -39,25 +39,22 @@
   .big:hover{background:#f23a3a}.big:disabled{opacity:.5;cursor:wait}
   .ghostbtn{background:var(--panel2);color:var(--txt);border:2px solid var(--line);font-family:var(--mono);font-size:12px;padding:9px;cursor:pointer}
   .ghostbtn:hover{border-color:var(--blood);color:#fff}
-  /* part swatch grid */
   .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-  .sw{border:2px solid var(--line);background:#0d0d10;padding:3px;cursor:pointer;aspect-ratio:1;display:block}
+  .sw{border:2px solid var(--line);background:#0d0d10;padding:0;cursor:pointer;aspect-ratio:1;display:block}
   .sw:hover{border-color:var(--rust)}
   .sw.on{border-color:var(--blood);box-shadow:0 0 0 2px var(--blood) inset}
-  .sw svg{width:100%;height:100%;display:block;image-rendering:auto}
-  /* palette presets */
+  .sw svg{width:100%;height:100%;display:block;image-rendering:pixelated}
   .pals{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .pal{display:flex;border:2px solid var(--line);cursor:pointer;height:26px}
   .pal:hover{border-color:var(--blood)}
-  .pal i{width:14px;height:100%;display:block}
-  .cols{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .pal i{width:13px;height:100%;display:block}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .cols .field{margin:0}
   .cols label{text-align:center;font-size:10px}
-  /* stage with checkerboard so transparency shows */
   .stage{width:380px;height:380px;max-width:78vw;max-height:78vw;border:2px solid var(--line);box-shadow:8px 8px 0 #000;display:flex;align-items:center;justify-content:center;
     background-image:linear-gradient(45deg,#1a1a1f 25%,transparent 25%),linear-gradient(-45deg,#1a1a1f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1a1f 75%),linear-gradient(-45deg,transparent 75%,#1a1a1f 75%);
     background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0;background-color:#0d0d10}
-  .stage svg{width:100%;height:100%;display:block}
+  .stage svg{width:100%;height:100%;display:block;image-rendering:pixelated}
   .stagebar{display:flex;gap:10px}
   .stagebar button{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:8px 14px;cursor:pointer}
   .stagebar button:hover{border-color:var(--blood);color:#fff}
@@ -73,7 +70,7 @@
 
 <header class="toolbar">
   <h1>emote<span class="dot">.</span>mk</h1>
-  <span class="tbsub">picrew-style emote / avatar builder — every part is SVG, so it's 100% yours</span>
+  <span class="tbsub">pixel-art vtuber avatar / emote builder — every part is hand-built pixels, 100% yours</span>
   <a href="index.html">← projects</a>
 </header>
 
@@ -124,8 +121,8 @@
         <div class="field"><div class="rlabel">frames <b id="framesV">24</b></div><input type="range" id="frames" min="2" max="60" value="24"></div>
         <div class="field"><div class="rlabel">fps <b id="fpsV">15</b></div><input type="range" id="fps" min="4" max="30" value="15"></div>
       </div>
-      <div class="field"><div class="rlabel">pixelate <b id="pxV">off</b></div><input type="range" id="px" min="1" max="16" value="1"></div>
-      <div class="hint">Pixelate snaps the art to a chunky low-res grid (matches the site vibe). GIF frames + fps set the animation loop length.</div>
+      <div class="field"><div class="rlabel">extra pixelate <b id="pxV">off</b></div><input type="range" id="px" min="1" max="8" value="1"></div>
+      <div class="hint">Art is already pixel-art (32&times;32 grid). Extra-pixelate snaps even chunkier. GIF frames + fps set the loop length.</div>
     </div>
 
     <div class="sec">
@@ -138,7 +135,7 @@
       </div>
       <button class="big" id="zipBtn" style="margin-top:8px">⬇ ZIP package (all sizes + gif + config)</button>
       <div class="estatus" id="estatus"></div>
-      <div class="hint">PNG is a single frame. GIF keeps transparency and loops the animation. The ZIP bundles PNGs at 112/128/320/512 + your custom size, the animated GIF, and a re-loadable config.json.</div>
+      <div class="hint">PNG is a single frame. GIF keeps transparency and loops the animation. ZIP bundles PNGs at 112/128/320/512 + your custom size, the GIF, and a re-loadable config.json.</div>
     </div>
   </div>
 
@@ -148,7 +145,7 @@
       <button id="randomBtn">⚄ randomize</button>
       <button id="resetBtn">↺ reset</button>
     </div>
-    <p class="cap">Pick parts, recolor, animate. No imported assets — the whole character is generated as SVG, so you own every pixel. Save it, ship it, package it.</p>
+    <p class="cap">Pick parts, recolor, animate. No imported assets — the whole chibi is built from pixels on a 32&times;32 grid, so you own every one. Drop a saved <b>config.json</b> here to keep editing.</p>
   </div>
 </div>
 
@@ -156,158 +153,186 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const fr=x=>{x=Math.sin(x)*43758.5453;return x-Math.floor(x);};
+const frac=x=>{x=Math.sin(x)*43758.5453;return x-Math.floor(x);};
+const GRID=32, G=16;   // 32x32 cells, 16px each = 512
 
 /* ===================== state ===================== */
 const opt = {
-  body:'blob', top:'horns', eyes:'dots', brows:'angry', mouth:'fang',
-  cheeks:'none', acc:'none', hands:'none',
-  col:{ body:'#d11c1c', line:'#0a0a0c', eye:'#0a0a0c', top:'#0a0a0c', accent:'#2ee3e3' },
+  hair:'short', eyes:'round', brows:'neutral', mouth:'smile',
+  outfit:'hoodie', headgear:'none', faceX:'blush', hands:'none',
+  col:{ skin:'#f0c9a8', hair:'#d11c1c', eye:'#2ee3e3', outfit:'#1b1b21', accent:'#2ee3e3', line:'#0a0a0c' },
   bgMode:'transparent', bg:'#141418',
-  anim:'bounce', blink:true, px:1, crisp:false
+  anim:'bounce', blink:true, px:1
 };
-const C = () => opt.col;
 let dirty = true;
 
-/* ===================== SVG part libraries (drawn, not imported) ===================== */
-const SK  = (C,w)=>`fill="none" stroke="${C.line}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
-const SKc = (col,w)=>`fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+/* ===================== pixel helpers ===================== */
+function shade(hex,f){ const n=parseInt(hex.slice(1),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=clamp(Math.round(r*f),0,255); g=clamp(Math.round(g*f),0,255); b=clamp(Math.round(b*f),0,255);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+function COLMAP(){ const c=opt.col; return {
+  K:c.line, S:c.skin, s:shade(c.skin,0.84), H:c.hair, h:shade(c.hair,0.78),
+  E:c.eye, W:'#ffffff', O:c.outfit, o:shade(c.outfit,0.78), A:c.accent, M:'#5a1320', B:'#ef5a78' }; }
 
-const PARTS = {
-  body:{
-    blob:C=>`<path d="M256 96c92 0 150 60 150 156 0 104-64 160-150 160S106 356 106 252C106 156 164 96 256 96Z" fill="${C.body}" stroke="${C.line}" stroke-width="14"/>`,
-    round:C=>`<circle cx="256" cy="256" r="156" fill="${C.body}" stroke="${C.line}" stroke-width="14"/>`,
-    square:C=>`<rect x="104" y="108" width="304" height="296" rx="46" fill="${C.body}" stroke="${C.line}" stroke-width="14"/>`,
-    drop:C=>`<path d="M256 92c86 0 150 64 150 158 0 92-58 158-150 158-90 0-150-66-150-158 0-50 30-96 66-122 2 22 14 34 28 34-2-30 16-58 56-70Z" fill="${C.body}" stroke="${C.line}" stroke-width="14"/>`,
-    ghost:C=>`<path d="M120 250c0-92 58-150 136-150s136 58 136 150v148l-30-24-30 24-30-24-30 24-30-24-30 24-30-24Z" fill="${C.body}" stroke="${C.line}" stroke-width="14" stroke-linejoin="round"/>`,
-    bean:C=>`<rect x="120" y="120" width="272" height="272" rx="136" fill="${C.body}" stroke="${C.line}" stroke-width="14"/>`
-  },
-  top:{
-    none:()=>'',
-    horns:C=>`<path d="M150 122c-16-42-4-74 12-84 6 30 24 48 48 56ZM362 122c16-42 4-74-12-84-6 30-24 48-48 56Z" fill="${C.top}" stroke="${C.line}" stroke-width="10" stroke-linejoin="round"/>`,
-    antenna:C=>`<path d="M256 110V58" ${SK(C,10)}/><circle cx="256" cy="46" r="16" fill="${C.accent}" stroke="${C.line}" stroke-width="8"/>`,
-    ahoge:C=>`<path d="M250 110c-8-44 22-64 48-48-30 4-28 32-8 44" ${SK(C,12)}/>`,
-    halo:C=>`<ellipse cx="256" cy="66" rx="72" ry="18" fill="none" stroke="${C.accent}" stroke-width="12"/>`,
-    ears:C=>`<circle cx="150" cy="148" r="42" fill="${C.body}" stroke="${C.line}" stroke-width="14"/><circle cx="362" cy="148" r="42" fill="${C.body}" stroke="${C.line}" stroke-width="14"/><circle cx="150" cy="148" r="18" fill="${C.accent}" opacity=".6"/><circle cx="362" cy="148" r="18" fill="${C.accent}" opacity=".6"/>`,
-    bolt:C=>`<path d="M270 104l-44 6 30 24-36 50 70-44-28-18 36-30Z" fill="${C.accent}" stroke="${C.line}" stroke-width="8" stroke-linejoin="round"/>`
-  },
-  eyes:{
-    dots:C=>`<circle cx="200" cy="244" r="18" fill="${C.eye}"/><circle cx="312" cy="244" r="18" fill="${C.eye}"/>`,
-    beads:C=>`<circle cx="200" cy="244" r="11" fill="${C.eye}"/><circle cx="312" cy="244" r="11" fill="${C.eye}"/>`,
-    shiny:C=>`<circle cx="200" cy="244" r="20" fill="${C.eye}"/><circle cx="312" cy="244" r="20" fill="${C.eye}"/><circle cx="193" cy="237" r="6" fill="#fff"/><circle cx="305" cy="237" r="6" fill="#fff"/>`,
-    wide:C=>`<ellipse cx="200" cy="244" rx="26" ry="30" fill="#fff" stroke="${C.line}" stroke-width="8"/><ellipse cx="312" cy="244" rx="26" ry="30" fill="#fff" stroke="${C.line}" stroke-width="8"/><circle cx="204" cy="250" r="13" fill="${C.eye}"/><circle cx="316" cy="250" r="13" fill="${C.eye}"/>`,
-    angry:C=>`<path d="M174 230l46 16" ${SK(C,16)}/><path d="M338 230l-46 16" ${SK(C,16)}/><circle cx="206" cy="254" r="10" fill="${C.eye}"/><circle cx="306" cy="254" r="10" fill="${C.eye}"/>`,
-    sleepy:C=>`<path d="M176 248q24 18 48 0" ${SK(C,14)}/><path d="M288 248q24 18 48 0" ${SK(C,14)}/>`,
-    xx:C=>`<path d="M186 230l30 30M216 230l-30 30" ${SK(C,14)}/><path d="M296 230l30 30M326 230l-30 30" ${SK(C,14)}/>`,
-    glitch:C=>`<rect x="176" y="230" width="48" height="28" fill="${C.eye}"/><rect x="186" y="236" width="40" height="6" fill="${C.accent}"/><rect x="290" y="232" width="46" height="26" fill="${C.eye}"/><rect x="294" y="248" width="40" height="6" fill="${C.accent}"/>`
-  },
-  brows:{
-    none:()=>'',
-    angry:C=>`<path d="M180 196l44 14M332 196l-44 14" ${SK(C,12)}/>`,
-    raised:C=>`<path d="M180 190q22-14 44 0M288 190q22-14 44 0" ${SK(C,12)}/>`,
-    sad:C=>`<path d="M180 200l44-12M332 200l-44-12" ${SK(C,12)}/>`,
-    flat:C=>`<path d="M180 194h44M288 194h44" ${SK(C,12)}/>`
-  },
-  mouth:{
-    smile:C=>`<path d="M212 312q44 44 88 0" ${SK(C,14)}/>`,
-    grin:C=>`<path d="M206 304q50 56 100 0Z" fill="${C.line}" stroke="${C.line}" stroke-width="10" stroke-linejoin="round"/><path d="M228 322l8 14 8-14M268 322l8 14 8-14Z" fill="#fff"/>`,
-    flat:C=>`<path d="M222 322h68" ${SK(C,14)}/>`,
-    open:C=>`<ellipse cx="256" cy="322" rx="32" ry="38" fill="${C.line}" stroke="${C.line}" stroke-width="8"/><path d="M230 346q26 22 52 0" fill="${C.accent}"/>`,
-    cat:C=>`<path d="M224 312q16 20 32 0q16 20 32 0" ${SK(C,12)}/>`,
-    fang:C=>`<path d="M214 308q42 40 84 0" ${SK(C,14)}/><path d="M230 316l10 22 10-22Z" fill="#fff" stroke="${C.line}" stroke-width="4" stroke-linejoin="round"/>`,
-    wavy:C=>`<path d="M210 320q14-16 28 0t28 0 28 0" ${SK(C,12)}/>`
-  },
-  cheeks:{
-    none:()=>'',
-    blush:C=>`<ellipse cx="170" cy="288" rx="24" ry="13" fill="${C.accent}" opacity=".55"/><ellipse cx="342" cy="288" rx="24" ry="13" fill="${C.accent}" opacity=".55"/>`,
-    scratch:C=>`<path d="M150 280h36M154 296h30" ${SKc(C.accent,6)}/><path d="M326 280h36M330 296h30" ${SKc(C.accent,6)}/>`,
-    bits:C=>`<rect x="156" y="282" width="32" height="9" fill="${C.accent}"/><rect x="324" y="282" width="32" height="9" fill="${C.accent}"/><rect x="160" y="296" width="18" height="6" fill="${C.accent}" opacity=".6"/><rect x="334" y="296" width="18" height="6" fill="${C.accent}" opacity=".6"/>`,
-    freckles:C=>`<g fill="${C.line}"><circle cx="166" cy="288" r="4"/><circle cx="182" cy="296" r="4"/><circle cx="180" cy="280" r="4"/><circle cx="346" cy="288" r="4"/><circle cx="330" cy="296" r="4"/><circle cx="332" cy="280" r="4"/></g>`
-  },
-  acc:{
-    none:()=>'',
-    glasses:C=>`<g fill="none" stroke="${C.line}" stroke-width="10"><rect x="166" y="220" width="66" height="48" rx="10"/><rect x="280" y="220" width="66" height="48" rx="10"/><path d="M232 240h48"/></g>`,
-    shades:C=>`<g stroke="${C.line}" stroke-width="8"><rect x="164" y="222" width="70" height="44" rx="8" fill="${C.accent}"/><rect x="278" y="222" width="70" height="44" rx="8" fill="${C.accent}"/></g><path d="M234 238h44" ${SK(C,8)}/>`,
-    patch:C=>`<rect x="282" y="216" width="62" height="54" rx="8" fill="${C.line}"/><path d="M150 206l212 26" ${SK(C,8)}/>`,
-    headphones:C=>`<path d="M148 214a108 110 0 0 1 216 0" fill="none" stroke="${C.line}" stroke-width="14"/><rect x="128" y="208" width="46" height="66" rx="14" fill="${C.accent}" stroke="${C.line}" stroke-width="10"/><rect x="338" y="208" width="46" height="66" rx="14" fill="${C.accent}" stroke="${C.line}" stroke-width="10"/>`,
-    mask:C=>`<path d="M194 302h124v26q0 30-62 34-62-4-62-34Z" fill="#fff" stroke="${C.line}" stroke-width="10"/><path d="M194 314h124" ${SK(C,4)}/>`,
-    bandage:C=>`<rect x="280" y="222" width="80" height="20" rx="4" transform="rotate(-18 320 232)" fill="#f2e6d0" stroke="${C.line}" stroke-width="6"/>`
-  },
-  hands:{
-    none:()=>'',
-    up:C=>`<circle cx="118" cy="356" r="30" fill="${C.body}" stroke="${C.line}" stroke-width="12"/><circle cx="394" cy="356" r="30" fill="${C.body}" stroke="${C.line}" stroke-width="12"/>`,
-    wave:C=>`<circle cx="394" cy="330" r="30" fill="${C.body}" stroke="${C.line}" stroke-width="12"/><path d="M394 316v-22M394 316l-16-12M394 316l16-12" ${SK(C,8)}/>`,
-    peace:C=>`<circle cx="118" cy="354" r="30" fill="${C.body}" stroke="${C.line}" stroke-width="12"/><path d="M110 338v-26M126 338v-26" ${SK(C,10)}/>`,
-    point:C=>`<circle cx="394" cy="388" r="28" fill="${C.body}" stroke="${C.line}" stroke-width="12"/><path d="M394 368v-26" ${SK(C,12)}/>`,
-    claws:C=>`<g fill="${C.body}" stroke="${C.line}" stroke-width="10"><path d="M104 360l10-30 12 28 12-30 12 30 10-26"/></g><g fill="${C.body}" stroke="${C.line}" stroke-width="10"><path d="M364 360l10-30 12 28 12-30 12 30 10-26"/></g>`
-  }
+const blank=()=>Array.from({length:GRID},()=>Array(GRID).fill(null));
+function paint(g,blocks){ if(!blocks) return; for(const b of blocks){
+  let x,y,w,h,k; if(b.length===3){x=b[0];y=b[1];w=1;h=1;k=b[2];} else {x=b[0];y=b[1];w=b[2];h=b[3];k=b[4];}
+  for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++){ if(xx<0||yy<0||xx>=GRID||yy>=GRID) continue; g[yy][xx]=k; } } }
+function outline(g){ const add=[];
+  for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++){ if(g[y][x]!==null) continue;
+    const hit=(x>0&&g[y][x-1]&&g[y][x-1]!=='K')||(x<GRID-1&&g[y][x+1]&&g[y][x+1]!=='K')||
+              (y>0&&g[y-1][x]&&g[y-1][x]!=='K')||(y<GRID-1&&g[y+1][x]&&g[y+1][x]!=='K');
+    if(hit) add.push([x,y]); }
+  add.forEach(([x,y])=>g[y][x]='K'); }
+function emit(g,cm){ let out=''; for(let y=0;y<GRID;y++){ let x=0; while(x<GRID){ const k=g[y][x];
+  if(k===null){x++;continue;} let w=1; while(x+w<GRID&&g[y][x+w]===k) w++;
+  out+=`<rect x="${x*G}" y="${y*G}" width="${w*G}" height="${G}" fill="${cm[k]||'#f0f'}"/>`; x+=w; } } return out; }
+
+/* ===================== HUMANOID PIXEL PARTS (32x32) ===================== */
+/* always-drawn chibi head + neck + ears (skin) */
+const BASE_HEAD = [
+  [12,5,8,1,'S'],[11,6,10,1,'S'],[10,7,12,2,'S'],[9,9,14,6,'S'],
+  [10,15,12,2,'S'],[11,17,10,1,'S'],[12,18,8,1,'S'],[13,19,6,1,'S'],[14,20,4,1,'S'],
+  [8,11,1,3,'S'],[23,11,1,3,'S'],                    /* ears */
+  [13,21,6,1,'S'],[13,22,6,1,'s']                    /* neck */
+];
+const EYE_CLOSED = [[11,14,3,1,'K'],[18,14,3,1,'K']];
+
+const HAIR = {
+  short:{ back:[[9,4,14,2,'H'],[8,5,1,8,'H'],[23,5,1,8,'H']],
+    front:[[9,5,14,2,'H'],[9,7,2,2,'H'],[12,7,2,1,'H'],[16,7,2,1,'H'],[20,7,2,2,'H'],[9,8,1,3,'H'],[22,8,1,3,'H']] },
+  long:{ back:[[9,3,14,3,'H'],[7,6,2,21,'H'],[23,6,2,21,'H'],[9,22,14,5,'H'],[8,26,16,2,'H']],
+    front:[[9,5,14,2,'H'],[9,7,2,2,'H'],[11,7,3,1,'H'],[15,8,2,1,'H'],[19,7,3,1,'H'],[21,7,2,2,'H'],[8,8,1,7,'H'],[23,8,1,7,'H']] },
+  twin:{ back:[[9,4,14,2,'H'],[5,9,3,12,'H'],[4,11,1,7,'H'],[24,9,3,12,'H'],[27,11,1,7,'H'],[6,9,2,1,'A'],[24,9,2,1,'A']],
+    front:[[9,5,14,2,'H'],[9,7,2,2,'H'],[12,7,2,1,'H'],[18,7,2,1,'H'],[21,7,2,2,'H'],[8,8,1,5,'H'],[23,8,1,5,'H']] },
+  spiky:{ back:[[9,5,14,1,'H']],
+    front:[[9,3,2,3,'H'],[12,2,2,4,'H'],[15,3,2,3,'H'],[18,2,2,4,'H'],[21,3,2,3,'H'],[9,5,14,2,'H'],[10,7,2,1,'H'],[14,7,2,1,'H'],[18,7,2,1,'H'],[8,7,1,5,'H'],[23,7,1,5,'H']] },
+  messy:{ back:[[8,4,16,2,'H'],[7,6,1,8,'H'],[24,6,1,8,'H']],
+    front:[[15,2,1,3,'H'],[16,1,1,2,'H'],[9,5,14,2,'H'],[9,7,3,2,'H'],[13,7,2,1,'H'],[16,7,3,1,'H'],[20,7,3,2,'H'],[8,7,1,6,'H'],[23,7,1,6,'H']] },
+  ponytail:{ back:[[9,4,14,2,'H'],[24,7,3,3,'H'],[26,9,2,11,'H'],[25,18,2,4,'H'],[24,7,2,1,'A']],
+    front:[[9,5,14,2,'H'],[9,7,2,2,'H'],[12,7,3,1,'H'],[17,7,3,1,'H'],[21,7,2,2,'H'],[8,8,1,5,'H'],[23,8,1,5,'H']] }
 };
 
-/* layer order = render order (back → front) */
-function characterSVG(C, eyeT){
-  return PARTS.body[opt.body](C)
-    + PARTS.top[opt.top](C)
-    + PARTS.cheeks[opt.cheeks](C)
-    + PARTS.mouth[opt.mouth](C)
-    + `<g transform="${eyeT}">` + PARTS.eyes[opt.eyes](C) + `</g>`
-    + PARTS.brows[opt.brows](C)
-    + PARTS.acc[opt.acc](C)
-    + PARTS.hands[opt.hands](C);
-}
+const EYES = {
+  round:[[11,12,3,1,'K'],[18,12,3,1,'K'],[11,13,3,2,'W'],[18,13,3,2,'W'],[12,13,2,2,'E'],[19,13,2,2,'E'],[12,13,'W'],[19,13,'W']],
+  sharp:[[11,12,3,1,'K'],[18,12,3,1,'K'],[11,13,3,1,'E'],[18,13,3,1,'E'],[12,14,2,1,'E'],[18,14,2,1,'E'],[11,13,'W'],[18,13,'W']],
+  sleepy:[[11,14,3,1,'K'],[18,14,3,1,'K'],[12,13,'E'],[19,13,'E']],
+  wide:[[11,12,3,1,'K'],[18,12,3,1,'K'],[11,13,3,3,'W'],[18,13,3,3,'W'],[12,14,'E'],[19,14,'E'],[12,13,'E'],[19,13,'E']],
+  starry:[[11,12,3,3,'W'],[18,12,3,3,'W'],[12,12,1,3,'A'],[11,13,3,1,'A'],[19,12,1,3,'A'],[18,13,3,1,'A']],
+  happy:[[11,14,'K'],[12,13,'K'],[13,14,'K'],[18,14,'K'],[19,13,'K'],[20,14,'K']],
+  glitch:[[11,13,3,2,'E'],[18,13,3,2,'E'],[11,13,3,1,'A'],[18,14,3,1,'A'],[12,12,2,1,'A'],[19,14,1,1,'A']]
+};
+const BROWS = {
+  none:[],
+  neutral:[[11,11,3,1,'K'],[18,11,3,1,'K']],
+  angry:[[11,11,'K'],[12,12,2,1,'K'],[18,12,2,1,'K'],[20,11,'K']],
+  sad:[[11,12,'K'],[12,11,2,1,'K'],[18,11,2,1,'K'],[20,12,'K']],
+  raised:[[11,10,3,1,'K'],[18,10,3,1,'K']]
+};
+const MOUTH = {
+  smile:[[14,18,'K'],[15,19,3,1,'K'],[18,18,'K']],
+  open:[[14,18,4,1,'K'],[14,19,'K'],[17,19,'K'],[15,20,2,1,'K'],[15,19,2,1,'M']],
+  flat:[[14,18,4,1,'K']],
+  cat:[[13,18,'K'],[14,19,2,1,'K'],[16,18,'K'],[17,19,2,1,'K'],[19,18,'K']],
+  fang:[[14,18,4,1,'K'],[15,19,'W']],
+  frown:[[14,19,'K'],[15,18,3,1,'K'],[18,19,'K']]
+};
+const OUTFIT = {
+  hoodie:[[12,22,8,1,'O'],[6,23,20,8,'O'],[5,25,1,5,'O'],[26,25,1,5,'O'],[11,21,2,2,'O'],[19,21,2,2,'O'],[15,24,2,4,'o'],[14,24,'A'],[17,24,'A']],
+  jacket:[[6,23,20,8,'O'],[5,25,1,5,'O'],[26,25,1,5,'O'],[11,22,4,2,'o'],[17,22,4,2,'o'],[15,23,2,7,'o'],[12,23,1,3,'A'],[19,23,1,3,'A']],
+  dress:[[8,24,16,7,'O'],[11,22,2,2,'O'],[19,22,2,2,'O'],[12,24,8,1,'o'],[10,29,12,2,'o']],
+  tee:[[6,24,20,7,'O'],[5,25,2,2,'O'],[25,25,2,2,'O'],[13,23,6,1,'o']],
+  armor:[[6,23,20,8,'O'],[5,24,2,6,'o'],[25,24,2,6,'o'],[15,23,2,8,'A'],[10,25,3,1,'A'],[19,25,3,1,'A'],[12,22,8,1,'o']],
+  bare:[[8,25,16,6,'S'],[10,26,12,1,'s'],[13,24,6,1,'s']]
+};
+const HEADGEAR = {
+  none:{},
+  catears:{ front:[[9,2,3,3,'H'],[10,1,1,2,'H'],[10,3,'A'],[20,2,3,3,'H'],[21,1,1,2,'H'],[21,3,'A']] },
+  horns:{ front:[[9,2,2,4,'K'],[21,2,2,4,'K'],[9,2,'A'],[22,2,'A']] },
+  halo:{ front:[[11,1,10,1,'A'],[11,2,'A'],[20,2,'A']] },
+  beanie:{ front:[[8,2,16,1,'O'],[8,3,16,2,'O'],[8,5,16,1,'o'],[15,1,2,1,'A']] },
+  headphones:{ front:[[8,3,16,1,'K'],[8,4,1,2,'K'],[23,4,1,2,'K'],[7,10,2,1,'K'],[23,10,2,1,'K'],[7,11,2,3,'A'],[23,11,2,3,'A']] },
+  bow:{ front:[[13,2,2,2,'A'],[17,2,2,2,'A'],[15,2,2,2,'o']] }
+};
+const FACEX = {
+  none:[],
+  blush:[[9,15,2,1,'B'],[21,15,2,1,'B'],[9,16,'B'],[22,16,'B']],
+  glasses:[[10,12,5,1,'K'],[17,12,5,1,'K'],[10,15,5,1,'K'],[17,15,5,1,'K'],[10,13,1,2,'K'],[14,13,1,2,'K'],[17,13,1,2,'K'],[21,13,1,2,'K'],[15,13,2,1,'K'],[11,13,'W'],[18,13,'W']],
+  eyepatch:[[8,11,16,1,'K'],[18,12,4,3,'K'],[21,13,'A']],
+  mask:[[11,16,11,1,'o'],[11,17,11,3,'W'],[10,16,'K'],[22,16,'K']],
+  tears:[[12,15,1,3,'A'],[19,15,1,3,'A']],
+  marks:[[9,13,'A'],[22,14,'A'],[8,12,'A'],[23,13,'A']]
+};
+const HANDS = {
+  none:[],
+  wave:[[22,16,3,3,'S'],[22,15,'S'],[23,15,'S'],[24,16,'S']],
+  peace:[[8,16,3,3,'S'],[8,14,1,2,'S'],[10,14,1,2,'S']],
+  heart:[[13,16,2,2,'S'],[17,16,2,2,'S'],[14,15,4,1,'A'],[15,17,2,1,'A']],
+  point:[[22,18,3,2,'S'],[24,17,'S']]
+};
+const LIB = { hair:HAIR, eyes:EYES, brows:BROWS, mouth:MOUTH, outfit:OUTFIT, headgear:HEADGEAR, faceX:FACEX, hands:HANDS };
 
-/* ===================== animation ===================== */
-function animState(type, t, blink){
-  let char = '';
+/* ===================== compose ===================== */
+function buildGrid(blinkNow){
+  const g=blank();
+  const hg=HEADGEAR[opt.headgear]||{}, hr=HAIR[opt.hair]||{};
+  paint(g,hg.back); paint(g,hr.back); paint(g,OUTFIT[opt.outfit]); paint(g,BASE_HEAD);
+  paint(g,hr.front); paint(g,BROWS[opt.brows]);
+  paint(g, blinkNow ? EYE_CLOSED : EYES[opt.eyes]);
+  paint(g,MOUTH[opt.mouth]); paint(g,FACEX[opt.faceX]); paint(g,hg.front); paint(g,HANDS[opt.hands]);
+  outline(g); return g;
+}
+function animState(type,t){
   switch(type){
-    case 'bounce':  { const y=-Math.abs(Math.sin(t*Math.PI*2))*26; char=`translate(0 ${y.toFixed(2)})`; break; }
-    case 'float':   { const y=Math.sin(t*Math.PI*2)*16; char=`translate(0 ${y.toFixed(2)})`; break; }
-    case 'breathe': { const s=(1+0.05*Math.sin(t*Math.PI*2)).toFixed(4); char=`translate(256 256) scale(${s}) translate(-256 -256)`; break; }
-    case 'wobble':  { const r=(11*Math.sin(t*Math.PI*2)).toFixed(2); char=`rotate(${r} 256 430)`; break; }
-    case 'spin':    { const r=(360*t).toFixed(2); char=`rotate(${r} 256 256)`; break; }
-    case 'glitch':  { const jx=((fr(t*53.1)-0.5)*22).toFixed(1); const jy=((fr(t*91.7)-0.5)*14).toFixed(1); const r=((fr(t*31.3)-0.5)*6).toFixed(1); char=`translate(${jx} ${jy}) rotate(${r} 256 256)`; break; }
-    default: char='';
+    case 'bounce':  { const y=-Math.abs(Math.sin(t*Math.PI*2))*26; return `translate(0 ${y.toFixed(2)})`; }
+    case 'float':   { const y=Math.sin(t*Math.PI*2)*16; return `translate(0 ${y.toFixed(2)})`; }
+    case 'breathe': { const s=(1+0.05*Math.sin(t*Math.PI*2)).toFixed(4); return `translate(256 256) scale(${s}) translate(-256 -256)`; }
+    case 'wobble':  { const r=(11*Math.sin(t*Math.PI*2)).toFixed(2); return `rotate(${r} 256 430)`; }
+    case 'spin':    { return `rotate(${(360*t).toFixed(2)} 256 256)`; }
+    case 'glitch':  { const jx=((frac(t*53.1)-0.5)*22).toFixed(1), jy=((frac(t*91.7)-0.5)*14).toFixed(1), r=((frac(t*31.3)-0.5)*6).toFixed(1); return `translate(${jx} ${jy}) rotate(${r} 256 256)`; }
+    default: return 'translate(0 0)';
   }
-  let eyeT = '';
-  if(blink){ const d=Math.abs(t-0.5); const s=(d<0.05? Math.max(0.06, d/0.05) : 1); eyeT=`translate(0 244) scale(1 ${s.toFixed(3)}) translate(0 -244)`; }
-  return { char: char||'translate(0 0)', eyes: eyeT||'translate(0 0)' };
 }
-
 function svgMarkup(t){
-  const c = C();
-  const A = animState(opt.anim, t, opt.blink);
-  let bgEl = '';
-  if(opt.bgMode==='solid')  bgEl = `<rect width="512" height="512" fill="${opt.bg}"/>`;
-  if(opt.bgMode==='circle') bgEl = `<circle cx="256" cy="256" r="248" fill="${opt.bg}"/>`;
+  const blinkNow = opt.blink && Math.abs(t-0.5)<0.05;
+  const cm=COLMAP(); const inner=emit(buildGrid(blinkNow),cm);
+  let bgEl=''; if(opt.bgMode==='solid') bgEl=`<rect width="512" height="512" fill="${opt.bg}"/>`;
+  if(opt.bgMode==='circle') bgEl=`<circle cx="256" cy="256" r="248" fill="${opt.bg}"/>`;
   const clip = opt.bgMode==='circle' ? ' clip-path="url(#cm)"' : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" shape-rendering="crispEdges">`
     + `<defs><clipPath id="cm"><circle cx="256" cy="256" r="248"/></clipPath></defs>`
-    + `<g${clip}>${bgEl}<g transform="${A.char}">${characterSVG(c, A.eyes)}</g></g></svg>`;
+    + `<g${clip}>${bgEl}<g transform="${animState(opt.anim,t)}">${inner}</g></g></svg>`;
 }
 
 /* ===================== left panel UI ===================== */
-const CATS = [['body','BODY'],['top','TOP / HORNS'],['eyes','EYES'],['brows','BROWS'],['mouth','MOUTH'],['cheeks','CHEEKS'],['acc','EXTRAS'],['hands','HANDS']];
+const CATS = [['hair','HAIR'],['eyes','EYES'],['brows','BROWS'],['mouth','MOUTH'],['outfit','OUTFIT'],['headgear','HEADGEAR'],['faceX','FACE'],['hands','HANDS']];
+const COLS = [['skin','skin'],['hair','hair'],['eye','eyes'],['outfit','outfit'],['accent','accent'],['line','outline']];
 const PALETTES = {
-  chaos:{body:'#d11c1c',line:'#0a0a0c',eye:'#0a0a0c',top:'#0a0a0c',accent:'#2ee3e3'},
-  void: {body:'#1b1b21',line:'#000000',eye:'#d11c1c',top:'#1b1b21',accent:'#d11c1c'},
-  toxic:{body:'#16181a',line:'#0a0a0c',eye:'#b6ff2e',top:'#0a0a0c',accent:'#b6ff2e'},
-  ghost:{body:'#e8e8ef',line:'#0a0a0c',eye:'#0a0a0c',top:'#e8e8ef',accent:'#d11c1c'},
-  ember:{body:'#0a0a0c',line:'#d11c1c',eye:'#ffae00',top:'#d11c1c',accent:'#ffae00'}
+  chaos: {skin:'#f0c9a8',hair:'#d11c1c',eye:'#2ee3e3',outfit:'#1b1b21',accent:'#2ee3e3',line:'#0a0a0c'},
+  void:  {skin:'#e8cdb5',hair:'#15151a',eye:'#d11c1c',outfit:'#0a0a0c',accent:'#d11c1c',line:'#000000'},
+  pastel:{skin:'#f7d9c4',hair:'#a77bd6',eye:'#7a4dd6',outfit:'#2a2440',accent:'#ff9ecb',line:'#241a33'},
+  toxic: {skin:'#e9c39c',hair:'#b6ff2e',eye:'#0a0a0c',outfit:'#16181a',accent:'#b6ff2e',line:'#0a0a0c'},
+  ember: {skin:'#f6b98a',hair:'#ff5a1f',eye:'#ffd34d',outfit:'#241310',accent:'#ffae00',line:'#0a0a0c'}
 };
-const COLS = [['body','body'],['line','outline'],['eye','eyes'],['top','top'],['accent','accent']];
 
 function swatchSVG(cat,id){
-  const c = C();
-  const ghost = cat==='body' ? '' : `<circle cx="256" cy="256" r="150" fill="${c.body}" opacity="0.18"/>`;
-  const vb = (cat==='top'||cat==='hands'||cat==='body') ? '0 0 512 512' : '120 150 272 264';
-  return `<svg viewBox="${vb}">${ghost}${PARTS[cat][id](c)}</svg>`;
+  const g=blank();
+  if(cat==='hair'){ const h=HAIR[id]; paint(g,h.back); paint(g,BASE_HEAD); paint(g,h.front); }
+  else if(cat==='outfit'){ paint(g,OUTFIT[id]); paint(g,BASE_HEAD); }
+  else if(cat==='headgear'){ const hg=HEADGEAR[id]; paint(g,hg.back); paint(g,BASE_HEAD); paint(g,hg.front); }
+  else { paint(g,BASE_HEAD); paint(g, LIB[cat][id]); }
+  outline(g);
+  const face=['eyes','brows','mouth','faceX'].includes(cat);
+  const vb = face ? '112 48 288 288' : '0 0 512 512';
+  return `<svg viewBox="${vb}" shape-rendering="crispEdges">${emit(g,COLMAP())}</svg>`;
 }
 function buildPickers(){
-  const host = $('pickers'); host.innerHTML='';
+  const host=$('pickers'); host.innerHTML='';
   CATS.forEach(([cat,label])=>{
     const sec=document.createElement('div'); sec.className='sec';
     sec.innerHTML=`<div class="t">// ${label}</div><div class="swatches" data-cat="${cat}"></div>`;
     const grid=sec.querySelector('.swatches');
-    Object.keys(PARTS[cat]).forEach(id=>{
+    Object.keys(LIB[cat]).forEach(id=>{
       const b=document.createElement('button'); b.className='sw'+(opt[cat]===id?' on':''); b.title=id; b.dataset.id=id;
       b.innerHTML=swatchSVG(cat,id);
       b.onclick=()=>{ opt[cat]=id; grid.querySelectorAll('.sw').forEach(x=>x.classList.toggle('on',x.dataset.id===id)); flag(); };
@@ -322,7 +347,7 @@ function buildPalettes(){
   const host=$('pals'); host.innerHTML='';
   Object.entries(PALETTES).forEach(([name,p])=>{
     const b=document.createElement('button'); b.className='pal'; b.title=name;
-    b.innerHTML=['body','accent','line'].map(k=>`<i style="background:${p[k]}"></i>`).join('');
+    b.innerHTML=['skin','hair','accent','outfit'].map(k=>`<i style="background:${p[k]}"></i>`).join('');
     b.onclick=()=>{ opt.col={...p}; syncColorInputs(); refreshSwatches(); flag(); };
     host.appendChild(b);
   });
@@ -355,13 +380,12 @@ function markSizeChip(){ const v=+$('size').value; document.querySelectorAll('#s
 $('size').oninput=markSizeChip;
 
 $('randomBtn').onclick=()=>{
-  CATS.forEach(([cat])=>{ const ks=Object.keys(PARTS[cat]); opt[cat]=ks[Math.floor(Math.random()*ks.length)]; });
-  if(opt.body==='') opt.body='blob';
+  CATS.forEach(([cat])=>{ const ks=Object.keys(LIB[cat]); opt[cat]=ks[Math.floor(Math.random()*ks.length)]; });
   const ps=Object.values(PALETTES); opt.col={...ps[Math.floor(Math.random()*ps.length)]};
   syncColorInputs(); buildPickers(); flag();
 };
 $('resetBtn').onclick=()=>{
-  Object.assign(opt,{ body:'blob',top:'horns',eyes:'dots',brows:'angry',mouth:'fang',cheeks:'none',acc:'none',hands:'none',
+  Object.assign(opt,{ hair:'short',eyes:'round',brows:'neutral',mouth:'smile',outfit:'hoodie',headgear:'none',faceX:'blush',hands:'none',
     col:{...PALETTES.chaos}, bgMode:'transparent', bg:'#141418', anim:'bounce', blink:true, px:1 });
   $('bgMode').value='transparent'; $('bg').value='#141418'; $('anim').value='bounce'; $('blink').checked=true; $('px').value=1; $('pxV').textContent='off';
   syncColorInputs(); buildPickers(); flag();
@@ -376,8 +400,7 @@ function loop(now){
   const playing = opt.anim!=='none' || opt.blink;
   if(!playing){ if(dirty){ stage.innerHTML=svgMarkup(0); dirty=false; } return; }
   if(now-lastDraw < 33) return; lastDraw=now;
-  const t=(now % pacing().loop)/pacing().loop;
-  stage.innerHTML=svgMarkup(t); dirty=false;
+  const lp=pacing().loop; stage.innerHTML=svgMarkup((now%lp)/lp); dirty=false;
 }
 
 /* ===================== rasterize ===================== */
@@ -388,11 +411,11 @@ function rasterize(svgStr,size){
     im.onload=()=>{ URL.revokeObjectURL(url);
       const px=opt.px>1?opt.px:1;
       const c=document.createElement('canvas'); c.width=size; c.height=size; const g=c.getContext('2d');
+      g.imageSmoothingEnabled=false;
       if(px>1){ const low=Math.max(16,Math.round(size/px));
         const tmp=document.createElement('canvas'); tmp.width=low; tmp.height=low; const tg=tmp.getContext('2d');
-        tg.imageSmoothingEnabled=true; tg.drawImage(im,0,0,low,low);
-        g.imageSmoothingEnabled=false; g.drawImage(tmp,0,0,size,size);
-      } else { g.imageSmoothingEnabled=true; g.drawImage(im,0,0,size,size); }
+        tg.imageSmoothingEnabled=false; tg.drawImage(im,0,0,low,low); g.drawImage(tmp,0,0,size,size);
+      } else { g.drawImage(im,0,0,size,size); }
       res(c);
     };
     im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('SVG render failed')); };
@@ -404,7 +427,7 @@ function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createOb
 function getSize(){ return clamp(Math.round(+$('size').value||320),16,1024); }
 function status(s){ $('estatus').textContent=s||''; }
 
-/* ===================== GIF encoder (gifenc, lazy) ===================== */
+/* ===================== GIF (gifenc, lazy) ===================== */
 let _gifenc=null;
 function loadGifenc(){
   if(_gifenc) return Promise.resolve(_gifenc);
@@ -416,62 +439,43 @@ function loadGifenc(){
 }
 async function makeGif(size){
   const {GIFEncoder,quantize,applyPalette}=await loadGifenc();
-  const {frames,fps}=pacing();
-  const gif=GIFEncoder();
-  const delay=Math.round(1000/fps);
+  const {frames,fps}=pacing(); const gif=GIFEncoder(); const delay=Math.round(1000/fps);
   for(let i=0;i<frames;i++){
-    const t=i/frames;
-    const c=await rasterize(svgMarkup(t),size);
+    const t=i/frames; const c=await rasterize(svgMarkup(t),size);
     const data=c.getContext('2d').getImageData(0,0,size,size).data;
     const palette=quantize(data,256,{format:'rgba4444'});
     const index=applyPalette(data,palette,'rgba4444');
     gif.writeFrame(index,size,size,{palette,transparent:true,delay,dispose:2});
     status('encoding gif… '+Math.round((i+1)/frames*100)+'%');
   }
-  gif.finish();
-  const bytes = gif.bytes ? gif.bytes() : gif.bytesView();
+  gif.finish(); const bytes=gif.bytes?gif.bytes():gif.bytesView();
   return new Blob([bytes],{type:'image/gif'});
 }
 
 /* ===================== exports ===================== */
 function busy(on){ ['pngBtn','gifBtn','zipBtn'].forEach(id=>$(id).disabled=on); }
-
-$('pngBtn').onclick=async()=>{
-  busy(true); status('rendering png…');
-  try{ const size=getSize(); const c=await rasterize(svgMarkup(0),size); const b=await toBlob(c,'image/png'); dl(b,`calamytryx_emote_${size}.png`); status('saved png ✓'); }
-  catch(e){ status('error: '+e.message); }
-  finally{ busy(false); }
-};
-$('gifBtn').onclick=async()=>{
-  busy(true); status('preparing gif…');
-  try{
-    if(opt.anim==='none' && !opt.blink) status('note: no animation selected — pick a motion or blink for a moving gif.');
-    const size=getSize(); const b=await makeGif(size); dl(b,`calamytryx_emote_${size}.gif`); status('saved gif ✓');
-  }catch(e){ status('error: '+e.message); }
-  finally{ busy(false); }
-};
-$('zipBtn').onclick=async()=>{
-  busy(true); status('packaging…');
-  try{
-    const main=getSize(); const zip=new JSZip();
-    const sizes=[...new Set([main,112,128,320,512])].sort((a,b)=>a-b);
+$('pngBtn').onclick=async()=>{ busy(true); status('rendering png…');
+  try{ const size=getSize(); const c=await rasterize(svgMarkup(0),size); dl(await toBlob(c,'image/png'),`calamytryx_emote_${size}.png`); status('saved png ✓'); }
+  catch(e){ status('error: '+e.message); } finally{ busy(false); } };
+$('gifBtn').onclick=async()=>{ busy(true); status('preparing gif…');
+  try{ if(opt.anim==='none'&&!opt.blink) status('note: no animation — pick a motion or blink for a moving gif.');
+    const size=getSize(); dl(await makeGif(size),`calamytryx_emote_${size}.gif`); status('saved gif ✓'); }
+  catch(e){ status('error: '+e.message); } finally{ busy(false); } };
+$('zipBtn').onclick=async()=>{ busy(true); status('packaging…');
+  try{ const main=getSize(); const zip=new JSZip(); const sizes=[...new Set([main,112,128,320,512])].sort((a,b)=>a-b);
     for(const s of sizes){ status('png '+s+'px…'); const c=await rasterize(svgMarkup(0),s); zip.file(`png/emote_${s}.png`, await toBlob(c,'image/png')); }
-    if(opt.anim!=='none' || opt.blink){ const g=await makeGif(main); zip.file(`emote_${main}.gif`, g); }
+    if(opt.anim!=='none'||opt.blink){ zip.file(`emote_${main}.gif`, await makeGif(main)); }
     zip.file('emote_config.json', JSON.stringify(opt,null,2));
-    zip.file('README.txt', 'Made with Calamytryx emote.mk — every part is generated SVG, free for you to use.\nLoad emote_config.json back into the maker to keep editing this character.');
-    status('zipping…');
-    const out=await zip.generateAsync({type:'blob'}); dl(out,'calamytryx_emote_pack.zip'); status('saved zip ✓');
-  }catch(e){ status('error: '+e.message); }
-  finally{ busy(false); }
-};
+    zip.file('README.txt','Made with Calamytryx emote.mk — every part is hand-built pixel art, free for you to use.\nLoad emote_config.json back into the maker to keep editing this character.');
+    status('zipping…'); dl(await zip.generateAsync({type:'blob'}),'calamytryx_emote_pack.zip'); status('saved zip ✓'); }
+  catch(e){ status('error: '+e.message); } finally{ busy(false); } };
 
-/* allow re-loading a config.json by dropping it on the stage */
-stage.addEventListener('dragover',e=>{e.preventDefault();});
+/* drop a config.json onto the stage to reload it */
+stage.addEventListener('dragover',e=>e.preventDefault());
 stage.addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(!f||!/json$/i.test(f.name)) return;
   const r=new FileReader(); r.onload=()=>{ try{ const o=JSON.parse(r.result); Object.assign(opt,o); if(o.col) opt.col={...o.col};
     $('bgMode').value=opt.bgMode; $('bg').value=opt.bg; $('anim').value=opt.anim; $('blink').checked=opt.blink; $('px').value=opt.px; $('pxV').textContent=opt.px>1?opt.px+'×':'off';
-    syncColorInputs(); buildPickers(); flag(); status('loaded config ✓'); }catch(err){ status('bad config file'); } }; r.readAsText(f);
-});
+    syncColorInputs(); buildPickers(); flag(); status('loaded config ✓'); }catch(err){ status('bad config file'); } }; r.readAsText(f); });
 
 /* ===================== init ===================== */
 buildPalettes(); buildColorInputs(); buildPickers(); buildSizeChips();
