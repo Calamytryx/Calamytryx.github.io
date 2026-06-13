@@ -57,38 +57,44 @@
       /* ---------------- featured gallery ---------------- */
       var LAB = { mk_chat:'chat', mk_scene:'scene', mk_alert:'alert', mk_timer:'timer', mk_bar:'banner',
         mk_sting:'stinger', mk_boot:'boot log', mk_video:'video', mk_sched:'weekly', mk_fmt:'formats', mk_emote:'export', mk_key:'bg key' };
+      var PREVIEW_MS = 1500;
       function initGallery() {
         var cards = [].slice.call(document.querySelectorAll('.gcard'));
-        /* per-card preview slideshow — ALWAYS playing (no hover needed) */
         cards.forEach(function (card) {
-          var slides = [].slice.call(card.querySelectorAll('.slide'));
-          var dotsBox = card.querySelector('.gc_dots'), capEl = card.querySelector('.gc_tag .cap');
-          if (!slides.length) return;
-          var dots = slides.map(function () { var d = document.createElement('i'); dotsBox.appendChild(d); return d; });
-          var idx = 0;
-          function show(i) {
-            idx = (i + slides.length) % slides.length;
-            slides.forEach(function (s, j) { s.classList.toggle('on', j === idx); });
-            dots.forEach(function (d, j) { d.classList.toggle('on', j === idx); });
-            if (capEl) { var mk = slides[idx].querySelector('[class*=mk_]');
-              var key = mk ? (mk.className.match(/mk_\w+/) || [''])[0] : ''; capEl.textContent = LAB[key] || ('0' + (idx + 1)).slice(-2); }
-          }
-          show(0);
-          if (slides.length > 1) setInterval(function () { show(idx + 1); }, 1500);
+          card._sl = [].slice.call(card.querySelectorAll('.slide'));
+          var db = card.querySelector('.gc_dots');
+          card._dt = card._sl.map(function () { var d = document.createElement('i'); if (db) db.appendChild(d); return d; });
+          card._cp = card.querySelector('.gc_tag .cap');
         });
-        /* looping carousel — auto-advances through the tools and wraps around */
         var g = $('gallery'); if (!g || !cards.length) return;
-        var n = cards.length, cur = 0, auto = null, paused = false;
+        var n = cards.length, cur = 0, pidx = 0, paused = false, t = null;
         function stride() { return (cards.length > 1) ? (cards[1].offsetLeft - cards[0].offsetLeft) : g.clientWidth; }
-        function go(i) { cur = (i + n) % n; g.scrollTo({ left: cur * stride(), behavior: 'smooth' }); }
-        function start() { if (auto) clearInterval(auto); auto = setInterval(function () { if (!paused) go(cur + 1); }, 5000); }
+        function lab(s) { var mk = s && s.querySelector('[class*=mk_]'); var k = mk ? (mk.className.match(/mk_\w+/) || [''])[0] : ''; return LAB[k]; }
+        function render() {
+          cards.forEach(function (card, ci) {
+            var pi = (ci === cur) ? pidx : 0;
+            card._sl.forEach(function (s, j) { s.classList.toggle('on', j === pi); });
+            card._dt.forEach(function (d, j) { d.classList.toggle('on', j === pi); });
+            if (card._cp) card._cp.textContent = lab(card._sl[pi]) || ('0' + (pi + 1)).slice(-2);
+          });
+        }
+        function schedule() { clearTimeout(t); t = setTimeout(step, PREVIEW_MS); }
+        function step() {
+          pidx++;
+          if (pidx >= cards[cur]._sl.length) {           /* current card has shown ALL its previews */
+            pidx = 0;
+            if (!paused) { cur = (cur + 1) % n; g.scrollTo({ left: cur * stride(), behavior: 'smooth' }); } /* …now move on (unless hovering) */
+          }
+          render(); schedule();
+        }
+        function jump(i) { cur = (i + n) % n; pidx = 0; g.scrollTo({ left: cur * stride(), behavior: 'smooth' }); render(); schedule(); }
         var p = document.querySelector('.gnav.prev'), nx = document.querySelector('.gnav.next');
-        if (p) p.onclick = function () { go(cur - 1); start(); };
-        if (nx) nx.onclick = function () { go(cur + 1); start(); };
-        g.addEventListener('mouseenter', function () { paused = true; });   /* pause auto-loop while you look */
+        if (p) p.onclick = function () { jump(cur - 1); };
+        if (nx) nx.onclick = function () { jump(cur + 1); };
+        g.addEventListener('mouseenter', function () { paused = true; });   /* hover freezes the carousel; previews keep cycling */
         g.addEventListener('mouseleave', function () { paused = false; });
-        var st; g.addEventListener('scroll', function () { clearTimeout(st); st = setTimeout(function () { var s = stride(); if (s) cur = Math.round(g.scrollLeft / s); }, 140); });
-        start();
+        var sc; g.addEventListener('scroll', function () { clearTimeout(sc); sc = setTimeout(function () { var i = Math.round(g.scrollLeft / stride()); if (i >= 0 && i < n && i !== cur) { cur = i; pidx = 0; render(); schedule(); } }, 160); });
+        render(); schedule();
       }
 
       /* ---------------- github (cached + raw README, no API rate-limit issues) ---------------- */
