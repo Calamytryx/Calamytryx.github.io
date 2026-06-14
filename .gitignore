@@ -1,0 +1,9 @@
+# Local-only, licensed third-party assets — MUST NOT be committed or published.
+# (Live2D "Type-H3" model + PNGtuber+ template pack live here under licenses
+#  that forbid public redistribution / extraction. Keep them on-disk only.)
+assets/personal/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp

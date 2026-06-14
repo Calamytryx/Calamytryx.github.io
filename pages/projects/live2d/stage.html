@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>live2d.mk — bring-your-own Live2D stage</title>
+<link rel="icon" href="/assets/media/logo.png">
+<!-- renderer only — NO model assets are shipped. You load your own model. -->
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display-lipsyncpatch@0.5.0-ls-8/dist/cubism4.min.js"></script>
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+  html,body{height:100%;margin:0}
+  body{overflow:hidden;display:flex;flex-direction:column;background:transparent}
+  .toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+  .toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+  .toolbar h1 .dot{color:var(--blood)}
+  .toolbar .tbsub{color:var(--dim);font-size:11px}
+  .toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+  .app{display:grid;grid-template-columns:264px 1fr;flex:1 1 auto;min-height:0}
+  .panel{background:var(--panel);border-right:2px solid var(--line);padding:14px;overflow-y:auto;min-height:0}
+  .grp{border-top:1px solid var(--line);padding:10px 0}.grp:first-child{border-top:0}
+  .t{color:var(--blood);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+  label.ck{display:flex;align-items:center;gap:7px;color:var(--txt);font-size:12px;cursor:pointer;margin:4px 0}
+  input[type=range]{width:100%}select,.fbtn{width:100%}
+  select,.fbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:7px;cursor:pointer}
+  .fbtn:hover{border-color:var(--blood);color:#fff}
+  .rl{display:flex;justify-content:space-between;color:var(--dim);font-size:11px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chips button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font:inherit;font-size:11px;padding:5px 7px;cursor:pointer}
+  .chips button:hover{border-color:var(--blood)}.chips button.on{background:var(--blood);color:#000;border-color:var(--blood)}
+  .hint{color:var(--dim);font-size:10px;line-height:1.5;margin-top:6px}
+  .hint a{color:var(--blood)}
+  .stage{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  body.preview .stage{background:
+    linear-gradient(45deg,#15151a 25%,transparent 25%),linear-gradient(-45deg,#15151a 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#15151a 75%),linear-gradient(-45deg,transparent 75%,#15151a 75%),#0d0d10;
+    background-size:28px 28px;background-position:0 0,0 14px,14px -14px,-14px 0}
+  #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  #drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--dim);text-align:center;padding:24px}
+  #drop.hide{display:none}#drop.hot{background:rgba(209,28,28,.08)}
+  #drop b{color:#fff;font-family:var(--display);font-size:18px}
+  #toast{position:absolute;bottom:12px;left:12px;color:#fff;background:rgba(12,12,16,.92);border:2px solid var(--blood);padding:8px 12px;font-size:12px;max-width:70%;z-index:5}
+  #show{position:absolute;top:10px;left:10px;background:rgba(12,12,16,.92);border:1px solid var(--line);color:var(--txt);font:inherit;font-size:11px;padding:5px 8px;cursor:pointer;display:none;z-index:6}
+  body.uihidden .panel,body.uihidden .toolbar{display:none}
+  body.uihidden #show{display:block}
+  @media(max-width:820px){.app{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-page="projects" class="preview">
+
+<header class="toolbar">
+  <h1>live2d<span class="dot">.</span>mk</h1>
+  <span class="tbsub">bring-your-own Live2D model · webcam face tracking · OBS-ready</span>
+  <a href="/pages/projects/index.html">← projects</a>
+</header>
+
+<div class="app">
+  <div class="panel">
+    <div class="grp">
+      <div class="t">model</div>
+      <label class="fbtn" style="display:block;text-align:center">📁 load model folder
+        <input type="file" id="folder" webkitdirectory directory multiple style="display:none"></label>
+      <div class="hint">Pick the folder that holds your <code>.model3.json</code> (+ textures, expressions, motions). Nothing is uploaded anywhere — it loads in your browser only.</div>
+    </div>
+
+    <div class="grp">
+      <div class="t">expressions</div>
+      <div class="chips" id="exps"></div>
+    </div>
+    <div class="grp">
+      <div class="t">motions</div>
+      <div class="chips" id="motions"></div>
+    </div>
+
+    <div class="grp">
+      <div class="t">tracking source</div>
+      <div class="rl" style="gap:6px;display:flex">
+        <select id="facesrc"><option value="webcam">Webcam (in-browser)</option><option value="osf">OpenSeeFace (local)</option></select>
+        <label class="ck" style="margin:0"><input type="checkbox" id="facecam"> on</label>
+      </div>
+      <label class="ck"><input type="checkbox" id="mirror" checked> mirror</label>
+      <label class="ck"><input type="checkbox" id="pinv" checked> invert ↕ up/down</label>
+      <label class="ck"><input type="checkbox" id="follow"> follow cursor (no cam)</label>
+      <label class="ck"><input type="checkbox" id="mic"> mic lip-sync</label>
+      <div class="rl"><span>smoothing</span><b id="smoothV">0.55</b></div><input type="range" id="smooth" min="0" max="0.9" step="0.05" value="0.55">
+      <div class="rl"><span>head gain</span><b id="hgainV">1.5×</b></div><input type="range" id="hgain" min="0.5" max="3" step="0.1" value="1.5">
+      <button class="fbtn" id="recenter" style="margin-top:6px">recenter head</button>
+      <div class="hint" id="osfHint" style="display:none">OpenSeeFace runs locally. Get it: <a href="https://github.com/emilianavt/OpenSeeFace/releases/latest" target="_blank" rel="noopener">github.com/emilianavt/OpenSeeFace</a>. Run the tracker + <code>osf_bridge.js</code>, then open this page <b>locally</b> (the bridge can serve it on http://localhost) — browsers block a hosted https page from reaching a local socket.</div>
+    </div>
+
+    <div class="grp">
+      <div class="t">capture</div>
+      <label class="ck"><input type="checkbox" id="preview" checked> preview backdrop (OFF for OBS)</label>
+      <button class="fbtn" id="hide">hide UI (H)</button>
+      <div class="hint">Add as a Browser Source in OBS. Turn the backdrop OFF for transparency; press <b>H</b> to hide this panel.</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div id="drop"><b>drop / pick your Live2D model folder</b><span style="font-size:11px;color:var(--dim)">.model3.json + textures + (expressions / motions)</span></div>
+    <button id="show">☰ controls</button>
+    <div id="toast" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const toast=(m,keep)=>{const t=$('#toast');if(m==null){t.style.display='none';return;}t.style.display='block';t.textContent=m;if(!keep){clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',2800);}};
+
+const app=new PIXI.Application({view:$('#cv'),resizeTo:$('.stage'),backgroundAlpha:0,antialias:true,autoDensity:true,resolution:window.devicePixelRatio||1});
+let model=null,core=null,fitScale=1;
+let follow=false,micOn=false,micA=null,micD=null,mouth=0;
+/* tracking */
+let faceOn=false,faceSrc='webcam',osfWS=null,fl=null,vid=null;
+let mirror=true,smooth=0.55,hgain=1.5,pitchInv=true,lastFace=0;
+let tTarget={},tNow={};
+/* stacking expressions (VTS-style: any number active at once, blend-aware) */
+let EXP={},defaults={},activeExp=new Set(),touched=new Set();
+const wrapDeg=a=>{a=((a+180)%360+360)%360-180;return a;};
+let hbase=null,lastH={y:0,p:0,r:0};
+
+/* ---------------- load uploaded model ---------------- */
+$('#folder').onchange=e=>loadFiles([...e.target.files]);
+['dragover','dragenter'].forEach(ev=>$('.stage').addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>$('.stage').addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.remove('hot');}));
+$('.stage').addEventListener('drop',async e=>{ e.preventDefault();
+  const files=[]; const its=e.dataTransfer.items;
+  if(its && its[0] && its[0].webkitGetAsEntry){ for(const it of its){ const en=it.webkitGetAsEntry(); if(en) await walk(en,files); } loadFiles(files); }
+  else loadFiles([...e.dataTransfer.files]);
+});
+function walk(entry,out,path=''){ return new Promise(res=>{
+  if(entry.isFile){ entry.file(f=>{ try{Object.defineProperty(f,'webkitRelativePath',{value:path+f.name});}catch(e){} out.push(f); res(); }); }
+  else { const rd=entry.createReader(); rd.readEntries(async ents=>{ for(const en of ents) await walk(en,out,path+entry.name+'/'); res(); }); }
+});}
+
+async function loadFiles(files){
+  const settings=files.find(f=>f.name.endsWith('.model3.json'));
+  if(!settings){ toast('⚠ no .model3.json found in that folder',true); return; }
+  toast('loading model…',true);
+  try{
+    if(model){ app.stage.removeChild(model); model.destroy(); model=null; }
+    model=await PIXI.live2d.Live2DModel.from(files,{autoInteract:false});
+    core=model.internalModel.coreModel;
+    app.stage.addChild(model); model.anchor.set(0.5,0.5); fit();
+    $('#drop').classList.add('hide');
+    await loadExpressionFiles(files);
+    buildExpressions(); buildMotions();
+    // apply expressions (stack) then tracking, in the model's pre-update hook so colors recompute the same frame
+    const apply=()=>{ applyExpressions(); applyTracking(); };
+    try{ if(model.internalModel.on) model.internalModel.on('beforeModelUpdate',apply); }catch(e){}
+    app.ticker.add(apply);
+    toast('loaded ✓');
+  }catch(err){ console.error(err); toast('⚠ load failed: '+err.message,true); }
+}
+function fit(){ model.scale.set(1); const h=model.height||300; fitScale=($('.stage').clientHeight*0.9)/h; model.scale.set(fitScale); model.position.set($('.stage').clientWidth/2,$('.stage').clientHeight/2); syncZoom&&0; }
+
+/* ---------------- expressions (stacking, model-agnostic) ----------------
+   Reads EVERY .exp3.json in the uploaded folder — not just the ones the
+   .model3.json lists — so face / outfit / avatar / tail expressions all show up.
+   Each is an independent toggle and they STACK (blend-aware), like VTube Studio. */
+function settings(){ return model && model.internalModel && model.internalModel.settings; }
+async function loadExpressionFiles(files){
+  EXP={}; defaults={}; activeExp=new Set(); touched=new Set();
+  const exps=files.filter(f=>f.name.toLowerCase().endsWith('.exp3.json'));
+  for(const f of exps){ try{ const d=JSON.parse(await f.text());
+    const name=(f.webkitRelativePath||f.name).split('/').pop().replace(/\.exp3\.json$/i,'');
+    EXP[name]=(d.Parameters||[]).map(p=>({id:p.Id,value:p.Value,blend:p.Blend||'Add'}));
+  }catch(e){} }
+  Object.values(EXP).forEach(list=>list.forEach(p=>{ if(!(p.id in defaults)){ try{ defaults[p.id]=core.getParameterValueById(p.id); }catch(e){ defaults[p.id]=0; } } }));
+}
+function applyExpressions(){
+  if(!core) return;
+  const acc={}, active=[...activeExp];
+  active.forEach(n=>(EXP[n]||[]).forEach(p=>{ if(!(p.id in acc)) acc[p.id]=(p.id in defaults?defaults[p.id]:0); }));
+  active.forEach(n=>(EXP[n]||[]).forEach(p=>{ if(p.blend==='Multiply')acc[p.id]*=p.value; else if(p.blend==='Overwrite')acc[p.id]=p.value; else acc[p.id]+=p.value; }));
+  const now=new Set();
+  for(const id in acc){ try{core.setParameterValueById(id,acc[id]);}catch(e){} now.add(id); }
+  touched.forEach(id=>{ if(!now.has(id)){ try{core.setParameterValueById(id, id in defaults?defaults[id]:0);}catch(e){} } });
+  touched=now;
+}
+function buildExpressions(){ const host=$('#exps'); host.innerHTML=''; const names=Object.keys(EXP).sort();
+  if(!names.length){ host.innerHTML='<span class="hint">no .exp3.json files in this folder</span>'; return; }
+  names.forEach(n=>{ const b=document.createElement('button'); b.textContent=n;
+    b.onclick=()=>{ activeExp.has(n)?activeExp.delete(n):activeExp.add(n); b.classList.toggle('on',activeExp.has(n)); };
+    host.appendChild(b); });
+}
+function buildMotions(){ const host=$('#motions'); host.innerHTML=''; const s=settings();
+  const groups=(s&&s.motions)||{}; const keys=Object.keys(groups); if(!keys.length){ host.innerHTML='<span class="hint">none in this model</span>'; return; }
+  keys.forEach(g=>{ const b=document.createElement('button'); b.textContent=g; b.onclick=()=>{ try{model.motion(g);}catch(e){} }; host.appendChild(b); });
+}
+
+/* ---------------- tracking apply (runs each frame after model update) ---------------- */
+function applyTracking(){
+  if(!core) return;
+  if(faceOn){ const k=smooth;
+    for(const id in tTarget){ tNow[id]=(tNow[id]==null?tTarget[id]:tNow[id]*k+tTarget[id]*(1-k)); try{core.setParameterValueById(id,tNow[id]);}catch(e){} }
+  } else if(micOn){ try{core.setParameterValueById('ParamMouthOpenY',mouth);}catch(e){} }
+}
+function applyHead(yaw,pitch,roll){
+  lastH={y:yaw,p:pitch,r:roll};
+  const b=hbase||{y:0,p:0,r:0},mx=mirror?-1:1,ps=pitchInv?-1:1;
+  tTarget.ParamAngleX=cl(wrapDeg(yaw-b.y)*hgain*mx,-30,30);
+  tTarget.ParamAngleY=cl(wrapDeg(pitch-b.p)*hgain*ps,-30,30);
+  tTarget.ParamAngleZ=cl(wrapDeg(roll-b.r)*mx,-30,30);
+  tTarget.ParamBodyAngleX=tTarget.ParamAngleX/3; tTarget.ParamBodyAngleZ=tTarget.ParamAngleZ/3;
+}
+function recenter(){ hbase={...lastH}; toast('head recentered'); }
+
+/* ---------------- transform / mouse ---------------- */
+function syncZoom(){}
+window.addEventListener('pointermove',e=>{ if(model&&follow&&!faceOn) model.focus(e.clientX,e.clientY); });
+(function(){ let drag=false,ox=0,oy=0; const cv=$('#cv');
+  cv.addEventListener('pointerdown',e=>{ if(!model)return; drag=true; ox=e.clientX-model.x; oy=e.clientY-model.y; });
+  window.addEventListener('pointerup',()=>drag=false);
+  window.addEventListener('pointermove',e=>{ if(drag){ model.x=e.clientX-ox; model.y=e.clientY-oy; } });
+  cv.addEventListener('wheel',e=>{ if(!model)return; e.preventDefault(); model.scale.set(model.scale.x*(e.deltaY<0?1.06:0.94)); },{passive:false});
+})();
+window.addEventListener('resize',()=>{ app.renderer.resize($('.stage').clientWidth,$('.stage').clientHeight); });
+
+/* ---------------- controls ---------------- */
+$('#mirror').onchange=e=>mirror=e.target.checked;
+$('#pinv').onchange=e=>pitchInv=e.target.checked;
+$('#follow').onchange=e=>follow=e.target.checked;
+$('#smooth').oninput=e=>{smooth=+e.target.value;$('#smoothV').textContent=smooth.toFixed(2);};
+$('#hgain').oninput=e=>{hgain=+e.target.value;$('#hgainV').textContent=hgain.toFixed(1)+'×';};
+$('#recenter').onclick=recenter;
+$('#facesrc').onchange=e=>{ faceSrc=e.target.value; $('#osfHint').style.display=faceSrc==='osf'?'block':'none'; if(faceOn){disableFace();$('#facecam').checked=false;} };
+$('#facecam').onchange=e=>{ if(!model){ e.target.checked=false; toast('load a model first',true); return; } e.target.checked?enableFace():disableFace(); };
+$('#preview').onchange=e=>document.body.classList.toggle('preview',e.target.checked);
+function setUI(v){ document.body.classList.toggle('uihidden',!v); }
+$('#hide').onclick=()=>setUI(false); $('#show').onclick=()=>setUI(true);
+window.addEventListener('keydown',e=>{ if(e.key==='h'||e.key==='H') setUI(document.body.classList.contains('uihidden')); });
+
+/* mic */
+$('#mic').onchange=async e=>{ if(e.target.checked){ try{ const st=await navigator.mediaDevices.getUserMedia({audio:true});
+  const ctx=new(window.AudioContext||window.webkitAudioContext)(); const sr=ctx.createMediaStreamSource(st); micA=ctx.createAnalyser(); micA.fftSize=512; micD=new Uint8Array(micA.frequencyBinCount); sr.connect(micA); micOn=true; pumpMic(); }catch(err){ e.target.checked=false; toast('⚠ mic: '+err.message,true);} } else micOn=false; };
+function pumpMic(){ if(!micOn)return; micA.getByteTimeDomainData(micD); let s=0; for(let i=0;i<micD.length;i++){const v=(micD[i]-128)/128;s+=v*v;} mouth=cl(Math.sqrt(s/micD.length)*9,0,1); requestAnimationFrame(pumpMic); }
+
+/* ---------------- face tracking ---------------- */
+function enableFace(){ follow=false; $('#follow').checked=false; tNow={}; faceSrc==='osf'?connectOSF():enableWebcam(); }
+function disableFace(){ faceOn=false; if(osfWS){try{osfWS.close();}catch(e){}osfWS=null;} if(vid&&vid.srcObject)vid.srcObject.getTracks().forEach(t=>t.stop()); if(vid)vid.remove(); vid=null; tNow={}; hbase=null; }
+
+/* OpenSeeFace via local bridge (ws://127.0.0.1:11574) */
+function connectOSF(){ try{
+  // when the bridge is serving this page (http://localhost), use the same host;
+  // otherwise fall back to the standalone bridge port.
+  const local=location.protocol.startsWith('http')&&/^(localhost|127\.0\.0\.1)/.test(location.host);
+  const url='ws://'+(local?location.host:'127.0.0.1:11574');
+  osfWS=new WebSocket(url); osfWS.binaryType='arraybuffer';
+  osfWS.onopen=()=>{ faceOn=true; lastFace=performance.now(); toast('OpenSeeFace connected'); };
+  osfWS.onmessage=ev=>parseOSF(new DataView(ev.data));
+  osfWS.onerror=()=>{ toast('⚠ no OSF bridge at '+url+' — run osf_bridge.js and open this page locally',true); $('#facecam').checked=false; disableFace(); };
+}catch(e){ toast('⚠ '+e.message,true); } }
+function parseOSF(dv){ if(dv.byteLength<1785)return; const F=o=>dv.getFloat32(o,true);
+  const rOpen=F(20),lOpen=F(24),got3D=dv.getUint8(28); if(!got3D)return; lastFace=performance.now();
+  const ex=F(49),ey=F(53),ez=F(57); const mO=F(1777),mW=F(1781),bL=F(1741),bR=F(1753); const sw=mirror;
+  applyHead(ey,-ex,ez);
+  let eL=cl(lOpen,0,1),eR=cl(rOpen,0,1); if(sw){const t=eL;eL=eR;eR=t;} tTarget.ParamEyeLOpen=eL; tTarget.ParamEyeROpen=eR;
+  const PH=i=>F(345+i*8),PV=i=>F(345+i*8+4);
+  const eg=(o,inn,t1,t2,b1,b2,pp)=>{ const cH=(PH(o)+PH(inn))/2,w=Math.abs(PH(o)-PH(inn))||1;
+    const cV=(PV(t1)+PV(t2)+PV(b1)+PV(b2))/4,h=Math.abs((PV(t1)+PV(t2))/2-(PV(b1)+PV(b2))/2)||(w*0.4);
+    return {x:(PH(pp)-cH)/(w*0.5),y:(PV(pp)-cV)/((h||1)*0.5)}; };
+  const gR=eg(36,39,37,38,40,41,66),gL=eg(45,42,43,44,46,47,67),gmx=mirror?-1:1;
+  tTarget.ParamEyeBallX=cl((gR.x+gL.x)/2*2.5*gmx,-1,1); tTarget.ParamEyeBallY=cl(-(gR.y+gL.y)/2*2.5,-1,1);
+  tTarget.ParamMouthOpenY=cl(mO,0,1); tTarget.ParamMouthForm=cl(mW,-1,1);
+  let aL=bL,aR=bR; if(sw){const t=aL;aL=aR;aR=t;} tTarget.ParamBrowLY=cl(aL,-1,1); tTarget.ParamBrowRY=cl(aR,-1,1);
+}
+
+/* webcam via MediaPipe */
+async function enableWebcam(){ try{
+  vid=document.createElement('video'); vid.autoplay=vid.playsInline=vid.muted=true; vid.style.display='none'; document.body.appendChild(vid);
+  vid.srcObject=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}}); await vid.play();
+  toast('loading face model…',true);
+  const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
+  const fs=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+  fl=await vision.FaceLandmarker.createFromOptions(fs,{ baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'}, runningMode:'VIDEO', numFaces:1, outputFaceBlendshapes:true });
+  faceOn=true; lastFace=performance.now(); toast('webcam tracking on'); webLoop();
+}catch(err){ console.error(err); $('#facecam').checked=false; toast('⚠ webcam: '+err.message,true); disableFace(); } }
+let _ts=0;
+function webLoop(){ if(!faceOn||faceSrc!=='webcam')return; requestAnimationFrame(webLoop);
+  if(!vid||vid.readyState<2)return; const t=performance.now(); if(t-_ts<33)return; _ts=t;
+  let r; try{r=fl.detectForVideo(vid,t);}catch(e){return;} procWeb(r); }
+function procWeb(res){ if(!res||!res.faceLandmarks||!res.faceLandmarks.length)return; lastFace=performance.now();
+  const lm=res.faceLandmarks[0],bs={}; (res.faceBlendshapes&&res.faceBlendshapes[0]?res.faceBlendshapes[0].categories:[]).forEach(c=>bs[c.categoryName]=c.score);
+  const mx=mirror?-1:1,sw=mirror;
+  const L=lm[234],R=lm[454],T=lm[10],B=lm[152],N=lm[1],e0=lm[33],e1=lm[263];
+  const yaw=((N.x-L.x)/((R.x-L.x)||1))-0.5,pitch=((N.y-T.y)/((B.y-T.y)||1))-0.5,roll=Math.atan2(e1.y-e0.y,e1.x-e0.x);
+  applyHead(yaw*60,pitch*60,-roll*180/Math.PI);
+  let bl=bs.eyeBlinkLeft||0,br=bs.eyeBlinkRight||0; if(sw){const t=bl;bl=br;br=t;}
+  tTarget.ParamEyeLOpen=cl(1-bl*1.4,0,1); tTarget.ParamEyeROpen=cl(1-br*1.4,0,1);
+  tTarget.ParamEyeBallX=cl(((bs.eyeLookOutLeft||0)-(bs.eyeLookInLeft||0))*mx*2,-1,1);
+  tTarget.ParamEyeBallY=cl(((bs.eyeLookUpLeft||0)-(bs.eyeLookDownLeft||0))*2,-1,1);
+  tTarget.ParamMouthOpenY=cl((bs.jawOpen||0)*1.6,0,1);
+  tTarget.ParamMouthForm=cl(((bs.mouthSmileLeft||0)+(bs.mouthSmileRight||0))-(bs.mouthPucker||0),-1,1);
+  let gL=(bs.browOuterUpLeft||0)-(bs.browDownLeft||0),gR=(bs.browOuterUpRight||0)-(bs.browDownRight||0); if(sw){const t=gL;gL=gR;gR=t;}
+  tTarget.ParamBrowLY=cl(gL*1.5,-1,1); tTarget.ParamBrowRY=cl(gR*1.5,-1,1);
+}
+</script>
+</body>
+</html>

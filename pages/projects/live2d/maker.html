@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>live2d look maker — bring your own model</title>
+<link rel="icon" href="/assets/media/logo.png">
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display-lipsyncpatch@0.5.0-ls-8/dist/cubism4.min.js"></script>
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+  html,body{height:100%;margin:0}
+  body{overflow:hidden;font-family:var(--mono)}
+  .app{display:grid;grid-template-columns:340px 1fr;height:100%}
+  .panel{background:var(--panel);border-right:2px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .head{padding:12px;border-bottom:1px solid var(--line)}
+  .head h1{margin:0 0 8px;font-size:14px;color:#fff;font-family:var(--display);letter-spacing:1px}.head h1 b{color:var(--blood)}
+  .row{display:flex;gap:6px}
+  select,input,button,.fbtn{font:inherit;font-size:12px}
+  select,#search,input[type=text]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px}
+  #search{width:100%;margin-top:6px}
+  .fbtn,.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 9px;cursor:pointer;text-align:center}
+  .fbtn:hover,.btn:hover{border-color:var(--blood);color:#fff}
+  .btn.pri{background:var(--blood);color:#000;border-color:var(--blood);font-weight:700}
+  .ctrls{flex:1;overflow-y:auto;min-height:0;padding:6px 12px 60px}
+  .sec{border-top:1px solid var(--line)}
+  .sec>.h{cursor:pointer;color:var(--blood);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:8px 0;display:flex;justify-content:space-between}
+  .sec>.body{display:none;padding-bottom:6px}.sec.open>.body{display:block}
+  .ctl{margin:6px 0}.ctl .lab{display:flex;justify-content:space-between;color:#9a9aa2;font-size:11px}.ctl .lab b{color:var(--txt);font-weight:400}
+  .ctl input[type=range]{width:100%}
+  .stage{position:relative;background:
+    linear-gradient(45deg,#15151a 25%,transparent 25%),linear-gradient(-45deg,#15151a 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#15151a 75%),linear-gradient(-45deg,transparent 75%,#15151a 75%),#0d0d10;
+    background-size:28px 28px;background-position:0 0,0 14px,14px -14px,-14px 0}
+  #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  #drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--dim);text-align:center;padding:24px}
+  #drop.hide{display:none}#drop b{color:#fff;font-family:var(--display);font-size:18px}
+  #toast{position:absolute;bottom:12px;left:12px;color:#fff;background:rgba(12,12,16,.92);border:2px solid var(--blood);padding:8px 12px;font-size:12px;max-width:70%}
+  .hint{color:var(--dim);font-size:10px;line-height:1.5;padding:6px 0}.hint a{color:var(--blood)}
+  a.back{color:var(--blood);text-decoration:none;font-size:11px}
+</style>
+</head>
+<body data-page="projects">
+<div class="app">
+  <div class="panel">
+    <div class="head">
+      <h1>look maker <b>//</b> live2d</h1>
+      <label class="fbtn" style="display:block">📁 load model folder
+        <input type="file" id="folder" webkitdirectory directory multiple style="display:none"></label>
+      <input id="search" placeholder="filter params… (e.g. eye, hair)" style="display:none">
+      <div class="row" style="margin-top:6px;display:none" id="exprow">
+        <input type="text" id="fname" value="MyLook" style="flex:1;min-width:0">
+        <button class="btn pri" id="export">⬇ .exp3.json</button>
+        <button class="btn" id="resetAll" title="reset to default">↺</button>
+      </div>
+      <a class="back" href="/pages/projects/index.html">← projects</a>
+    </div>
+    <div class="ctrls" id="ctrls"><div class="hint">Load a model folder (with its <code>.model3.json</code> and <code>.cdi3.json</code>). The maker reads the model's customization parameters, lets you restyle/recolor, and exports a <code>.exp3.json</code> save-state.</div></div>
+  </div>
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div id="drop"><b>drop / pick your model folder</b><span style="font-size:11px">.model3.json + .cdi3.json + textures</span></div>
+    <div id="toast" style="display:none"></div>
+  </div>
+</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const round=(v,n=4)=>{const f=10**n;return Math.round(v*f)/f;};
+const toast=(m,keep)=>{const t=$('#toast');if(m==null){t.style.display='none';return;}t.style.display='block';t.textContent=m;if(!keep){clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',2600);}};
+const app=new PIXI.Application({view:$('#cv'),resizeTo:$('.stage'),backgroundAlpha:0,antialias:true,autoDensity:true,resolution:window.devicePixelRatio||1});
+let model=null,core=null,META={},vals={};
+
+/* ---- upload ---- */
+$('#folder').onchange=e=>loadFiles([...e.target.files]);
+['dragover','dragenter'].forEach(ev=>$('.stage').addEventListener(ev,e=>e.preventDefault()));
+$('.stage').addEventListener('drop',async e=>{ e.preventDefault(); const files=[]; const its=e.dataTransfer.items;
+  if(its&&its[0]&&its[0].webkitGetAsEntry){ for(const it of its){ const en=it.webkitGetAsEntry(); if(en) await walk(en,files); } loadFiles(files); }
+  else loadFiles([...e.dataTransfer.files]); });
+function walk(entry,out,path=''){ return new Promise(res=>{ if(entry.isFile){ entry.file(f=>{ try{Object.defineProperty(f,'webkitRelativePath',{value:path+f.name});}catch(e){} out.push(f); res(); }); }
+  else { entry.createReader().readEntries(async ents=>{ for(const en of ents) await walk(en,out,path+entry.name+'/'); res(); }); } });}
+
+async function loadFiles(files){
+  const settings=files.find(f=>f.name.endsWith('.model3.json')); if(!settings){ toast('⚠ no .model3.json found',true); return; }
+  const cdiFile=files.find(f=>f.name.endsWith('.cdi3.json'));
+  toast('loading model…',true);
+  try{
+    if(model){ app.stage.removeChild(model); model.destroy(); }
+    model=await PIXI.live2d.Live2DModel.from(files,{autoInteract:false}); core=model.internalModel.coreModel;
+    app.stage.addChild(model); model.anchor.set(0.5,0.5); fit(); bindStage();
+    let cdi=null; if(cdiFile){ try{ cdi=JSON.parse(await cdiFile.text()); }catch(e){} }
+    buildControls(cdi);
+    const apply=()=>{ if(core) for(const id in vals){ try{core.setParameterValueById(id,vals[id]);}catch(e){} } };
+    try{ if(model.internalModel.on) model.internalModel.on('beforeModelUpdate',apply); }catch(e){}
+    app.ticker.add(apply);
+    $('#drop').classList.add('hide'); $('#search').style.display='block'; $('#exprow').style.display='flex'; toast('loaded ✓');
+  }catch(err){ console.error(err); toast('⚠ load failed: '+err.message,true); }
+}
+function fit(){ model.scale.set(1); const h=model.height||300; const s=($('.stage').clientHeight*0.92)/h; model.scale.set(s); model.position.set($('.stage').clientWidth/2,$('.stage').clientHeight/2); }
+function bindStage(){ let drag=false,ox=0,oy=0; const cv=$('#cv');
+  cv.addEventListener('pointerdown',e=>{drag=true;ox=e.clientX-model.x;oy=e.clientY-model.y;});
+  window.addEventListener('pointerup',()=>drag=false);
+  window.addEventListener('pointermove',e=>{if(drag){model.x=e.clientX-ox;model.y=e.clientY-oy;}});
+  cv.addEventListener('wheel',e=>{e.preventDefault();model.scale.set(model.scale.x*(e.deltaY<0?1.06:0.94));},{passive:false});
+  window.addEventListener('resize',()=>app.renderer.resize($('.stage').clientWidth,$('.stage').clientHeight));
+}
+
+/* ---- build controls from .cdi3.json parameters ---- */
+function sliderCtl(id,label){ const m=META[id]; const step=(m.max-m.min)<=20?1:(m.max-m.min)/200;
+  return `<div class="ctl"><div class="lab"><span>${label}</span><b data-v="${id}">${round(vals[id],2)}</b></div>
+  <input type="range" data-slider="${id}" min="${m.min}" max="${m.max}" step="${step}" value="${vals[id]}"></div>`; }
+function buildControls(cdi){
+  META={}; vals={};
+  let params = cdi && cdi.Parameters ? cdi.Parameters : null;
+  if(!params){ $('#ctrls').innerHTML='<div class="hint">This model has no <code>.cdi3.json</code> (DisplayInfo), so named parameters aren’t available. Re-export it from Cubism with the parameter list, or use a model that includes one.</div>'; return; }
+  const isHeader=nm=>/[+=]{2,}/.test(nm||''); const clean=nm=>((nm||'').replace(/[+=]/g,'').trim().replace(/_/g,' '))||'OTHER';
+  const secInfo={},order=[]; const ensure=s=>{ if(!secInfo[s]){secInfo[s]={items:[]};order.push(s);} return secInfo[s].items; };
+  let curSec='PARAMETERS';
+  params.forEach(p=>{ const nm=p.Name||p.Id; if(isHeader(nm)){ curSec=clean(nm); ensure(curSec); return; }
+    const idx=core.getParameterIndex(p.Id); const min=core.getParameterMinimumValue(idx),max=core.getParameterMaximumValue(idx),def=core.getParameterDefaultValue(idx);
+    if(min===max) return; META[p.Id]={idx,min,max,def}; vals[p.Id]=def;
+    ensure(curSec).push({html:sliderCtl(p.Id,nm),f:nm.toLowerCase()}); });
+  const host=$('#ctrls'); host.innerHTML=''; let shown=0;
+  order.forEach(sec=>{ const it=secInfo[sec].items; if(!it.length) return; const d=document.createElement('div'); d.className='sec'+(shown<1?' open':''); shown++;
+    d.innerHTML=`<div class="h">${sec} <span>${it.length}</span></div><div class="body">${it.map(x=>`<div class="wrap" data-f="${x.f}">${x.html}</div>`).join('')}</div>`;
+    d.querySelector('.h').onclick=()=>d.classList.toggle('open'); host.appendChild(d); });
+  document.querySelectorAll('input[data-slider]').forEach(inp=>{ inp.oninput=()=>{ const id=inp.dataset.slider; vals[id]=+inp.value; const o=document.querySelector(`[data-v="${id}"]`); if(o)o.textContent=round(vals[id],2); }; });
+}
+$('#search').oninput=e=>{ const q=e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.sec').forEach(sec=>{ let any=false; sec.querySelectorAll('.wrap').forEach(w=>{ const hit=!q||w.dataset.f.includes(q); w.style.display=hit?'':'none'; if(hit)any=true; }); sec.style.display=any?'':'none'; if(q&&any) sec.classList.add('open'); }); };
+$('#resetAll').onclick=()=>{ Object.keys(vals).forEach(id=>vals[id]=META[id].def); document.querySelectorAll('input[data-slider]').forEach(inp=>{ const id=inp.dataset.slider; inp.value=vals[id]; const o=document.querySelector(`[data-v="${id}"]`); if(o)o.textContent=round(vals[id],2); }); toast('reset'); };
+$('#export').onclick=()=>{
+  const ps=Object.keys(vals).filter(id=>Math.abs(vals[id]-META[id].def)>1e-4).map(id=>({Id:id,Value:round(vals[id],4),Blend:'Overwrite'}));
+  if(!ps.length) return toast('nothing changed from default yet',true);
+  const exp={Type:'Live2D Expression',FadeInTime:0.5,FadeOutTime:0.5,Parameters:ps};
+  const name=($('#fname').value||'MyLook').replace(/[^\w\- ]/g,'').trim()||'MyLook';
+  const blob=new Blob([JSON.stringify(exp,null,4)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name+'.exp3.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast('exported '+name+'.exp3.json');
+};
+</script>
+</body>
+</html>
