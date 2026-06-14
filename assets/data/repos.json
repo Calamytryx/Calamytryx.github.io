@@ -1,1 +1,119 @@
-[]
+[
+  {
+    "name": "Calamytryx.github.io",
+    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
+    "description": null,
+    "language": "HTML",
+    "stargazers_count": 0,
+    "updated_at": "2026-06-13T20:16:38Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "MineLauncher",
+    "html_url": "https://github.com/Calamytryx/MineLauncher",
+    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
+    "language": "QML",
+    "stargazers_count": 26,
+    "updated_at": "2026-06-05T16:36:15Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
+    "html_url": "https://github.com/Calamytryx/Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
+    "description": "AI-Driven System for Efficient Scheduling and Performance Assessment of College Research Presentations in Lyceum of the Philippines University of Cavite Department of Computer Studies (LPU-C DCS)",
+    "language": "PHP",
+    "stargazers_count": 2,
+    "updated_at": "2026-05-22T02:48:28Z",
+    "default_branch": "feature/ga-cp-upgrade"
+  },
+  {
+    "name": "true-custom-clock",
+    "html_url": "https://github.com/Calamytryx/true-custom-clock",
+    "description": "A simple custom digital clock plasmoid for KDE Plasma 6, designed to support vertical panels, adaptive layouts, and flexible time/date formatting.  Inspired by minimal panel clocks but extended with full orientation-aware rendering and customizable layouts.",
+    "language": "QML",
+    "stargazers_count": 2,
+    "updated_at": "2026-05-13T09:58:27Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "MineClock",
+    "html_url": "https://github.com/Calamytryx/MineClock",
+    "description": "MC Clock is a lightweight KDE Plasma widget that maps the current time to one of 64 PNG frames (Minecraft clock style). Includes an optional digital time overlay and a small settings panel for padding and visibility.",
+    "language": "QML",
+    "stargazers_count": 3,
+    "updated_at": "2026-05-08T17:23:49Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "project-daw-kay-sir-sean",
+    "html_url": "https://github.com/Calamytryx/project-daw-kay-sir-sean",
+    "description": "napagutusan lang ako",
+    "language": "Jupyter Notebook",
+    "stargazers_count": 0,
+    "updated_at": "2025-05-23T17:49:22Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "MapaTuro",
+    "html_url": "https://github.com/Calamytryx/MapaTuro",
+    "description": "MapaTuro: An Interactive Website for Philippine Geography",
+    "language": "Hack",
+    "stargazers_count": 0,
+    "updated_at": "2025-05-08T11:58:14Z",
+    "default_branch": "final-version"
+  },
+  {
+    "name": "left-out-zombie-survival",
+    "html_url": "https://github.com/Calamytryx/left-out-zombie-survival",
+    "description": null,
+    "language": "Python",
+    "stargazers_count": 0,
+    "updated_at": "2025-04-01T07:17:53Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "activity-ni-sir-sean-sa-covid",
+    "html_url": "https://github.com/Calamytryx/activity-ni-sir-sean-sa-covid",
+    "description": null,
+    "language": "Jupyter Notebook",
+    "stargazers_count": 0,
+    "updated_at": "2025-03-07T13:10:53Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "activity-ni-sir-sean-sa-fraud-detection",
+    "html_url": "https://github.com/Calamytryx/activity-ni-sir-sean-sa-fraud-detection",
+    "description": null,
+    "language": "Jupyter Notebook",
+    "stargazers_count": 0,
+    "updated_at": "2025-03-01T03:33:26Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "phplogin",
+    "html_url": "https://github.com/Calamytryx/phplogin",
+    "description": null,
+    "language": "PHP",
+    "stargazers_count": 1,
+    "updated_at": "2024-06-28T12:36:45Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "vmatrix",
+    "html_url": "https://github.com/Calamytryx/vmatrix",
+    "description": "one-stop social matrix for your favorite vtubers",
+    "language": "Hack",
+    "stargazers_count": 0,
+    "updated_at": "2024-06-28T11:43:50Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "Calamytryx",
+    "html_url": "https://github.com/Calamytryx/Calamytryx",
+    "description": null,
+    "language": "Hack",
+    "stargazers_count": 0,
+    "updated_at": "2023-09-12T02:39:53Z",
+    "default_branch": "main"
+  }
+]
