@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>sound.mk — browser DAW (synth + drums, WAV export)</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+  html,body{height:100%}
+  body{overflow:hidden;display:flex;flex-direction:column}
+  .toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+  .toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+  .toolbar h1 .dot{color:var(--blood)}
+  .toolbar .tbsub{color:var(--dim);font-size:11px}
+  .toolbar select{margin-left:auto;background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:5px}
+  .toolbar a{color:var(--blood);text-decoration:none;font-size:12px;margin-left:14px}
+  .app{display:grid;grid-template-columns:300px 1fr;flex:1 1 auto;min-height:0}
+  .panel{background:var(--panel);border-right:2px solid var(--line);padding:16px;overflow-y:auto;min-height:0}
+  .stage{padding:16px;overflow:auto;min-height:0;background:#070708}
+  .sec{border-top:1px solid var(--line);padding:12px 0}.sec:first-child{border-top:0}
+  .t{color:var(--blood);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:9px}
+  .sec>.t{cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+  .sec>.t::after{content:'▾';color:var(--blood);font-size:11px;transition:transform .15s}
+  .sec.collapsed>.t{margin-bottom:0}
+  .sec.collapsed>.t::after{transform:rotate(-90deg)}
+  .sec.collapsed>*:not(.t){display:none!important}
+  .row{display:flex;gap:8px;align-items:center}.row>*{min-width:0}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+  .field label{color:var(--dim);font-size:11px}
+  .rl{display:flex;justify-content:space-between;color:var(--dim);font-size:11px}.rl b{color:var(--txt);font-weight:400}
+  input[type=range]{width:100%}
+  select,input[type=number],input[type=text]{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:6px}
+  .btn{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:8px 10px;cursor:pointer}
+  .btn:hover{border-color:var(--blood);color:#fff}
+  .big{width:100%;background:var(--blood);color:#000;border:0;font-family:var(--mono);font-weight:700;font-size:13px;padding:11px;cursor:pointer}
+  .big:hover{background:#f23a3a}.big:disabled{opacity:.5;cursor:wait}
+  .play{font-size:15px;padding:9px 16px}
+  .status{color:var(--dim);font-size:11px;min-height:14px;margin-top:6px}
+  /* tracks */
+  .track{border:2px solid var(--line);background:var(--panel);margin-bottom:10px}
+  .track.sel{border-color:var(--blood)}
+  .thead{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .thead .nm{font-family:var(--mono);font-size:12px;color:#fff;flex:0 0 120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .thead select,.thead input[type=range]{font-size:11px;padding:3px}
+  .thead .mini{flex:0 0 70px}
+  .thead button{background:var(--panel);border:1px solid var(--line);color:var(--txt);font:inherit;font-size:11px;padding:3px 7px;cursor:pointer}
+  .thead button.on{background:var(--blood);color:#000;border-color:var(--blood)}
+  .thead .rm{margin-left:auto}
+  .grid{display:flex;gap:3px;padding:8px 10px;flex-wrap:nowrap;overflow-x:auto}
+  .cell{flex:0 0 auto;width:26px;height:30px;background:#101015;border:1px solid #23232b;cursor:pointer;position:relative;border-radius:2px}
+  .cell.beat{border-color:#33333d}
+  .cell.on{background:var(--blood);border-color:#f23a3a}
+  .cell.play{outline:2px solid #fff}
+  .cell .lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-family:var(--mono)}
+  /* retro theme overlay */
+  body.crt .stage{background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+  body.amber{--blood:#ffae00}body.green{--blood:#37ff7a}
+  @media(max-width:900px){.app{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-page="projects">
+
+<header class="toolbar">
+  <h1>sound<span class="dot">.</span>mk</h1>
+  <span class="tbsub">browser DAW — synth + drum tracks, step sequencer, export WAV</span>
+  <select id="theme"><option value="">red</option><option value="amber">amber</option><option value="green">green</option><option value="crt">+ CRT</option></select>
+  <a href="index.html">← projects</a>
+</header>
+
+<div class="app">
+  <div class="panel">
+    <div class="sec">
+      <div class="t">// transport</div>
+      <div class="row">
+        <button class="btn play" id="play">▶ play</button>
+        <button class="btn play" id="stop">■ stop</button>
+      </div>
+      <div class="field" style="margin-top:9px"><div class="rl">tempo <b id="bpmV">120 bpm</b></div><input type="range" id="bpm" min="60" max="200" value="120"></div>
+      <div class="row">
+        <div class="field" style="flex:1"><label>steps</label><select id="steps"><option>8</option><option selected>16</option><option>32</option></select></div>
+        <div class="field" style="flex:1"><div class="rl">swing <b id="swingV">0%</b></div><input type="range" id="swing" min="0" max="60" value="0"></div>
+      </div>
+      <div class="field"><div class="rl">master <b id="masterV">80%</b></div><input type="range" id="master" min="0" max="100" value="80"></div>
+    </div>
+
+    <div class="sec">
+      <div class="t">// add track</div>
+      <div class="row">
+        <button class="btn" id="addSynth" style="flex:1">+ synth</button>
+        <button class="btn" id="addDrum" style="flex:1">+ drum</button>
+      </div>
+      <div class="status">drums: kick / snare / hat / clap / tom · synth: pick a waveform, click steps, scroll a step to change its note.</div>
+    </div>
+
+    <div class="sec">
+      <div class="t">// project</div>
+      <div class="row"><button class="btn" id="save" style="flex:1">save .json</button><button class="btn" id="load" style="flex:1">load</button></div>
+      <input type="file" id="loadFile" accept="application/json" style="display:none">
+    </div>
+
+    <div class="sec">
+      <div class="t">// export</div>
+      <div class="field"><label>loops to render</label><input type="number" id="loops" min="1" max="32" value="2"></div>
+      <button class="big" id="exportBtn">⬇ export WAV</button>
+      <div class="status" id="status"></div>
+      <div class="status">tip: export one bar with a single hit to make an alert/chat sound for stream.mk.</div>
+    </div>
+  </div>
+
+  <div class="stage" id="tracks"></div>
+</div>
+
+<script>
+'use strict';
+const $ = sel => document.querySelector(sel);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midiToFreq(m){ return 440*Math.pow(2,(m-69)/12); }
+function noteName(m){ return NOTE_NAMES[((m%12)+12)%12]+(Math.floor(m/12)-1); }
+
+/* ---------------- state ---------------- */
+var STEPS=16, BPM=120, SWING=0, MASTER=0.8, selId=null, uid=1;
+var tracks=[];
+function mkSteps(n){ var a=[]; for(var i=0;i<n;i++)a.push({on:false,semi:0}); return a; }
+function addTrack(type,opts){
+  opts=opts||{};
+  var tr={ id:uid++, type:type, name:opts.name||(type==='drum'?(opts.drum||'kick'):'synth'),
+    wave:opts.wave||'sawtooth', drum:opts.drum||'kick', root:opts.root!=null?opts.root:(type==='drum'?0:48),
+    vol:opts.vol!=null?opts.vol:0.8, mute:false, steps:mkSteps(STEPS) };
+  if(opts.steps) for(var i=0;i<STEPS&&i<opts.steps.length;i++) tr.steps[i]=Object.assign({on:false,semi:0},opts.steps[i]);
+  tracks.push(tr); renderTracks(); return tr;
+}
+
+/* ---------------- audio engine ---------------- */
+var AC=null, master=null, noiseBuf=null, playing=false, curStep=0, nextTime=0, schTimer=null;
+function ensureAC(){ if(AC) return AC; AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=MASTER; master.connect(AC.destination);
+  var n=AC.sampleRate*1; noiseBuf=AC.createBuffer(1,n,AC.sampleRate); var d=noiseBuf.getChannelData(0); for(var i=0;i<n;i++)d[i]=Math.random()*2-1; return AC; }
+function noiseSrc(ctx){ var s=ctx.createBufferSource(); s.buffer=noiseBuf; return s; }
+
+function voiceSynth(ctx,dest,tr,when,dur){
+  var o=ctx.createOscillator(); o.type=tr.wave; var f=midiToFreq(tr.root);
+  var g=ctx.createGain(), v=tr.vol;
+  g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(v,when+0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  o.connect(g); g.connect(dest); o.start(when); o.stop(when+dur+0.03);
+  return o;
+}
+function voiceNote(ctx,dest,tr,when,dur,semi){
+  var o=ctx.createOscillator(); o.type=tr.wave; o.frequency.value=midiToFreq(tr.root+ (semi||0));
+  var g=ctx.createGain(), v=tr.vol;
+  g.gain.setValueAtTime(0.0001,when); g.gain.linearRampToValueAtTime(v,when+0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  o.connect(g); g.connect(dest); o.start(when); o.stop(when+dur+0.03);
+}
+function drum(ctx,dest,kind,when,vol){
+  var g=ctx.createGain(); g.connect(dest); g.gain.value=1;
+  if(kind==='kick'){ var o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(150,when); o.frequency.exponentialRampToValueAtTime(48,when+0.12);
+    var ge=ctx.createGain(); ge.gain.setValueAtTime(vol,when); ge.gain.exponentialRampToValueAtTime(0.001,when+0.32); o.connect(ge); ge.connect(g); o.start(when); o.stop(when+0.34); }
+  else if(kind==='snare'){ var ns=noiseSrc(ctx); var bp=ctx.createBiquadFilter(); bp.type='highpass'; bp.frequency.value=1200; var ge=ctx.createGain(); ge.gain.setValueAtTime(vol*0.9,when); ge.gain.exponentialRampToValueAtTime(0.001,when+0.18); ns.connect(bp); bp.connect(ge); ge.connect(g); ns.start(when); ns.stop(when+0.2);
+    var o=ctx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(190,when); var go=ctx.createGain(); go.gain.setValueAtTime(vol*0.5,when); go.gain.exponentialRampToValueAtTime(0.001,when+0.12); o.connect(go); go.connect(g); o.start(when); o.stop(when+0.13); }
+  else if(kind==='hat'){ var ns=noiseSrc(ctx); var hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=8000; var ge=ctx.createGain(); ge.gain.setValueAtTime(vol*0.6,when); ge.gain.exponentialRampToValueAtTime(0.001,when+0.05); ns.connect(hp); hp.connect(ge); ge.connect(g); ns.start(when); ns.stop(when+0.06); }
+  else if(kind==='clap'){ for(var k=0;k<3;k++){ (function(k){ var ns=noiseSrc(ctx); var bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1500; var ge=ctx.createGain(); var t=when+k*0.012; ge.gain.setValueAtTime(vol*0.7,t); ge.gain.exponentialRampToValueAtTime(0.001,t+0.07); ns.connect(bp); bp.connect(ge); ge.connect(g); ns.start(t); ns.stop(t+0.08); })(k); } }
+  else if(kind==='tom'){ var o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(160,when); o.frequency.exponentialRampToValueAtTime(70,when+0.18); var ge=ctx.createGain(); ge.gain.setValueAtTime(vol,when); ge.gain.exponentialRampToValueAtTime(0.001,when+0.25); o.connect(ge); ge.connect(g); o.start(when); o.stop(when+0.27); }
+}
+function stepSeconds(){ return (60/BPM)/4; }
+function playStep(ctx,dest,i,when){
+  for(var t=0;t<tracks.length;t++){ var tr=tracks[t]; if(tr.mute)continue; var s=tr.steps[i]; if(!s||!s.on)continue;
+    if(tr.type==='drum') drum(ctx,dest,tr.drum,when,tr.vol);
+    else voiceNote(ctx,dest,tr,when,stepSeconds()*0.9,s.semi);
+  }
+}
+function scheduler(){
+  while(nextTime < AC.currentTime + 0.12){
+    var sw=(curStep%2===1)?(SWING/100)*stepSeconds()*0.6:0;
+    playStep(AC,master,curStep,nextTime+sw);
+    var sIdx=curStep; var tDelay=(nextTime+sw-AC.currentTime)*1000;
+    setTimeout(function(idx){return function(){ highlight(idx); };}(sIdx),Math.max(0,tDelay));
+    nextTime+=stepSeconds(); curStep=(curStep+1)%STEPS;
+  }
+  schTimer=setTimeout(scheduler,25);
+}
+function start(){ ensureAC(); if(AC.state==='suspended')AC.resume(); if(playing)return; playing=true; curStep=0; nextTime=AC.currentTime+0.05; $('#play').classList.add('on'); scheduler(); }
+function stop(){ playing=false; clearTimeout(schTimer); $('#play').classList.remove('on'); highlight(-1); }
+function highlight(i){ var cells=document.querySelectorAll('.cell'); for(var c=0;c<cells.length;c++){ var ci=+cells[c].dataset.i; cells[c].classList.toggle('play', ci===i); } }
+
+/* ---------------- WAV export (offline render) ---------------- */
+function exportWAV(){
+  var loops=clamp(+$('#loops').value||2,1,32); var sr=44100;
+  var loopSec=STEPS*stepSeconds(); var total=loopSec*loops+0.4;
+  var off=new OfflineAudioContext(2, Math.ceil(sr*total), sr);
+  var om=off.createGain(); om.gain.value=MASTER; om.connect(off.destination);
+  // local noise buffer for the offline ctx
+  var n=sr*1, nb=off.createBuffer(1,n,sr); var nd=nb.getChannelData(0); for(var i=0;i<n;i++)nd[i]=Math.random()*2-1;
+  var savedNoise=noiseBuf, savedAC=AC; noiseBuf=nb;   /* drum()/noiseSrc use noiseBuf */
+  for(var L=0;L<loops;L++){ for(var s=0;s<STEPS;s++){ var when=L*loopSec + s*stepSeconds() + ((s%2===1)?(SWING/100)*stepSeconds()*0.6:0) + 0.02; playStep(off,om,s,when); } }
+  noiseBuf=savedNoise; AC=savedAC;
+  $('#exportBtn').disabled=true; status('rendering…');
+  off.startRendering().then(function(buf){ var blob=encodeWAV(buf); dl(blob,'soundmk.wav'); status('saved soundmk.wav ✓'); $('#exportBtn').disabled=false; })
+   .catch(function(e){ status('⚠ '+e.message); $('#exportBtn').disabled=false; });
+}
+function encodeWAV(buf){
+  var nch=buf.numberOfChannels, len=buf.length, sr=buf.sampleRate;
+  var ab=new ArrayBuffer(44+len*nch*2), v=new DataView(ab); var p=0;
+  function s(str){ for(var i=0;i<str.length;i++)v.setUint8(p++,str.charCodeAt(i)); }
+  function u32(n){ v.setUint32(p,n,true); p+=4; } function u16(n){ v.setUint16(p,n,true); p+=2; }
+  s('RIFF'); u32(36+len*nch*2); s('WAVE'); s('fmt '); u32(16); u16(1); u16(nch); u32(sr); u32(sr*nch*2); u16(nch*2); u16(16); s('data'); u32(len*nch*2);
+  var chans=[]; for(var c=0;c<nch;c++)chans.push(buf.getChannelData(c));
+  for(var i=0;i<len;i++){ for(var c=0;c<nch;c++){ var x=Math.max(-1,Math.min(1,chans[c][i])); v.setInt16(p, x<0?x*0x8000:x*0x7fff, true); p+=2; } }
+  return new Blob([ab],{type:'audio/wav'});
+}
+function dl(blob,name){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},4000); }
+function status(m){ $('#status').textContent=m||''; }
+
+/* ---------------- UI render ---------------- */
+function renderTracks(){
+  var host=$('#tracks'); host.innerHTML='';
+  if(!tracks.length){ host.innerHTML='<div class="status" style="padding:20px">no tracks yet — add a synth or drum on the left.</div>'; return; }
+  tracks.forEach(function(tr){
+    var el=document.createElement('div'); el.className='track'+(tr.id===selId?' sel':''); el.dataset.id=tr.id;
+    var head='<div class="thead"><span class="nm">'+tr.name+'</span>';
+    if(tr.type==='synth'){
+      head+='<select class="wsel">'+['sine','square','sawtooth','triangle'].map(function(w){return '<option'+(w===tr.wave?' selected':'')+'>'+w+'</option>';}).join('')+'</select>';
+      head+='<select class="rsel">'+rootOpts(tr.root)+'</select>';
+    } else {
+      head+='<select class="dsel">'+['kick','snare','hat','clap','tom'].map(function(d){return '<option'+(d===tr.drum?' selected':'')+'>'+d+'</option>';}).join('')+'</select>';
+    }
+    head+='<input type="range" class="mini vsel" min="0" max="100" value="'+Math.round(tr.vol*100)+'" title="volume">';
+    head+='<button class="msel'+(tr.mute?' on':'')+'">mute</button>';
+    head+='<button class="rm">✕</button></div>';
+    var grid='<div class="grid">';
+    tr.steps.forEach(function(s,i){ grid+='<div class="cell'+(i%4===0?' beat':'')+(s.on?' on':'')+'" data-i="'+i+'">'+(tr.type==='synth'&&s.on&&s.semi?'<span class="lab">'+(s.semi>0?'+':'')+s.semi+'</span>':'')+'</div>'; });
+    grid+='</div>';
+    el.innerHTML=head+grid; host.appendChild(el); wireTrack(el,tr);
+  });
+}
+function rootOpts(root){ var o=''; for(var m=36;m<=72;m++)o+='<option value="'+m+'"'+(m===root?' selected':'')+'>'+noteName(m)+'</option>'; return o; }
+function wireTrack(el,tr){
+  /* select on pointerdown by toggling classes only — never re-render here, or the
+     element under the pointer is destroyed before its click/change can fire (= "can't edit") */
+  el.addEventListener('pointerdown',function(){ if(selId===tr.id)return; selId=tr.id;
+    var host=el.parentNode; if(host)Array.prototype.forEach.call(host.children,function(t){ if(t.classList)t.classList.toggle('sel',t===el); }); });
+  var ws=el.querySelector('.wsel'); if(ws)ws.onchange=function(){ tr.wave=ws.value; };
+  var rs=el.querySelector('.rsel'); if(rs)rs.onchange=function(){ tr.root=+rs.value; };
+  var ds=el.querySelector('.dsel'); if(ds)ds.onchange=function(){ tr.drum=ds.value; tr.name=ds.value; renderTracks(); };
+  var vs=el.querySelector('.vsel'); if(vs)vs.oninput=function(){ tr.vol=+vs.value/100; };
+  var ms=el.querySelector('.msel'); if(ms)ms.onclick=function(){ tr.mute=!tr.mute; ms.classList.toggle('on',tr.mute); };
+  var rm=el.querySelector('.rm'); if(rm)rm.onclick=function(){ tracks=tracks.filter(function(x){return x!==tr;}); renderTracks(); };
+  el.querySelectorAll('.cell').forEach(function(cell){
+    var i=+cell.dataset.i;
+    cell.onclick=function(){ tr.steps[i].on=!tr.steps[i].on; if(!tr.steps[i].on)tr.steps[i].semi=0; renderTracks(); };
+    if(tr.type==='synth') cell.addEventListener('wheel',function(e){ e.preventDefault(); if(!tr.steps[i].on)return; tr.steps[i].semi=clamp(tr.steps[i].semi+(e.deltaY<0?1:-1),-12,12); renderTracks(); },{passive:false});
+  });
+}
+
+/* ---------------- controls ---------------- */
+$('#bpm').oninput=function(){ BPM=+this.value; $('#bpmV').textContent=BPM+' bpm'; };
+$('#swing').oninput=function(){ SWING=+this.value; $('#swingV').textContent=SWING+'%'; };
+$('#master').oninput=function(){ MASTER=+this.value/100; $('#masterV').textContent=this.value+'%'; if(master)master.gain.value=MASTER; };
+$('#steps').onchange=function(){ var n=+this.value; tracks.forEach(function(tr){ var old=tr.steps; tr.steps=mkSteps(n); for(var i=0;i<n&&i<old.length;i++)tr.steps[i]=old[i]; }); STEPS=n; if(playing){stop();start();} renderTracks(); };
+$('#play').onclick=start; $('#stop').onclick=stop;
+$('#addSynth').onclick=function(){ addTrack('synth',{name:'lead',wave:'square',root:60}); };
+$('#addDrum').onclick=function(){ addTrack('drum',{drum:'kick'}); };
+$('#exportBtn').onclick=exportWAV;
+$('#theme').onchange=function(){ document.body.className='thm '+this.value; document.body.setAttribute('data-page','projects'); };
+$('#save').onclick=function(){ dl(new Blob([JSON.stringify({BPM:BPM,STEPS:STEPS,SWING:SWING,MASTER:MASTER,tracks:tracks},null,0)],{type:'application/json'}),'soundmk_project.json'); };
+$('#load').onclick=function(){ $('#loadFile').click(); };
+$('#loadFile').onchange=function(){ var f=this.files[0]; if(!f)return; var rd=new FileReader(); rd.onload=function(){ try{ var d=JSON.parse(rd.result); BPM=d.BPM||120; STEPS=d.STEPS||16; SWING=d.SWING||0; MASTER=d.MASTER!=null?d.MASTER:0.8; tracks=(d.tracks||[]).map(function(t){t.id=uid++;return t;});
+   $('#bpm').value=BPM;$('#bpmV').textContent=BPM+' bpm';$('#steps').value=STEPS;$('#swing').value=SWING;$('#swingV').textContent=SWING+'%';$('#master').value=Math.round(MASTER*100);$('#masterV').textContent=Math.round(MASTER*100)+'%'; renderTracks(); }catch(e){ status('⚠ bad project file'); } }; rd.readAsText(f); };
+
+/* collapsible left-panel sections — click a header to fold it */
+document.querySelectorAll('.panel .sec > .t').forEach(function(t){ t.addEventListener('click',function(){ t.parentElement.classList.toggle('collapsed'); }); });
+
+/* ---------------- seed a starter beat ---------------- */
+(function(){
+  var k=addTrack('drum',{drum:'kick'}); [0,4,8,12].forEach(function(i){k.steps[i].on=true;});
+  var s=addTrack('drum',{drum:'snare'}); [4,12].forEach(function(i){s.steps[i].on=true;});
+  var h=addTrack('drum',{drum:'hat'}); for(var i=0;i<16;i+=2)h.steps[i].on=true;
+  var b=addTrack('synth',{name:'bass',wave:'sawtooth',root:36}); [0,3,6,8,11,14].forEach(function(i){b.steps[i].on=true;});
+})();
+</script>
+</body>
+</html>

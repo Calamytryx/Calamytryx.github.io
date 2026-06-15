@@ -1,13 +1,15 @@
 # live2d.mk — bring-your-own Live2D stage + look maker
 
-Two browser tools for **any** Cubism 3/4/5 Live2D model. They ship **only renderer
+One browser tool for **any** Cubism 3/4/5 Live2D model. It ships **only renderer
 code** — you load your own model folder; nothing is uploaded anywhere.
 
-- **stage.html** — viewer / VTuber stage. Load your model, stack any expressions
-  (face / outfit / avatar / tail — all of them, like VTube Studio), play motions,
-  track your face, and use it as an OBS Browser Source.
-- **maker.html** — reads your model's `.cdi3.json` customization parameters and
-  exports a `.exp3.json` look/expression save-state.
+- **stage.html** — viewer / VTuber stage **+ built-in look maker**. Load your model,
+  stack any expressions (face / outfit / avatar / tail — all of them, like VTube
+  Studio), play motions, track your face, and use it as an OBS Browser Source. When
+  the folder includes a `.cdi3.json`, a **look maker** panel appears: restyle the
+  model's customization parameters live and export a `.exp3.json` save-state.
+- **maker.html** — *deprecated*; the look maker is now built into stage.html, so this
+  page just redirects there.
 
 ## Face tracking
 

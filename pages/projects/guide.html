@@ -77,6 +77,7 @@
     <a href="#schedule">schedule.mk</a>
     <a href="#emote">emote.mk</a>
     <a href="#avatar">avatar.mk</a>
+    <a href="#sound">sound.mk</a>
   </nav>
 
   <!-- ================= CONTENT ================= -->
@@ -173,6 +174,18 @@
     </ul>
     <p>Export a single-frame <b>PNG</b>, an animated transparent <b>GIF</b>, or a <b>ZIP</b> package (PNGs at 112/128/320/512 + your custom size, the GIF, and a re-loadable <code>config.json</code>). Drop that <code>config.json</code> back onto the canvas to keep editing. <span class="muted">Humanoid parts now; furry parts later.</span></p>
     <a class="open" href="avatar_maker.html">open avatar.mk →</a>
+
+    <!-- ===================== SOUND ===================== -->
+    <h2 id="sound"><span class="mk">//</span> sound.mk — browser DAW (synth + drums)</h2>
+    <p>A self-contained Web Audio digital audio workstation — no install, runs in the browser:</p>
+    <ul>
+      <li><b>Transport</b> — play/stop/loop, tempo (BPM), swing, and 8/16/32 steps.</li>
+      <li><b>Tracks</b> — add <b>drum</b> tracks (kick / snare / hat / clap / tom, fully synthesized) and <b>synth</b> tracks (sine / square / saw / triangle). Click steps to toggle; on a synth step, <b>scroll</b> to shift its note up/down.</li>
+      <li><b>Mix</b> — per-track volume + mute, master volume.</li>
+      <li><b>Save / load</b> a project as JSON, and a built-in starter beat to tweak.</li>
+    </ul>
+    <p>Hit <b>Export WAV</b> to render the loop (1–32 loops) to a 16-bit WAV via an offline render. Tip: export a single hit / short loop and use it as an <b>alert or chat sound in stream.mk</b>. Retro <b>amber / green / CRT</b> themes in the top bar.</p>
+    <a class="open" href="sound_maker.html">open sound.mk →</a>
 
     <p class="muted mt_3" style="border-top:1px solid var(--line);padding-top:18px">// everything here is free, offline-capable, and yours. report weirdness on github.</p>
   </main>

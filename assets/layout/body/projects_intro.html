@@ -21,6 +21,20 @@
 .pi_h2::after{content:"";flex:1;height:2px;background:var(--line)}
 .pi_h2 .c{color:var(--blood)}
 .pi_sub{color:var(--dim);font-size:.9rem;margin-bottom:18px}
+/* purpose groups */
+.pi_group{margin-bottom:30px}
+.pi_h3{display:flex;align-items:center;gap:12px;font-family:var(--mono);color:var(--txt);font-size:.92rem;letter-spacing:2px;text-transform:uppercase;margin:0 0 4px}
+.pi_h3 .gi{color:var(--blood)}
+.pi_h3 .gl{color:#fff}
+.pi_h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.pi_gsub{color:var(--dim);font-size:.78rem;margin:0 0 14px}
+/* AAA-style scroll reveal — content eases up into place instead of just popping in */
+html{scroll-behavior:smooth}
+.gallery{scroll-behavior:smooth}
+@media (prefers-reduced-motion:no-preference){
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1);will-change:opacity,transform}
+  .reveal.in{opacity:1;transform:none}
+}
 .gallery_wrap{position:relative}
 .gallery{display:flex;gap:24px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 2px 18px;scrollbar-width:thin;scrollbar-color:var(--blood) var(--panel)}
 .gallery::-webkit-scrollbar{height:8px}.gallery::-webkit-scrollbar-thumb{background:var(--ash)}.gallery::-webkit-scrollbar-thumb:hover{background:var(--blood)}
@@ -142,110 +156,158 @@ html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;dis
 <section class="section" id="featured">
   <div class="wrap pi_wrap">
     <h2 class="pi_h2"><span class="c">//</span> web tools</h2>
-    <p class="pi_sub">swipe ← → · hover a card to slideshow its example outputs</p>
-    <div class="gallery_wrap">
-      <button class="gnav prev" type="button" aria-label="previous">◀</button>
-      <div class="gallery" id="gallery">
+    <p class="pi_sub">grouped by what you're making · swipe ← → · hover a card to slideshow its example outputs</p>
 
-        <article class="gcard">
-          <div class="gc_screen">
-            <div class="slide on"><div class="mk_chat"><div class="m"><span class="u" style="color:#25f4ee">kawaii_uwu</span>hii from tiktok!</div><div class="m"><span class="u" style="color:#9146ff">DarkLord</span>poggers stream</div><div class="m"><span class="u" style="color:#ff0000">Gamer</span>first!!</div></div></div>
-            <div class="slide"><div class="mk_scene"><div class="win game"></div><div class="win cam"></div><div class="win ch"></div></div></div>
-            <div class="slide"><div class="mk_alert"><div class="b"><span>twitch · follow</span><span>– □ ×</span></div><div class="cc"><div class="t">xX_DarkLord</div><div class="s">welcome to the chaos</div></div></div></div>
-            <div class="slide"><div class="mk_timer">20:57:14</div></div>
-            <div class="slide"><div class="mk_bar"><span class="start">▣ start</span><span class="it">follow @calamytryx</span><span class="ck">8:57</span></div></div>
-            <div class="slide"><div class="mk_sting"><span data-text="CMYTRYX">CMYTRYX</span></div></div>
-            <div class="gc_tag"><b>//</b> <span class="cap">chat</span></div>
-            <div class="gc_dots"></div>
-          </div>
-          <div class="gc_body">
-            <h3>stream<span class="dot">.</span>mk</h3>
-            <p class="gd">Self-contained OBS browser-source overlays — themed, downloaded, done.</p>
-            <ul class="gc_feats"><li>chat merger</li><li>scenes</li><li>timer</li><li>alerts</li><li>banner</li><li>stinger .webm</li></ul>
-            <a class="gc_open" href="/pages/projects/obs_widgets.html">open stream.mk →</a>
-          </div>
-        </article>
+    <!-- ───── group: your look ───── -->
+    <div class="pi_group">
+      <h3 class="pi_h3"><span class="gi">✦</span> <span class="gl">your look</span></h3>
+      <p class="pi_gsub">become the character — build & drive your avatar.</p>
+      <div class="gallery_wrap">
+        <button class="gnav prev" type="button" aria-label="previous">◀</button>
+        <div class="gallery">
 
-        <article class="gcard">
-          <div class="gc_screen">
-            <div class="slide on"><div class="mk_boot"><div><span class="ok">[OK]</span> Mounted /system</div><div><span class="ok">[OK]</span> Started Zygote</div><div><span class="warn">[WARN]</span> battery 87%</div><div><span class="fail">[FAILED]</span> it is so over<span class="cur">█</span></div></div></div>
-            <div class="slide"><div class="mk_video"></div></div>
-            <div class="gc_tag"><b>//</b> <span class="cap">boot log</span></div>
-            <div class="gc_dots"></div>
-          </div>
-          <div class="gc_body">
-            <h3>bootanim<span class="dot">.</span>mk</h3>
-            <p class="gd">Android <b>bootanimation.zip</b> maker — fake boot logs or video loops.</p>
-            <ul class="gc_feats"><li>text mode</li><li>video mode</li><li>tag colors</li><li>exports zip</li></ul>
-            <a class="gc_open" href="/pages/projects/boot_animation_maker.html">open bootanim.mk →</a>
-          </div>
-        </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_emote"><span class="e s1">🧑‍🎤</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">👹</span><span class="e s2">🐱</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">😼</span></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">avatar</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>avatar<span class="dot">.</span>mk</h3>
+              <p class="gd">Pixel-art vtuber chibi builder — mix parts, recolor, animate, export PNG/GIF.</p>
+              <ul class="gc_feats"><li>picrew-style</li><li>pixel parts</li><li>animated</li><li>png/gif/zip</li></ul>
+              <a class="gc_open" href="/pages/projects/avatar_maker.html">open avatar.mk →</a>
+            </div>
+          </article>
 
-        <article class="gcard">
-          <div class="gc_screen">
-            <div class="slide on"><div class="mk_sched"><div class="t">// WEEKLY SCHEDULE</div><div class="r"><b>MON</b><span>8 PM</span><span>variety</span></div><div class="r"><b>WED</b><span>8 PM</span><span>games</span></div><div class="r"><b>FRI</b><span>8 PM</span><span>chaos</span></div></div></div>
-            <div class="slide"><div class="mk_fmt"><i class="sq"></i><i class="wd"></i><i class="sty"></i></div></div>
-            <div class="gc_tag"><b>//</b> <span class="cap">weekly</span></div>
-            <div class="gc_dots"></div>
-          </div>
-          <div class="gc_body">
-            <h3>schedule<span class="dot">.</span>mk</h3>
-            <p class="gd">Weekly stream schedule → one shareable PNG, any aspect.</p>
-            <ul class="gc_feats"><li>7 days</li><li>themes</li><li>fonts</li><li>square/wide/story</li></ul>
-            <a class="gc_open" href="/pages/projects/schedule_maker.html">open schedule.mk →</a>
-          </div>
-        </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_emote"><span class="e s1">🧍</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">🎭</span><span class="e s2">😮</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">📷</span></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">live2d</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>live2d<span class="dot">.</span>mk</h3>
+              <p class="gd">Bring-your-own Live2D stage + look maker in one — load any model, stack expressions, build/save expressions, webcam/OpenSeeFace tracking, OBS-ready.</p>
+              <ul class="gc_feats"><li>any model</li><li>face tracking</li><li>stack expressions</li><li>built-in look maker</li></ul>
+              <a class="gc_open" href="/pages/projects/live2d/stage.html">open live2d.mk →</a>
+            </div>
+          </article>
 
-        <article class="gcard">
-          <div class="gc_screen">
-            <div class="slide on"><div class="mk_emote"><span class="e s1">😎</span></div></div>
-            <div class="slide"><div class="mk_key"><span class="chk">😼</span>→<span class="e">😼</span></div></div>
-            <div class="slide"><div class="mk_emote"><span class="e s1">🔥</span><span class="e s2">🔥</span><span class="e s3">🔥</span></div></div>
-            <div class="gc_tag"><b>//</b> <span class="cap">sticker</span></div>
-            <div class="gc_dots"></div>
-          </div>
-          <div class="gc_body">
-            <h3>emote<span class="dot">.</span>mk</h3>
-            <p class="gd">Emote · sticker · badge maker — key bg, outline, export every size.</p>
-            <ul class="gc_feats"><li>bg key</li><li>outline</li><li>pixelate</li><li>all sizes</li></ul>
-            <a class="gc_open" href="/pages/projects/emote_maker.html">open emote.mk →</a>
-          </div>
-        </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_emote"><span class="e s1">😎</span></div></div>
+              <div class="slide"><div class="mk_key"><span class="chk">😼</span>→<span class="e">😼</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">🔥</span><span class="e s2">🔥</span><span class="e s3">🔥</span></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">sticker</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>emote<span class="dot">.</span>mk</h3>
+              <p class="gd">Emote · sticker · badge maker — key bg, outline, export every size.</p>
+              <ul class="gc_feats"><li>bg key</li><li>outline</li><li>pixelate</li><li>all sizes</li></ul>
+              <a class="gc_open" href="/pages/projects/emote_maker.html">open emote.mk →</a>
+            </div>
+          </article>
 
-        <article class="gcard">
-          <div class="gc_screen">
-            <div class="slide on"><div class="mk_emote"><span class="e s1">🧑‍🎤</span></div></div>
-            <div class="slide"><div class="mk_emote"><span class="e s1">👹</span><span class="e s2">🐱</span></div></div>
-            <div class="slide"><div class="mk_emote"><span class="e s1">😼</span></div></div>
-            <div class="gc_tag"><b>//</b> <span class="cap">avatar</span></div>
-            <div class="gc_dots"></div>
-          </div>
-          <div class="gc_body">
-            <h3>avatar<span class="dot">.</span>mk</h3>
-            <p class="gd">Pixel-art vtuber chibi builder — mix parts, recolor, animate, export PNG/GIF.</p>
-            <ul class="gc_feats"><li>picrew-style</li><li>pixel parts</li><li>animated</li><li>png/gif/zip</li></ul>
-            <a class="gc_open" href="/pages/projects/avatar_maker.html">open avatar.mk →</a>
-          </div>
-        </article>
-
-        <article class="gcard">
-          <div class="gc_screen">
-            <div class="slide on"><div class="mk_emote"><span class="e s1">🧍</span></div></div>
-            <div class="slide"><div class="mk_emote"><span class="e s1">🎭</span><span class="e s2">😮</span></div></div>
-            <div class="slide"><div class="mk_emote"><span class="e s1">📷</span></div></div>
-            <div class="gc_tag"><b>//</b> <span class="cap">live2d</span></div>
-            <div class="gc_dots"></div>
-          </div>
-          <div class="gc_body">
-            <h3>live2d<span class="dot">.</span>mk</h3>
-            <p class="gd">Bring-your-own Live2D stage — load any model, stack expressions, webcam/OpenSeeFace face tracking, OBS-ready.</p>
-            <ul class="gc_feats"><li>any model</li><li>face tracking</li><li>stack expressions</li><li>look maker</li></ul>
-            <a class="gc_open" href="/pages/projects/live2d/stage.html">open live2d.mk →</a>
-          </div>
-        </article>
-
+        </div>
+        <button class="gnav next" type="button" aria-label="next">▶</button>
       </div>
-      <button class="gnav next" type="button" aria-label="next">▶</button>
+    </div>
+
+    <!-- ───── group: go live ───── -->
+    <div class="pi_group">
+      <h3 class="pi_h3"><span class="gi">▶</span> <span class="gl">go live</span></h3>
+      <p class="pi_gsub">everything for the stream itself — overlays, sound, schedule.</p>
+      <div class="gallery_wrap">
+        <button class="gnav prev" type="button" aria-label="previous">◀</button>
+        <div class="gallery">
+
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_chat"><div class="m"><span class="u" style="color:#25f4ee">kawaii_uwu</span>hii from tiktok!</div><div class="m"><span class="u" style="color:#9146ff">DarkLord</span>poggers stream</div><div class="m"><span class="u" style="color:#ff0000">Gamer</span>first!!</div></div></div>
+              <div class="slide"><div class="mk_scene"><div class="win game"></div><div class="win cam"></div><div class="win ch"></div></div></div>
+              <div class="slide"><div class="mk_alert"><div class="b"><span>twitch · follow</span><span>– □ ×</span></div><div class="cc"><div class="t">xX_DarkLord</div><div class="s">welcome to the chaos</div></div></div></div>
+              <div class="slide"><div class="mk_timer">20:57:14</div></div>
+              <div class="slide"><div class="mk_bar"><span class="start">▣ start</span><span class="it">follow @calamytryx</span><span class="ck">8:57</span></div></div>
+              <div class="slide"><div class="mk_sting"><span data-text="CMYTRYX">CMYTRYX</span></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">chat</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>stream<span class="dot">.</span>mk</h3>
+              <p class="gd">Self-contained OBS browser-source overlays — themed, downloaded, done.</p>
+              <ul class="gc_feats"><li>chat merger</li><li>scenes</li><li>timer</li><li>alerts</li><li>banner</li><li>stinger .webm</li></ul>
+              <a class="gc_open" href="/pages/projects/obs_widgets.html">open stream.mk →</a>
+            </div>
+          </article>
+
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_emote"><span class="e s1">🎛️</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">🥁</span><span class="e s2">🎹</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">🔊</span></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">daw</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>sound<span class="dot">.</span>mk</h3>
+              <p class="gd">Browser DAW — synth + drum step-sequencer, tempo/swing, multi-track, export WAV (great for alert/chat sounds).</p>
+              <ul class="gc_feats"><li>synth + drums</li><li>step grid</li><li>WAV export</li><li>no install</li></ul>
+              <a class="gc_open" href="/pages/projects/sound_maker.html">open sound.mk →</a>
+            </div>
+          </article>
+
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_sched"><div class="t">// WEEKLY SCHEDULE</div><div class="r"><b>MON</b><span>8 PM</span><span>variety</span></div><div class="r"><b>WED</b><span>8 PM</span><span>games</span></div><div class="r"><b>FRI</b><span>8 PM</span><span>chaos</span></div></div></div>
+              <div class="slide"><div class="mk_fmt"><i class="sq"></i><i class="wd"></i><i class="sty"></i></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">weekly</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>schedule<span class="dot">.</span>mk</h3>
+              <p class="gd">Weekly stream schedule → one shareable PNG, any aspect.</p>
+              <ul class="gc_feats"><li>7 days</li><li>themes</li><li>fonts</li><li>square/wide/story</li></ul>
+              <a class="gc_open" href="/pages/projects/schedule_maker.html">open schedule.mk →</a>
+            </div>
+          </article>
+
+        </div>
+        <button class="gnav next" type="button" aria-label="next">▶</button>
+      </div>
+    </div>
+
+    <!-- ───── group: extras ───── -->
+    <div class="pi_group">
+      <h3 class="pi_h3"><span class="gi">+</span> <span class="gl">extras</span></h3>
+      <p class="pi_gsub">odd one out — just for fun.</p>
+      <div class="gallery_wrap">
+        <button class="gnav prev" type="button" aria-label="previous">◀</button>
+        <div class="gallery">
+
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_boot"><div><span class="ok">[OK]</span> Mounted /system</div><div><span class="ok">[OK]</span> Started Zygote</div><div><span class="warn">[WARN]</span> battery 87%</div><div><span class="fail">[FAILED]</span> it is so over<span class="cur">█</span></div></div></div>
+              <div class="slide"><div class="mk_video"></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">boot log</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>bootanim<span class="dot">.</span>mk</h3>
+              <p class="gd">Android <b>bootanimation.zip</b> maker — fake boot logs or video loops.</p>
+              <ul class="gc_feats"><li>text mode</li><li>video mode</li><li>tag colors</li><li>exports zip</li></ul>
+              <a class="gc_open" href="/pages/projects/boot_animation_maker.html">open bootanim.mk →</a>
+            </div>
+          </article>
+
+        </div>
+        <button class="gnav next" type="button" aria-label="next">▶</button>
+      </div>
     </div>
   </div>
 </section>

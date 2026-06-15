@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calamytryx — Fan Art</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/include.js" defer></script>
+  <script src="/assets/layout/render.js" defer></script>
+  <script src="/assets/layout/cursors.js" defer></script>
+  <script src="/assets/layout/fanart.js" defer></script>
+  <style>
+    .fa_page{max-width:1240px;margin:0 auto;padding:96px 28px 80px;width:100%}
+    .fa_page .eyebrow{color:var(--blood)}
+    .fa_page h1{font-family:var(--display);color:#fff;font-size:clamp(2.4rem,8vw,5rem);line-height:.95;letter-spacing:2px;margin:8px 0 14px}
+    .fa_page h1 .dot{color:var(--blood)}
+    .fa_page .lead{max-width:60ch;color:var(--txt)}
+    .fa_page .btn{display:inline-block;margin-top:16px}
+    /* gallery */
+    .fa_grid{columns:2;column-gap:12px;margin-top:26px}
+    @media(min-width:760px){.fa_grid{columns:3}}
+    @media(min-width:1140px){.fa_grid{columns:4}}
+    .fa_tile{break-inside:avoid;margin:0 0 12px;position:relative;border:2px solid var(--line);background:var(--panel);box-shadow:5px 5px 0 #000;cursor:zoom-in;overflow:hidden;transition:border-color .12s,transform .12s,box-shadow .12s}
+    .fa_tile:hover{border-color:var(--blood);transform:translate(-2px,-2px);box-shadow:7px 7px 0 #000}
+    .fa_tile img{display:block;width:100%;height:auto;background:#0c0c10}
+    .fa_credit{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 9px;background:linear-gradient(transparent,rgba(0,0,0,.82));color:#fff;font-family:var(--mono);font-size:.72rem;letter-spacing:.5px;opacity:0;transition:opacity .15s}
+    .fa_tile:hover .fa_credit{opacity:1}
+    .fa_credit b{color:var(--blood);font-weight:400}.fa_credit .n{color:var(--dim)}
+    .fa_status{color:var(--dim);font-family:var(--mono);font-size:.8rem;margin-top:16px}
+    .fa_status b{color:var(--blood)}
+    .fa_embedwrap{columns:auto}
+    .fa_embed{width:100%;height:78vh;border:2px solid var(--line);background:#0c0c10;display:block}
+    /* lightbox */
+    #fa_lb{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(5,5,7,.93);padding:32px}
+    #fa_lb.on{display:flex}
+    #fa_lb img{max-width:92vw;max-height:84vh;border:3px solid var(--blood);box-shadow:10px 10px 0 #000;background:#0c0c10}
+    #fa_lb .fa_cap{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#fff;font-family:var(--mono);font-size:.85rem}
+    #fa_lb .fa_cap b{color:var(--blood);font-weight:400}
+    #fa_lb .fa_x{position:absolute;top:18px;right:22px;width:42px;height:42px;background:var(--panel);border:2px solid var(--blood);color:var(--blood);font-size:18px;cursor:pointer}
+    #fa_lb .fa_nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;background:var(--panel);border:2px solid var(--blood);color:var(--blood);font-size:18px;cursor:pointer}
+    #fa_lb .fa_nav.p{left:18px}#fa_lb .fa_nav.n{right:18px}
+  </style>
+</head>
+<body data-page="fanart">
+
+  <div data-include="/assets/layout/header.html"></div>
+
+  <main>
+    <section class="section" id="fanart">
+      <div class="fa_page">
+        <p class="eyebrow">// the gallery</p>
+        <h1>CALAMYTY'S FAN<span class="dot">.</span>ARTS</h1>
+        <p class="lead">Art the community made — sketches, paintings, sculpts, the whole mess. Want yours here? Post it with <b style="color:var(--blood)">#CalArts</b> / <b style="color:var(--blood)">#Calats</b> or drop it in the Drive.</p>
+        <a class="btn" href="mailto:calamytymytryx@gmail.com?subject=Fanart%20Submission">＋ contribute</a>
+        <div id="fanart_gallery" class="fa_grid" aria-busy="true"></div>
+        <p id="fanart_status" class="fa_status">loading the gallery…</p>
+      </div>
+    </section>
+  </main>
+
+  <div data-include="/assets/layout/footer.html"></div>
+
+</body>
+</html>
