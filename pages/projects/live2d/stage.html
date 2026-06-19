@@ -85,7 +85,6 @@
   /* panel is gone -> the stage would auto-place into the empty 264px track and squish the
      model into a sliver. force a single full-width column so the model fills the view. */
   body.uihidden .app{grid-template-columns:1fr}
-  body.uihidden #show{display:block}
   @media(max-width:820px){.app{grid-template-columns:1fr}}
 </style>
 </head>
@@ -565,7 +564,8 @@ Array.prototype.forEach.call(document.querySelectorAll('.panel .grp > .t'),funct
 function setUI(v){ document.body.classList.toggle('uihidden',!v);
   /* the stage width changes when the panel collapses/returns; PIXI's resizeTo only reacts to
      window resizes, so resize the renderer ourselves so the model stays filling the view. */
-  requestAnimationFrame(()=>{ const st=$('.stage'); if(st&&app&&app.renderer)app.renderer.resize(st.clientWidth,st.clientHeight); }); }
+  requestAnimationFrame(()=>{ const st=$('.stage'); if(st&&app&&app.renderer)app.renderer.resize(st.clientWidth,st.clientHeight); });
+  if(!v){ toast('UI hidden — press H to show it again',true); clearTimeout(toast._t); toast._t=setTimeout(()=>toast(null),4000); } else toast(null); }
 $('#hide').onclick=()=>setUI(false); $('#show').onclick=()=>setUI(true);
 window.addEventListener('keydown',e=>{ if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return; if(e.key==='h'||e.key==='H') setUI(document.body.classList.contains('uihidden')); });
 
