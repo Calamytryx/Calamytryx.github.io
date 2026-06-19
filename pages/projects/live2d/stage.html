@@ -43,6 +43,10 @@
   #search,#lkName{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:6px;width:100%}
   .lkrow{display:flex;gap:6px;margin:6px 0}.lkrow #lkName{flex:1;min-width:0;width:auto}.lkrow .fbtn{width:auto;flex:0 0 auto;white-space:nowrap;padding:6px 8px}
   #ctrls{max-height:40vh;overflow-y:auto;margin-top:4px}
+  #ctrls .pgrp{top:0}
+  .rcrow{display:flex;gap:6px;margin:4px 0}
+  .rcrow .fbtn{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rcrow .rcx{flex:0 0 auto;width:auto;color:var(--blood)}
   .sec{border-top:1px solid var(--line)}
   .sec>.sh{cursor:pointer;color:var(--blood);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:7px 0;display:flex;justify-content:space-between}
   .sec>.sb{display:none;padding-bottom:4px}.sec.open>.sb{display:block}
@@ -114,14 +118,21 @@
           <input type="file" id="folder" webkitdirectory directory multiple style="display:none"></label>
         <div class="hint">Pick the folder that holds your <code>.model3.json</code> (+ textures, expressions, motions). If a <code>.vtube.json</code> is in there, its VTube&nbsp;Studio rig &amp; tracking-lost motion are imported automatically. Nothing is uploaded — it loads in your browser only.</div>
       </div>
+      <div class="grp">
+        <div class="t">recent models</div>
+        <div id="recent"></div>
+        <div class="hint">Loaded models are saved in <b>this browser</b> so you can reload them in one click — handy with many models. ✕ forgets one.</div>
+      </div>
       <div class="grp" id="makerGrp" style="display:none">
         <div class="t">look maker</div>
         <input id="search" placeholder="filter params… (e.g. eye, hair)">
         <div class="lkrow">
           <input type="text" id="lkName" value="MyLook">
-          <button class="fbtn" id="exportLook" title="export as .exp3.json">⬇ .exp3</button>
+          <button class="fbtn" id="saveExp" title="save as a usable expression now (no reload) — remembered for this model">＋ save</button>
+          <button class="fbtn" id="exportLook" title="export as .exp3.json file">⬇</button>
           <button class="fbtn" id="resetLook" title="reset all to default">↺</button>
         </div>
+        <div class="hint">＋ save = use it instantly in the <b>expr</b> tab &amp; remember it for this model · ⬇ = download the <code>.exp3.json</code> file</div>
         <div id="ctrls"></div>
         <div class="hint">Reads the model's <code>.cdi3.json</code> parameters — restyle, then export a <code>.exp3.json</code> you can drop back into this folder as a stackable expression.</div>
       </div>
@@ -258,6 +269,12 @@ const IDLE_AFTER_MS=2500;   /* camera on but no face this long -> fall back to i
 /* stacking expressions (VTS-style: any number active at once, blend-aware) */
 let EXP={},defaults={},activeExp=new Set(),touched=new Set(),expCur={};
 let expFade=0.18;   /* per-frame ease toward target -> expressions fade in/out instead of snapping like stickers */
+/* looks you SAVE become usable expressions immediately, and are remembered per-model so they
+   come back when you re-pick that model folder (the model's own files can't be stored). */
+let MODEL_KEY='',USER_EXP={}; try{ USER_EXP=JSON.parse(localStorage.getItem('live2dmk_userexp')||'{}')||{}; }catch(e){}
+function saveUserExp(){ try{ localStorage.setItem('live2dmk_userexp',JSON.stringify(USER_EXP)); }catch(e){} }
+function expDefaults(){ Object.values(EXP).forEach(list=>list.forEach(p=>{ if(!(p.id in defaults)){ try{defaults[p.id]=core.getParameterValueById(p.id);}catch(e){defaults[p.id]=0;} } })); }
+function injectUserExp(){ const u=USER_EXP[MODEL_KEY]; if(!u)return; Object.keys(u).forEach(n=>{ EXP[n]=u[n].map(p=>({id:p.id,value:p.value,blend:p.blend||'Overwrite'})); }); expDefaults(); }
 const wrapDeg=a=>{a=((a+180)%360+360)%360-180;return a;};
 let hbase=null,lastH={y:0,p:0,r:0},gbase=null,lastGaze={x:0,y:0};   /* gbase=null -> auto-calibrate gaze from the first tracked frame */
 /* VTS-style extras */
@@ -317,6 +334,32 @@ let MANUAL={}, PMETA={}, activeTab='model', pTimer=null, CDI=null;   // manual p
 const LS='live2dmk_v1';
 function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
 
+/* ---------------- recent models (persist the picked folder's files in IndexedDB) ----------------
+   Browsers can't reload a model by filesystem path, but they CAN store the picked files. So we
+   stash every loaded folder in IndexedDB (keyed by folder name) and list them for 1-click reload. */
+const IDB='live2dmk_models';
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(IDB,1); r.onupgradeneeded=()=>r.result.createObjectStore('m'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function idbReq(mode,fn){ return idb().then(db=>new Promise((res,rej)=>{ const tx=db.transaction('m',mode),rq=fn(tx.objectStore('m')); tx.oncomplete=()=>res(rq&&rq.result); tx.onerror=()=>rej(tx.error); })); }
+const idbPut=(k,v)=>idbReq('readwrite',st=>st.put(v,k)), idbGet=k=>idbReq('readonly',st=>st.get(k)), idbDel=k=>idbReq('readwrite',st=>st.delete(k));
+let RECENT=[]; try{ RECENT=JSON.parse(localStorage.getItem('live2dmk_recent')||'[]')||[]; }catch(e){}
+const saveRecent=()=>{ try{ localStorage.setItem('live2dmk_recent',JSON.stringify(RECENT)); }catch(e){} };
+async function rememberModel(files,already){ const key=MODEL_KEY||'model';
+  if(!already){ try{ await idbPut(key,{files:files.map(f=>({path:(f.webkitRelativePath||f.name),file:f}))}); }catch(e){ console.warn('couldn\'t save model',e); return; } }
+  RECENT=RECENT.filter(r=>r.key!==key); RECENT.unshift({key,name:key,ts:Date.now()});
+  while(RECENT.length>6){ const ev=RECENT.pop(); idbDel(ev.key).catch(()=>{}); }   /* keep the 6 most recent, drop oldest blobs */
+  saveRecent(); buildRecent(); }
+async function loadRecent(key){ toast('loading saved model…',true); let rec; try{ rec=await idbGet(key); }catch(e){}
+  if(!rec||!rec.files){ toast('⚠ saved copy missing — re-pick the folder once',true); RECENT=RECENT.filter(r=>r.key!==key); saveRecent(); buildRecent(); return; }
+  const files=rec.files.map(r=>{ const f=r.file; try{ Object.defineProperty(f,'webkitRelativePath',{value:r.path}); }catch(e){} return f; });
+  loadFiles(files,key); }
+function buildRecent(){ const host=$('#recent'); if(!host)return; host.innerHTML='';
+  if(!RECENT.length){ host.innerHTML='<span class="hint">none yet — load a folder once and it appears here</span>'; return; }
+  RECENT.forEach(r=>{ const row=document.createElement('div'); row.className='rcrow';
+    const b=document.createElement('button'); b.className='fbtn'; b.textContent='↺ '+r.name; b.title='reload this model'; b.onclick=()=>loadRecent(r.key);
+    const x=document.createElement('button'); x.className='fbtn rcx'; x.textContent='✕'; x.title='forget'; x.onclick=()=>{ RECENT=RECENT.filter(z=>z.key!==r.key); idbDel(r.key).catch(()=>{}); saveRecent(); buildRecent(); };
+    row.append(b,x); host.appendChild(row); }); }
+buildRecent();
+
 /* ---------------- load uploaded model ---------------- */
 $('#folder').onchange=e=>loadFiles([...e.target.files]);
 ['dragover','dragenter'].forEach(ev=>$('.stage').addEventListener(ev,e=>{e.preventDefault();$('#drop').classList.add('hot');}));
@@ -368,9 +411,11 @@ function stopMotion(){ try{ var mm=model&&model.internalModel&&model.internalMod
 function rigResume(){ for(var i=0;i<MAPS.length;i++) MAPS[i]._cur=null; }   // rig re-grabs the current tracking target instead of easing from a stale value
 function motionDone(){ try{ var mm=model.internalModel.motionManager; if(mm&&typeof mm.isFinished==='function') return mm.isFinished(); }catch(e){} return (performance.now()-motionStart)>10000; }
 
-async function loadFiles(files){
+async function loadFiles(files, fromKey){
   const settings=files.find(f=>f.name.endsWith('.model3.json'));
   if(!settings){ toast('⚠ no .model3.json found in that folder',true); return; }
+  const rel=settings.webkitRelativePath||settings.name||'';   /* folder name (unique-ish) identifies this model for saved expressions + recents */
+  MODEL_KEY=(rel.indexOf('/')>=0?rel.slice(0,rel.indexOf('/')):rel.replace(/\.model3\.json$/i,''))||'model';
   toast('loading model…',true);
   const orig=files; let injected=files;
   try{ injected=await injectMotions(files,settings); }catch(e){}
@@ -381,7 +426,7 @@ async function loadFiles(files){
     core=model.internalModel.coreModel;
     app.stage.addChild(model); model.anchor.set(0.5,0.5); fit();
     $('#drop').classList.add('hide');
-    await loadExpressionFiles(orig);
+    await loadExpressionFiles(orig); injectUserExp();   /* re-add expressions you saved for this model in past sessions */
     buildExpressions(); buildMotions(); wireHotkeys();
     let cdi=null; const cdiFile=files.find(f=>f.name.toLowerCase().endsWith('.cdi3.json'));
     if(cdiFile){ try{ cdi=JSON.parse(await cdiFile.text()); }catch(e){} }
@@ -399,6 +444,7 @@ async function loadFiles(files){
       if(lost) lostMot=lost;
       buildMotions(); saveState(); } }catch(e){ console.error(e); }
     setTab(activeTab);   /* refresh the active tab (rebuilds the parameter list + rig for this model) */
+    rememberModel(orig, !!fromKey);   /* save (or bump) this model in the recent list */
     toast(imported?('loaded ✓ · VTS rig imported ('+imported+' params)'):'loaded ✓');
   }catch(err){ console.error(err); toast('⚠ load failed: '+err.message,true); }
 }
@@ -442,6 +488,8 @@ function buildExpressions(){ const host=$('#exps'); host.innerHTML=''; const nam
   if(!names.length){ host.innerHTML='<span class="hint">no .exp3.json files in this folder</span>'; return; }
   names.forEach(n=>{ const b=document.createElement('button'); b.textContent=n; b.dataset.act='exp:'+n; b.classList.toggle('on',activeExp.has(n));
     b.onclick=()=>{ activeExp.has(n)?activeExp.delete(n):activeExp.add(n); b.classList.toggle('on',activeExp.has(n)); saveState(); };
+    if(USER_EXP[MODEL_KEY]&&USER_EXP[MODEL_KEY][n]){ b.style.borderStyle='dashed'; b.title='saved look · right-click to delete';   /* expressions you saved (not from the folder) */
+      b.oncontextmenu=e=>{ e.preventDefault(); delete EXP[n]; activeExp.delete(n); delete USER_EXP[MODEL_KEY][n]; saveUserExp(); buildExpressions(); saveState(); toast('deleted "'+n+'"'); }; }
     host.appendChild(b); });
 }
 function buildMotions(){ const host=$('#motions'); host.innerHTML=''; const s=settings();
@@ -462,35 +510,55 @@ function applyLook(){ if(!core)return; for(const id in LVALS){ const m=LMETA[id]
 function lkSlider(id,label){ const m=LMETA[id]; const step=(m.max-m.min)<=20?1:(m.max-m.min)/200;
   return '<div class="ctl"><div class="lab"><span>'+label+'</span><b data-v="'+id+'">'+lround(LVALS[id],2)+'</b></div>'
     +'<input type="range" data-slider="'+id+'" min="'+m.min+'" max="'+m.max+'" step="'+step+'" value="'+LVALS[id]+'"></div>'; }
+/* show the params RAW — same as the params tab: creator names, ParameterGroups headers and
+   divider entries (===BODY===) exactly as authored, every param listed; only difference is
+   each ranged param gets an editable slider that feeds the .exp3 export. */
 function buildLook(cdi){
   LMETA={}; LVALS={}; const grp=$('#makerGrp'), host=$('#ctrls');
-  const params=cdi&&cdi.Parameters?cdi.Parameters:null;
-  if(!params||!core){ grp.style.display='none'; return; }
-  const isHeader=nm=>/[+=]{2,}/.test(nm||''); const clean=nm=>((nm||'').replace(/[+=]/g,'').trim().replace(/_/g,' '))||'OTHER';
-  const secInfo={},order=[]; const ensure=s=>{ if(!secInfo[s]){secInfo[s]={items:[]};order.push(s);} return secInfo[s].items; };
-  let curSec='PARAMETERS';
-  params.forEach(p=>{ const nm=p.Name||p.Id; if(isHeader(nm)){ curSec=clean(nm); ensure(curSec); return; }
-    const idx=core.getParameterIndex(p.Id); const min=core.getParameterMinimumValue(idx),max=core.getParameterMaximumValue(idx),def=core.getParameterDefaultValue(idx);
-    if(min===max) return; LMETA[p.Id]={idx,min,max,def}; LVALS[p.Id]=def;
-    ensure(curSec).push({html:lkSlider(p.Id,nm),f:(nm+' '+p.Id+' '+curSec).toLowerCase()}); });
-  host.innerHTML=''; let shown=0;
-  order.forEach(sec=>{ const it=secInfo[sec].items; if(!it.length)return; const d=document.createElement('div'); d.className='sec'+(shown<1?' open':''); shown++;
-    d.innerHTML='<div class="sh">'+sec+' <span>'+it.length+'</span></div><div class="sb">'+it.map(x=>'<div class="wrap" data-f="'+x.f+'">'+x.html+'</div>').join('')+'</div>';
-    d.querySelector('.sh').onclick=()=>d.classList.toggle('open'); host.appendChild(d); });
+  const coreList=getAllParams(); if(!coreList.length||!core){ grp.style.display='none'; return; }
+  const meta={}; coreList.forEach(p=>meta[p.id]=p);
+  let list;
+  if(cdi && Array.isArray(cdi.Parameters) && cdi.Parameters.length){
+    const gnames={}; (cdi.ParameterGroups||[]).forEach(g=>gnames[g.Id]=g.Name||g.Id);
+    list=cdi.Parameters.map(p=>({ id:p.Id, name:p.Name||p.Id, group:gnames[p.GroupId]||p.GroupId||'' }));
+  } else { list=coreList.map(p=>({ id:p.id, name:p.id, group:'' })); }
+  host.innerHTML=''; let curGroup=null;
+  list.forEach(item=>{
+    if(item.group!==curGroup){ curGroup=item.group; if(curGroup){ const h=document.createElement('div'); h.className='pgrp'; h.textContent=curGroup; host.appendChild(h); } }
+    const m=meta[item.id]; const isDiv=/[=+_~\-]{2,}/.test(item.name||'');
+    const row=document.createElement('div'); row.className='prow'+(isDiv?' pdiv':''); row.dataset.f=(item.name+' '+item.id+' '+curGroup).toLowerCase();
+    if(isDiv||!m||m.min===m.max){ row.innerHTML='<div class="plab"><span>'+esc(item.name)+'</span>'+((m&&m.min===m.max&&!isDiv)?'<b class="pv" style="opacity:.4">'+(+m.min).toFixed(2)+'</b>':'')+'</div>'; host.appendChild(row); return; }
+    LMETA[item.id]={min:m.min,max:m.max,def:m.def}; LVALS[item.id]=m.def;
+    const step=(m.max-m.min)<=20?0.01:(m.max-m.min)/300;
+    row.innerHTML='<div class="plab"><span>'+esc(item.name)+'</span><b class="pv" data-v="'+item.id+'">'+lround(m.def,2)+'</b></div>'
+      +'<div class="prow2"><input type="range" class="ps" data-slider="'+item.id+'" min="'+m.min+'" max="'+m.max+'" step="'+step+'" value="'+m.def+'"></div>';
+    host.appendChild(row);
+  });
   if(!Object.keys(LMETA).length){ grp.style.display='none'; return; }
   grp.style.display='';
   host.querySelectorAll('input[data-slider]').forEach(inp=>{ inp.oninput=()=>{ const id=inp.dataset.slider; LVALS[id]=+inp.value; const o=host.querySelector('[data-v="'+id+'"]'); if(o)o.textContent=lround(LVALS[id],2); }; });
 }
-$('#search').oninput=e=>{ const q=e.target.value.toLowerCase().trim(); document.querySelectorAll('#ctrls .sec').forEach(sec=>{ let any=false; sec.querySelectorAll('.wrap').forEach(w=>{ const hit=!q||w.dataset.f.includes(q); w.style.display=hit?'':'none'; if(hit)any=true; }); sec.style.display=any?'':'none'; if(q&&any)sec.classList.add('open'); }); };
+$('#search').oninput=e=>{ const q=e.target.value.toLowerCase().trim(); document.querySelectorAll('#ctrls .prow').forEach(r=>{ r.style.display=(!q||(r.dataset.f||'').includes(q))?'':'none'; }); };
 $('#resetLook').onclick=()=>{ Object.keys(LVALS).forEach(id=>LVALS[id]=LMETA[id].def); document.querySelectorAll('#ctrls input[data-slider]').forEach(inp=>{ const id=inp.dataset.slider; inp.value=LVALS[id]; const o=document.querySelector('[data-v="'+id+'"]'); if(o)o.textContent=lround(LVALS[id],2); }); toast('look reset'); };
+function lookName(){ return ($('#lkName').value||'MyLook').replace(/[^\w\- ]/g,'').trim()||'MyLook'; }
+function lookParams(){ return Object.keys(LVALS).filter(id=>Math.abs(LVALS[id]-LMETA[id].def)>1e-4).map(id=>({id,value:lround(LVALS[id],4),blend:'Overwrite'})); }
 $('#exportLook').onclick=()=>{
-  const ps=Object.keys(LVALS).filter(id=>Math.abs(LVALS[id]-LMETA[id].def)>1e-4).map(id=>({Id:id,Value:lround(LVALS[id],4),Blend:'Overwrite'}));
-  if(!ps.length) return toast('nothing changed from default yet',true);
-  const exp={Type:'Live2D Expression',FadeInTime:0.5,FadeOutTime:0.5,Parameters:ps};
-  const name=($('#lkName').value||'MyLook').replace(/[^\w\- ]/g,'').trim()||'MyLook';
+  const ps=lookParams(); if(!ps.length) return toast('nothing changed from default yet',true);
+  const exp={Type:'Live2D Expression',FadeInTime:0.5,FadeOutTime:0.5,Parameters:ps.map(p=>({Id:p.id,Value:p.value,Blend:p.blend}))};
+  const name=lookName();
   const blob=new Blob([JSON.stringify(exp,null,4)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name+'.exp3.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   toast('exported '+name+'.exp3.json');
+};
+/* save the current look as a usable expression RIGHT NOW (no download/reload) + remember it for this model */
+$('#saveExp').onclick=()=>{
+  const ps=lookParams(); if(!ps.length) return toast('nothing changed from default yet',true);
+  const name=lookName();
+  EXP[name]=ps.map(p=>({id:p.id,value:p.value,blend:p.blend}));
+  expDefaults();
+  (USER_EXP[MODEL_KEY]||(USER_EXP[MODEL_KEY]={}))[name]=EXP[name]; saveUserExp();
+  buildExpressions(); wireHotkeys();
+  toast('saved "'+name+'" — toggle it in the expr tab');
 };
 
 /* ---------------- the model driver (runs each frame after model update) ----------------
