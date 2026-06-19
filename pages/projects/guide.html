@@ -72,6 +72,16 @@
     <div class="grp">setup</div>
     <a href="#bridge">chat bridge</a>
 
+    <div class="grp">live2d.mk</div>
+    <a href="#live2d">overview</a>
+    <a class="sub" href="#l2d-load">load a model</a>
+    <a class="sub" href="#l2d-look">look maker</a>
+    <a class="sub" href="#l2d-expr">expressions &amp; motions</a>
+    <a class="sub" href="#l2d-track">face tracking</a>
+    <a class="sub" href="#l2d-rig">tracking rig</a>
+    <a class="sub" href="#l2d-params">parameters &amp; idle</a>
+    <a class="sub" href="#l2d-obs">OBS &amp; OpenSeeFace</a>
+
     <div class="grp">other tools</div>
     <a href="#boot">bootanim.mk</a>
     <a href="#schedule">schedule.mk</a>
@@ -135,6 +145,39 @@
       <li>Leave it running while you stream. In the widget, set the <b>Bridge</b> field to <code>ws://localhost:8787</code> (the default).</li>
     </ol>
     <div class="note"><b>Facebook</b> needs your own Page access token + live video id via the Graph API — see the comments inside <code>bridge.js</code> for where to plug it in.</div>
+
+    <!-- ===================== LIVE2D.MK ===================== -->
+    <h2 id="live2d"><span class="mk">//</span> live2d.mk — bring-your-own Live2D stage</h2>
+    <p>A browser VTuber stage <b>+ look maker</b> for <b>any</b> Cubism 3/4/5 Live2D model. It ships <b>only renderer code</b> — you load your own model folder and everything runs in your browser; nothing is uploaded. Drives the model from face tracking and works as an OBS Browser Source. Controls are split into tabs: <b>model · face · expr · idle · params · scene</b>.</p>
+    <a class="open" href="live2d/stage.html">open live2d.mk →</a>
+
+    <h3 id="l2d-load">Load a model</h3>
+    <p><b>📁 load model folder</b> (or drag-drop it) — pick the folder that holds your <code>.model3.json</code> plus its textures, and any <code>.exp3.json</code> expressions, <code>.motion3.json</code> motions, and <code>.cdi3.json</code>. Drag to move, scroll to zoom; press <b>H</b> to hide the UI, and turn the <b>preview backdrop off</b> for a transparent OBS source.</p>
+
+    <h3 id="l2d-look">Look maker</h3>
+    <p>If the folder includes a <code>.cdi3.json</code>, a <b>look maker</b> panel appears on the model tab: it lists the model's customization parameters grouped as the creator named them, lets you restyle the model live, and <b>exports a <code>.exp3.json</code></b> save-state you can drop back into the folder as a stackable expression.</p>
+
+    <h3 id="l2d-expr">Expressions &amp; motions</h3>
+    <p><b>Expressions</b> (expr tab) read every <code>.exp3.json</code> in the folder and <b>stack</b> like VTube Studio — toggle any number and they fade in/out. <b>Motions</b> are the model's animations, played <b>on demand</b> (the idle animations — click one or press its hotkey). Every expression/motion chip gets an auto <b>hotkey</b> shown on it; right-click to rebind, and there's a <b>clear all expressions</b> button.</p>
+
+    <h3 id="l2d-track">Face tracking</h3>
+    <p>Two sources on the face tab:</p>
+    <ul>
+      <li><b>Webcam</b> — in-browser via MediaPipe, zero setup. A camera picker appears if you have more than one.</li>
+      <li><b>OpenSeeFace</b> — better tracking, runs locally (see <a href="#l2d-obs" style="color:var(--blood)">OBS &amp; OpenSeeFace</a>).</li>
+    </ul>
+    <p>Tune <b>mirror</b>, <b>invert ↕</b>, <b>smoothing</b>, <b>head gain</b>, and per-feature <b>eye / mouth / brow / gaze</b> sensitivity; <b>recenter head</b> snapshots your neutral pose. <b>mic lip-sync</b> drives the mouth from your microphone. When your face leaves frame the model eases back to a calm idle.</p>
+
+    <h3 id="l2d-rig">Tracking rig (input mapping)</h3>
+    <p>On the params tab, the <b>tracking rig</b> is the editable table that actually drives the model — pre-filled with the standard VTube-Studio mapping (head angles, eye open, gaze, mouth open/form, brows → the usual <code>Param…</code> ids). Each row is <b>input → parameter</b> with an input range and an output range. If the auto-rig is wrong for your model, repoint the parameter or change the ranges (swap a row's output, e.g. <code>1 → -1</code>, to invert an axis); <b>↺ defaults</b> restores the standard rig. Got an idle cover that should hide while you're tracked? Add a row mapping <code>faceFound</code> → that parameter, in <code>0→1</code>, out <code>1→0</code>.</p>
+
+    <h3 id="l2d-params">Parameters &amp; idle</h3>
+    <p>The <b>params tab</b> also lists <b>every parameter your model has, exactly as its creator laid them out</b> — names, groups, even divider entries, read straight from the <code>.cdi3.json</code> (it falls back to raw ids if the model has none) — each with its live value. <b>Drag one to set it manually</b> (it holds, overriding tracking); <b>✕</b> releases it back to tracking. Handy for fixing a stuck or mis-rigged parameter.</p>
+    <p><b>idle tab:</b> auto-blink, auto-breath, and a subtle idle sway keep the model alive without any looping clip — the way VTube Studio idles. <b>scene tab:</b> physics on/off, a solid or image background, brightness + tint, and a <b>📸 screenshot</b> button. Your rig, manual overrides, tracking settings, and model position are all remembered between sessions.</p>
+
+    <h3 id="l2d-obs">OBS &amp; OpenSeeFace</h3>
+    <p>Add <b>stage.html</b> as a <b>Browser Source</b>, right-click it → <b>Interact</b> to load your model and turn tracking on, then turn the backdrop off and press <b>H</b> to hide the panel.</p>
+    <div class="note"><b>Camera won't turn on in OBS?</b> OBS's browser blocks camera access (no allow-popup, no camera picker). Either <b>Window-Capture</b> a normal browser tab running the page instead, or use <b>OpenSeeFace</b>: grab a local copy (download button on the scene tab), get <a href="https://github.com/emilianavt/OpenSeeFace/releases/latest" target="_blank" rel="noopener" style="color:var(--blood)">OpenSeeFace</a>, run its tracker + <code>osf_bridge.js</code>, open the page from the bridge at <code>http://localhost</code>, set the <b>OSF bridge address</b> to match the bridge port (default <code>localhost:8080</code>), and pick source <b>OpenSeeFace</b>. A hosted https page can't reach a local socket — that's why OpenSeeFace needs the page opened locally.</div>
 
     <!-- ===================== BOOTANIM ===================== -->
     <h2 id="boot"><span class="mk">//</span> bootanim.mk — Android boot animation maker</h2>

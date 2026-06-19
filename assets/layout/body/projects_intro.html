@@ -28,6 +28,11 @@
 .pi_h3 .gl{color:#fff}
 .pi_h3::after{content:"";flex:1;height:1px;background:var(--line)}
 .pi_gsub{color:var(--dim);font-size:.78rem;margin:0 0 14px}
+/* each purpose group is now its OWN full-page section (#look/#live/#extras) so it
+   participates in the page's native scroll-snap exactly like every other panel —
+   continuous scrolling steps through them and chains to title/github at the ends. */
+.pi_geyebrow{color:var(--blood);font-family:var(--mono);font-size:.72rem;letter-spacing:3px;text-transform:uppercase;margin:0 0 10px}
+.pi_geyebrow .n{color:var(--dim)}
 /* AAA-style scroll reveal — content eases up into place instead of just popping in */
 html{scroll-behavior:smooth}
 .gallery{scroll-behavior:smooth}
@@ -152,12 +157,10 @@ html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;dis
   </div>
 </section>
 
-<!-- ===================== 02 · FEATURED ===================== -->
-<section class="section" id="featured">
+<!-- ===================== 02 · FEATURED — your look ===================== -->
+<section class="section" id="look">
   <div class="wrap pi_wrap">
-    <h2 class="pi_h2"><span class="c">//</span> web tools</h2>
-    <p class="pi_sub">grouped by what you're making · swipe ← → · hover a card to slideshow its example outputs</p>
-
+    <p class="pi_geyebrow"><span class="n">// web tools · 01</span> &nbsp;your look</p>
     <!-- ───── group: your look ───── -->
     <div class="pi_group">
       <h3 class="pi_h3"><span class="gi">✦</span> <span class="gl">your look</span></h3>
@@ -165,22 +168,6 @@ html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;dis
       <div class="gallery_wrap">
         <button class="gnav prev" type="button" aria-label="previous">◀</button>
         <div class="gallery">
-
-          <article class="gcard">
-            <div class="gc_screen">
-              <div class="slide on"><div class="mk_emote"><span class="e s1">🧑‍🎤</span></div></div>
-              <div class="slide"><div class="mk_emote"><span class="e s1">👹</span><span class="e s2">🐱</span></div></div>
-              <div class="slide"><div class="mk_emote"><span class="e s1">😼</span></div></div>
-              <div class="gc_tag"><b>//</b> <span class="cap">avatar</span></div>
-              <div class="gc_dots"></div>
-            </div>
-            <div class="gc_body">
-              <h3>avatar<span class="dot">.</span>mk</h3>
-              <p class="gd">Pixel-art vtuber chibi builder — mix parts, recolor, animate, export PNG/GIF.</p>
-              <ul class="gc_feats"><li>picrew-style</li><li>pixel parts</li><li>animated</li><li>png/gif/zip</li></ul>
-              <a class="gc_open" href="/pages/projects/avatar_maker.html">open avatar.mk →</a>
-            </div>
-          </article>
 
           <article class="gcard">
             <div class="gc_screen">
@@ -195,6 +182,22 @@ html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;dis
               <p class="gd">Bring-your-own Live2D stage + look maker in one — load any model, stack expressions, build/save expressions, webcam/OpenSeeFace tracking, OBS-ready.</p>
               <ul class="gc_feats"><li>any model</li><li>face tracking</li><li>stack expressions</li><li>built-in look maker</li></ul>
               <a class="gc_open" href="/pages/projects/live2d/stage.html">open live2d.mk →</a>
+            </div>
+          </article>
+
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_emote"><span class="e s1">🧑‍🎤</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">👹</span><span class="e s2">🐱</span></div></div>
+              <div class="slide"><div class="mk_emote"><span class="e s1">😼</span></div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">avatar</span></div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>avatar<span class="dot">.</span>mk</h3>
+              <p class="gd">Pixel-art vtuber chibi builder — mix parts, recolor, animate, export PNG/GIF.</p>
+              <ul class="gc_feats"><li>picrew-style</li><li>pixel parts</li><li>animated</li><li>png/gif/zip</li></ul>
+              <a class="gc_open" href="/pages/projects/avatar_maker.html">open avatar.mk →</a>
             </div>
           </article>
 
@@ -218,7 +221,13 @@ html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;dis
         <button class="gnav next" type="button" aria-label="next">▶</button>
       </div>
     </div>
+  </div>
+</section>
 
+<!-- ===================== 02 · FEATURED — go live ===================== -->
+<section class="section" id="live">
+  <div class="wrap pi_wrap">
+    <p class="pi_geyebrow"><span class="n">// web tools · 02</span> &nbsp;go live</p>
     <!-- ───── group: go live ───── -->
     <div class="pi_group">
       <h3 class="pi_h3"><span class="gi">▶</span> <span class="gl">go live</span></h3>
@@ -281,7 +290,13 @@ html[data-snap] #github{scroll-snap-stop:normal;min-height:100vh;height:auto;dis
         <button class="gnav next" type="button" aria-label="next">▶</button>
       </div>
     </div>
+  </div>
+</section>
 
+<!-- ===================== 02 · FEATURED — extras ===================== -->
+<section class="section" id="extras">
+  <div class="wrap pi_wrap">
+    <p class="pi_geyebrow"><span class="n">// web tools · 03</span> &nbsp;extras</p>
     <!-- ───── group: extras ───── -->
     <div class="pi_group">
       <h3 class="pi_h3"><span class="gi">+</span> <span class="gl">extras</span></h3>

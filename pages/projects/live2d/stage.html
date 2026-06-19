@@ -68,6 +68,8 @@
   .prow.ov .plab span{color:var(--blood)}
   .prow2{display:flex;gap:4px;align-items:center}.prow2 .ps{flex:1}
   .prow2 .rm{cursor:pointer;color:var(--blood);border:1px solid var(--line);background:var(--panel2);padding:1px 6px;font-size:11px}
+  .pgrp{color:var(--blood);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;border-top:2px solid var(--line);padding:9px 0 2px;margin-top:4px;position:sticky;top:54px;background:var(--panel)}
+  .prow.pdiv{border-top:0}.prow.pdiv .plab span{color:var(--dim);letter-spacing:1px}.prow.pdiv .pv{display:none}
   .stage{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
   body.preview .stage{background:
     linear-gradient(45deg,#15151a 25%,transparent 25%),linear-gradient(-45deg,#15151a 25%,transparent 25%),
@@ -80,6 +82,9 @@
   #toast{position:absolute;bottom:12px;left:12px;color:#fff;background:rgba(12,12,16,.92);border:2px solid var(--blood);padding:8px 12px;font-size:12px;max-width:70%;z-index:5}
   #show{position:absolute;top:10px;left:10px;background:rgba(12,12,16,.92);border:1px solid var(--line);color:var(--txt);font:inherit;font-size:11px;padding:5px 8px;cursor:pointer;display:none;z-index:6}
   body.uihidden .panel,body.uihidden .toolbar{display:none}
+  /* panel is gone -> the stage would auto-place into the empty 264px track and squish the
+     model into a sliver. force a single full-width column so the model fills the view. */
+  body.uihidden .app{grid-template-columns:1fr}
   body.uihidden #show{display:block}
   @media(max-width:820px){.app{grid-template-columns:1fr}}
 </style>
@@ -108,7 +113,7 @@
         <div class="t">model</div>
         <label class="fbtn" style="display:block;text-align:center">📁 load model folder
           <input type="file" id="folder" webkitdirectory directory multiple style="display:none"></label>
-        <div class="hint">Pick the folder that holds your <code>.model3.json</code> (+ textures, expressions, motions). Nothing is uploaded anywhere — it loads in your browser only.</div>
+        <div class="hint">Pick the folder that holds your <code>.model3.json</code> (+ textures, expressions, motions). If a <code>.vtube.json</code> is in there, its VTube&nbsp;Studio rig &amp; tracking-lost motion are imported automatically. Nothing is uploaded — it loads in your browser only.</div>
       </div>
       <div class="grp" id="makerGrp" style="display:none">
         <div class="t">look maker</div>
@@ -172,7 +177,9 @@
         <label class="ck"><input type="checkbox" id="autoBreath" checked> auto-breath</label>
         <label class="ck"><input type="checkbox" id="idleSway" checked> idle sway (subtle drift)</label>
         <div class="rl"><span>breath speed</span><b id="breathV">1.0×</b></div><input type="range" id="breath" min="0.2" max="3" step="0.1" value="1">
-        <div class="hint" style="margin-top:8px">Your model's <b>motions</b> are its idle animations — trigger them from the <b>expr</b> tab (or a hotkey).</div>
+        <div class="rl" style="margin-top:10px"><span>tracking-lost motion</span></div>
+        <select id="lostMot" style="width:100%"><option value="">none</option></select>
+        <div class="hint">Plays one of your model's <b>motions</b> when your face leaves the camera, and stops when you're back. (Trigger motions manually from the <b>expr</b> tab.)</div>
       </div>
     </div>
 
@@ -252,7 +259,7 @@ const IDLE_AFTER_MS=2500;   /* camera on but no face this long -> fall back to i
 let EXP={},defaults={},activeExp=new Set(),touched=new Set(),expCur={};
 let expFade=0.18;   /* per-frame ease toward target -> expressions fade in/out instead of snapping like stickers */
 const wrapDeg=a=>{a=((a+180)%360+360)%360-180;return a;};
-let hbase=null,lastH={y:0,p:0,r:0};
+let hbase=null,lastH={y:0,p:0,r:0},gbase=null,lastGaze={x:0,y:0};   /* gbase=null -> auto-calibrate gaze from the first tracked frame */
 /* VTS-style extras */
 let eyeSens=1,mouthSens=1,browSens=1,gazeSens=1;          // rigging strength per feature
 let autoBlink=true,autoBreath=true,breathSpd=1;           // lifelike idle
@@ -276,13 +283,39 @@ const DEFAULT_RIG=[
 ];
 function defaultRig(){ return DEFAULT_RIG.map(m=>Object.assign({},m)); }
 let MAPS=defaultRig();
+/* ---- VTube Studio config import ----
+   A model folder usually ships a <name>.vtube.json — the exact rig the creator built in
+   VTS. We read its ParameterSettings and rebuild OUR tracking rig from it, so any VTS model
+   tracks the way it was authored (a true VTS alternative), plus its tracking-lost motion. */
+const VTS_IN={ FaceAngleX:'headX', FaceAngleY:'headY', FaceAngleZ:'headZ',
+  EyeOpenLeft:'eyeOpenL', EyeOpenRight:'eyeOpenR',
+  EyeRightX:'gazeX', EyeLeftX:'gazeX', EyeRightY:'gazeY', EyeLeftY:'gazeY',
+  BrowLeftY:'browL', BrowRightY:'browR', Brows:'browL',
+  MouthSmile:'mouthForm', MouthOpen:'mouthOpen', MouthOpenY:'mouthOpen',
+  VoiceVolume:'voice', VoiceVolumePlusMouthOpen:'mouthOpen' };
+function numv(v,d){ return (typeof v==='number'&&isFinite(v))?v:d; }
+/* VTS smoothing ≈ 0..100 (higher = smoother). our sm is the per-frame weight kept on the
+   PREVIOUS value (higher = smoother) -> map onto a sane 0.10..0.95 band. */
+function vtsSm(s){ s=Math.max(0,Math.min(100,numv(s,15))); return +(0.1+0.0085*s).toFixed(3); }
+function rigFromVtube(vt){
+  const ps=vt&&vt.ParameterSettings; if(!Array.isArray(ps)) return null;
+  const out=[];
+  ps.forEach(p=>{ const param=p&&p.OutputLive2D, rin=VTS_IN[p&&p.Input]; if(!param||!rin) return;  /* skip inputs we don't track (MouthX, TongueOut, …) */
+    out.push({ in:rin, param:param, iLo:numv(p.InputRangeLower,-1), iHi:numv(p.InputRangeUpper,1),
+      oLo:numv(p.OutputRangeLower,-1), oHi:numv(p.OutputRangeUpper,1), sm:vtsSm(p.Smoothing) }); });
+  return out.length?out:null;
+}
+async function readVtube(files){ const f=files.find(x=>/\.vtube\.json$/i.test(x.name)); if(!f)return null;
+  try{ return JSON.parse(await f.text()); }catch(e){ return null; } }
+function motStem(s){ return s?String(s).split('/').pop().replace(/\.motion3\.json$/i,''):''; }
 let HOTKEYS={};                                          // key char -> "exp:Name" | "mot:Group"
 let physOn=true, savedPhysics=null, hkListenerSet=false;
 let camId='';                                            // chosen webcam deviceId
 let osfAddr='localhost:8080';                            // OpenSeeFace bridge address (host:port)
 let bright=100, tintHex='#ffffff', bgOn=false, bgColorV='#101018', bgImgData='';
-let MANUAL={}, PMETA={}, activeTab='model', pTimer=null;   // manual param overrides + tabs
+let MANUAL={}, PMETA={}, activeTab='model', pTimer=null, CDI=null;   // manual param overrides + tabs + creator DisplayInfo
 const LS='live2dmk_v1';
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
 
 /* ---------------- load uploaded model ---------------- */
 $('#folder').onchange=e=>loadFiles([...e.target.files]);
@@ -323,6 +356,17 @@ async function injectMotions(files, settingsFile){
    triggerable; the model lives on tracking + breath + physics, and eases to a gentle
    idle pose when your face isn't found. */
 let idleSway=true, idlePh=0;
+let lostMot='', motionPlaying=false, motionLost=false, motionStart=0;   // on-demand / tracking-lost motions
+/* play a motion and PAUSE the tracking rig so the motion actually shows (head + all). a
+   manually-triggered motion auto-ends; the tracking-lost one loops until your face returns. */
+function playMotion(group, isLost){ if(!model||!group)return; try{
+  motionPlaying=true; motionLost=!!isLost; motionStart=performance.now();
+  var r=model.motion(group); if(r&&typeof r.catch==='function') r.catch(function(){});
+}catch(e){} }
+function resetParams(){ try{ var p=core._model.parameters, rg={}; MAPS.forEach(function(m){rg[m.param]=1;}); for(var i=0;i<p.count;i++) if(!rg[p.ids[i]]) setP(p.ids[i],p.defaultValues[i]); }catch(e){} }   /* undo only the motion's NON-rig params (eye-mask etc.); rig params stay tracking-driven, so the eyeball isn't yanked to the model's offset default */
+function stopMotion(){ try{ var mm=model&&model.internalModel&&model.internalModel.motionManager; if(mm&&mm.stopAllMotions) mm.stopAllMotions(); }catch(e){} resetParams(); motionPlaying=false; motionLost=false; rigResume(); }
+function rigResume(){ for(var i=0;i<MAPS.length;i++) MAPS[i]._cur=null; }   // rig re-grabs the current tracking target instead of easing from a stale value
+function motionDone(){ try{ var mm=model.internalModel.motionManager; if(mm&&typeof mm.isFinished==='function') return mm.isFinished(); }catch(e){} return (performance.now()-motionStart)>10000; }
 
 async function loadFiles(files){
   const settings=files.find(f=>f.name.endsWith('.model3.json'));
@@ -341,14 +385,21 @@ async function loadFiles(files){
     buildExpressions(); buildMotions(); wireHotkeys();
     let cdi=null; const cdiFile=files.find(f=>f.name.toLowerCase().endsWith('.cdi3.json'));
     if(cdiFile){ try{ cdi=JSON.parse(await cdiFile.text()); }catch(e){} }
+    CDI=cdi;
     buildLook(cdi);
     setPhysics(physOn); applyTone(); buildParams(); restoreModelState();
     // look -> expressions -> auto idle -> tracking -> custom maps -> manual overrides (manual wins)
-    const apply=()=>{ applyLook(); applyExpressions(); applyAuto(); applyTracking(); applyMaps(); applyManual(); };
+    const apply=()=>{ applyLook(); applyExpressions(); applyAuto(); applyTracking(); if(!motionPlaying) applyMaps(); applyManual(); };   /* any playing motion (manual OR tracking-lost) is authoritative, so sleep/idle anims that close the eyes work; gaze is calibrated so the eyeball no longer freezes off-centre */
     try{ if(model.internalModel.on) model.internalModel.on('beforeModelUpdate',apply); }catch(e){}
     app.ticker.add(apply);
-    setTab(activeTab);   /* refresh the active tab (rebuilds the parameter list for this model) */
-    toast('loaded ✓');
+    /* import the VTS config (the creator's rig + tracking-lost motion) if the folder has a .vtube.json */
+    let imported=0;
+    try{ const vt=await readVtube(orig); if(vt){ const r=rigFromVtube(vt); if(r){ MAPS=r; imported=r.length; if(typeof buildMaps==='function')buildMaps(); }
+      const fr=vt.FileReferences||{}; const lost=motStem(fr.IdleAnimationWhenTrackingLost)||motStem(fr.IdleAnimation);   /* VTS puts the idle here; play it when the face is lost */
+      if(lost) lostMot=lost;
+      buildMotions(); saveState(); } }catch(e){ console.error(e); }
+    setTab(activeTab);   /* refresh the active tab (rebuilds the parameter list + rig for this model) */
+    toast(imported?('loaded ✓ · VTS rig imported ('+imported+' params)'):'loaded ✓');
   }catch(err){ console.error(err); toast('⚠ load failed: '+err.message,true); }
 }
 function fit(){ model.scale.set(1); const h=model.height||300; fitScale=($('.stage').clientHeight*0.9)/h; model.scale.set(fitScale); model.position.set($('.stage').clientWidth/2,$('.stage').clientHeight/2); syncZoom&&0; }
@@ -394,8 +445,12 @@ function buildExpressions(){ const host=$('#exps'); host.innerHTML=''; const nam
     host.appendChild(b); });
 }
 function buildMotions(){ const host=$('#motions'); host.innerHTML=''; const s=settings();
-  const groups=(s&&s.motions)||{}; const keys=Object.keys(groups); if(!keys.length){ host.innerHTML='<span class="hint">none in this model</span>'; return; }
-  keys.forEach(g=>{ const b=document.createElement('button'); b.textContent=g; b.dataset.act='mot:'+g; b.onclick=()=>{ try{model.motion(g);}catch(e){} }; host.appendChild(b); });
+  const groups=(s&&s.motions)||{}; const keys=Object.keys(groups);
+  if(lostMot && !keys.includes(lostMot)) lostMot='';
+  const sel=$('#lostMot'); if(sel){ sel.innerHTML='<option value="">none</option>'+keys.map(k=>'<option value="'+k+'"'+(k===lostMot?' selected':'')+'>'+k+'</option>').join(''); }
+  if(!keys.length){ host.innerHTML='<span class="hint">none in this model</span>'; return; }
+  keys.forEach(g=>{ const b=document.createElement('button'); b.textContent=g; b.dataset.act='mot:'+g; b.onclick=()=>playMotion(g); host.appendChild(b); });
+  const sb=document.createElement('button'); sb.textContent='■ stop'; sb.title='stop the playing motion'; sb.style.borderColor='var(--blood)'; sb.style.color='var(--blood)'; sb.onclick=stopMotion; host.appendChild(sb);
 }
 
 /* ---------------- look maker (reads .cdi3.json params -> live restyle -> export .exp3.json) ---------------- */
@@ -448,8 +503,16 @@ function ease(targets,k){ for(const id in targets){ tNow[id]=(tNow[id]==null?tar
    next in the chain) turns RAW -> model parameters — that's the actual driver. */
 function applyTracking(){
   if(!core) return;
+  const wasLost=faceLost;
   faceLost = faceOn && (performance.now()-lastFace)>IDLE_AFTER_MS;
   const tracking = faceOn && !faceLost;
+  /* tracking-lost motion: start it when the face goes, loop while gone, stop when it returns */
+  if(faceLost && !wasLost && lostMot){ playMotion(lostMot, true); }
+  else if(!faceLost && wasLost && motionLost){ stopMotion(); }
+  if(motionPlaying && motionDone()){
+    if(motionLost && faceLost && lostMot){ playMotion(lostMot, true); }   // keep looping while still lost
+    else { motionPlaying=false; motionLost=false; rigResume(); }
+  }
   /* faceFound: 1 while tracked, 0 when idle/lost — bind it in the rig to any idle-cover param */
   const ff=tracking?1:0; RAW.faceFound=(RAW.faceFound==null)?ff:RAW.faceFound+(ff-RAW.faceFound)*0.25; if(Math.abs(RAW.faceFound-ff)<0.01)RAW.faceFound=ff;
   /* built-in AnimSleep convenience — snaps fully; on only when camera on but face gone. no-op otherwise. */
@@ -469,11 +532,11 @@ function idleRaw(){
 function applyHead(yaw,pitch,roll){
   lastH={y:yaw,p:pitch,r:roll};
   const b=hbase||{y:0,p:0,r:0},mx=mirror?-1:1,ps=pitchInv?-1:1;
-  RAW.headX=cl(wrapDeg(yaw-b.y)*hgain*mx,-30,30);
+  RAW.headX=cl(wrapDeg(yaw-b.y)*hgain*-mx,-30,30);   /* head yaw flipped to agree with the (correct) eye pupils in both mirror states */
   RAW.headY=cl(wrapDeg(pitch-b.p)*hgain*ps,-30,30);
-  RAW.headZ=cl(wrapDeg(roll-b.r)*mx,-30,30);
+  RAW.headZ=cl(wrapDeg(roll-b.r)*-mx,-30,30);
 }
-function recenter(){ hbase={...lastH}; toast('head recentered'); }
+function recenter(){ hbase={...lastH}; gbase={...lastGaze}; toast('head & gaze recentered'); }
 
 /* ---------------- transform / mouse ---------------- */
 function syncZoom(){}
@@ -499,7 +562,10 @@ $('#facecam').onchange=e=>{ if(!model){ e.target.checked=false; toast('load a mo
 $('#preview').onchange=e=>document.body.classList.toggle('preview',e.target.checked);
 /* collapsible panel sections — click a group header to fold it */
 Array.prototype.forEach.call(document.querySelectorAll('.panel .grp > .t'),function(t){ t.addEventListener('click',function(){ t.parentElement.classList.toggle('collapsed'); }); });
-function setUI(v){ document.body.classList.toggle('uihidden',!v); }
+function setUI(v){ document.body.classList.toggle('uihidden',!v);
+  /* the stage width changes when the panel collapses/returns; PIXI's resizeTo only reacts to
+     window resizes, so resize the renderer ourselves so the model stays filling the view. */
+  requestAnimationFrame(()=>{ const st=$('.stage'); if(st&&app&&app.renderer)app.renderer.resize(st.clientWidth,st.clientHeight); }); }
 $('#hide').onclick=()=>setUI(false); $('#show').onclick=()=>setUI(true);
 window.addEventListener('keydown',e=>{ if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return; if(e.key==='h'||e.key==='H') setUI(document.body.classList.contains('uihidden')); });
 
@@ -509,7 +575,7 @@ $('#mic').onchange=async e=>{ if(e.target.checked){ try{ const st=await navigato
 function pumpMic(){ if(!micOn)return; micA.getByteTimeDomainData(micD); let s=0; for(let i=0;i<micD.length;i++){const v=(micD[i]-128)/128;s+=v*v;} mouth=cl(Math.sqrt(s/micD.length)*9,0,1); RAW.voice=mouth; requestAnimationFrame(pumpMic); }
 
 /* ---------------- face tracking ---------------- */
-function enableFace(){ follow=false; $('#follow').checked=false; tNow={}; faceLost=false; lastFace=performance.now(); faceSrc==='osf'?connectOSF():enableWebcam(); }
+function enableFace(){ follow=false; $('#follow').checked=false; tNow={}; faceLost=false; gbase=null; lastFace=performance.now(); faceSrc==='osf'?connectOSF():enableWebcam(); }
 function disableFace(){ faceOn=false; if(osfWS){try{osfWS.close();}catch(e){}osfWS=null;} if(vid&&vid.srcObject)vid.srcObject.getTracks().forEach(t=>t.stop()); if(vid)vid.remove(); vid=null; hbase=null; faceLost=false; }
 
 /* OpenSeeFace via the local bridge. The bridge serves its WebSocket on the SAME
@@ -535,7 +601,7 @@ function parseOSF(dv){ if(dv.byteLength<1785)return; const F=o=>dv.getFloat32(o,
     const cV=(PV(t1)+PV(t2)+PV(b1)+PV(b2))/4,h=Math.abs((PV(t1)+PV(t2))/2-(PV(b1)+PV(b2))/2)||(w*0.4);
     return {x:(PH(pp)-cH)/(w*0.5),y:(PV(pp)-cV)/((h||1)*0.5)}; };
   const gR=eg(36,39,37,38,40,41,66),gL=eg(45,42,43,44,46,47,67),gmx=mirror?-1:1;
-  RAW.gazeX=cl((gR.x+gL.x)/2*2.5*gmx*gazeSens,-1,1); RAW.gazeY=cl(-(gR.y+gL.y)/2*2.5*gazeSens,-1,1);
+  RAW.gazeX=cl((gR.x+gL.x)/2*2.5*-gmx*gazeSens,-1,1); RAW.gazeY=cl(-(gR.y+gL.y)/2*2.5*gazeSens,-1,1);
   RAW.mouthOpen=cl(mO*mouthSens,0,1); RAW.mouthForm=cl(mW,-1,1);
   let aL=bL,aR=bR; if(sw){const t=aL;aL=aR;aR=t;} RAW.browL=cl(aL*browSens,-1,1); RAW.browR=cl(aR*browSens,-1,1);
 }
@@ -563,8 +629,10 @@ function procWeb(res){ if(!res||!res.faceLandmarks||!res.faceLandmarks.length)re
   applyHead(-yaw*60,pitch*60,-roll*180/Math.PI);   /* webcam yaw uses the opposite sign to OSF -> negate so left/right matches */
   let bl=bs.eyeBlinkLeft||0,br=bs.eyeBlinkRight||0; if(sw){const t=bl;bl=br;br=t;}
   RAW.eyeOpenL=cl(1-bl*1.4*eyeSens,0,1); RAW.eyeOpenR=cl(1-br*1.4*eyeSens,0,1);
-  RAW.gazeX=cl(((bs.eyeLookOutLeft||0)-(bs.eyeLookInLeft||0))*mx*2*gazeSens,-1,1);
-  RAW.gazeY=cl(((bs.eyeLookUpLeft||0)-(bs.eyeLookDownLeft||0))*2*gazeSens,-1,1);
+  const rgx=(((bs.eyeLookOutLeft||0)+(bs.eyeLookInRight||0))-((bs.eyeLookInLeft||0)+(bs.eyeLookOutRight||0)))/2, rgy=(bs.eyeLookUpLeft||0)-(bs.eyeLookDownLeft||0);
+  lastGaze={x:rgx,y:rgy}; if(gbase==null)gbase={x:rgx,y:rgy};   /* auto-baseline on first frame (recenter re-captures it) so looking straight reads 0 regardless of MediaPipe bias */
+  RAW.gazeX=cl((rgx-gbase.x)*-mx*2*gazeSens,-1,1);
+  RAW.gazeY=cl((rgy-gbase.y)*2*gazeSens,-1,1);
   RAW.mouthOpen=cl((bs.jawOpen||0)*1.6*mouthSens,0,1);
   RAW.mouthForm=cl(((bs.mouthSmileLeft||0)+(bs.mouthSmileRight||0))-(bs.mouthPucker||0),-1,1);
   let gL=(bs.browOuterUpLeft||0)-(bs.browDownLeft||0),gR=(bs.browOuterUpRight||0)-(bs.browDownRight||0); if(sw){const t=gL;gL=gR;gR=t;}
@@ -629,8 +697,9 @@ function wireHotkeys(){
 function triggerAct(act){ const i=act.indexOf(':'),type=act.slice(0,i),name=act.slice(i+1);
   if(type==='exp'){ activeExp.has(name)?activeExp.delete(name):activeExp.add(name);
     const b=[...document.querySelectorAll('#exps button')].find(x=>x.dataset.act==='exp:'+name); if(b)b.classList.toggle('on',activeExp.has(name)); saveState(); }
-  else if(type==='mot'){ try{model.motion(name);}catch(e){} }
+  else if(type==='mot'){ playMotion(name); }
 }
+$('#lostMot').onchange=e=>{ lostMot=e.target.value; if(motionLost&&!lostMot)stopMotion(); saveState(); };
 $('#clearExp').onclick=()=>{ activeExp.clear(); document.querySelectorAll('#exps button').forEach(b=>b.classList.remove('on')); saveState(); };
 
 /* ---- scene & look: background, tint/brightness, screenshot ---- */
@@ -675,22 +744,39 @@ function getAllParams(){
   return [];
 }
 function applyManual(){ if(!core)return; for(const id in MANUAL){ setP(id,MANUAL[id]); } }
+/* Show parameters exactly as the model's creator laid them out: their .cdi3.json gives the
+   names, order, ParameterGroups, and even divider-named entries (===BODY===, +++Brows+++).
+   We show ALL of them raw — including ones with no usable range. Falls back to raw core IDs
+   when the model has no .cdi3.json. */
 function buildParams(){ const host=$('#params'); if(!host)return; PMETA={};
-  const ps=getAllParams(); if(!ps.length){ host.innerHTML='<span class="hint">load a model to see its parameters</span>'; return; }
-  host.innerHTML='';
-  ps.forEach(p=>{ PMETA[p.id]=p; const step=(p.max-p.min)<=20?0.01:(p.max-p.min)/300; const ov=(p.id in MANUAL);
-    const cur=ov?MANUAL[p.id]:p.def;
-    const row=document.createElement('div'); row.className='prow'+(ov?' ov':''); row.dataset.id=p.id;
-    row.innerHTML='<div class="plab"><span>'+p.id+'</span><b class="pv">'+(+cur).toFixed(2)+'</b></div>'
-      +'<div class="prow2"><input type="range" class="ps" min="'+p.min+'" max="'+p.max+'" step="'+step+'" value="'+cur+'"><button class="rm" title="release to tracking" style="'+(ov?'':'display:none')+'">✕</button></div>';
+  const coreList=getAllParams(); if(!coreList.length){ host.innerHTML='<span class="hint">load a model to see its parameters</span>'; return; }
+  const meta={}; coreList.forEach(p=>meta[p.id]=p);
+  let list;
+  if(CDI && Array.isArray(CDI.Parameters) && CDI.Parameters.length){
+    const gnames={}; (CDI.ParameterGroups||[]).forEach(g=>gnames[g.Id]=g.Name||g.Id);
+    list=CDI.Parameters.map(p=>({ id:p.Id, name:p.Name||p.Id, group:gnames[p.GroupId]||p.GroupId||'' }));
+  } else {
+    list=coreList.map(p=>({ id:p.id, name:p.id, group:'' }));
+  }
+  host.innerHTML=''; let curGroup=null;
+  list.forEach(item=>{
+    if(item.group!==curGroup){ curGroup=item.group; if(curGroup){ const h=document.createElement('div'); h.className='pgrp'; h.textContent=curGroup; host.appendChild(h); } }
+    const m=meta[item.id]; const isDiv=/[=+_~\-]{2,}/.test(item.name||'');
+    const row=document.createElement('div'); row.className='prow'+(isDiv?' pdiv':'')+((item.id in MANUAL)?' ov':''); row.dataset.id=item.id; row.dataset.nm=(item.name+' '+item.id).toLowerCase();
+    if(!m){ row.innerHTML='<div class="plab"><span>'+esc(item.name)+'</span><b class="pv" style="opacity:.4">—</b></div>'; host.appendChild(row); return; }
+    PMETA[item.id]=m; const ov=(item.id in MANUAL), fixed=(m.min===m.max), step=(m.max-m.min)<=20?0.01:(m.max-m.min)/300, cur=ov?MANUAL[item.id]:m.def;
+    row.innerHTML='<div class="plab"><span>'+esc(item.name)+'</span><b class="pv">'+(+cur).toFixed(2)+'</b></div>'
+      +(fixed
+        ? '<div class="prow2"><span class="hint" style="padding:0">no range · '+(+m.min).toFixed(2)+'</span></div>'
+        : '<div class="prow2"><input type="range" class="ps" min="'+m.min+'" max="'+m.max+'" step="'+step+'" value="'+cur+'"><button class="rm" title="release to tracking" style="'+(ov?'':'display:none')+'">✕</button></div>');
     const sl=row.querySelector('.ps'),pv=row.querySelector('.pv'),rm=row.querySelector('.rm');
-    sl.oninput=()=>{ MANUAL[p.id]=+sl.value; pv.textContent=(+sl.value).toFixed(2); rm.style.display=''; row.classList.add('ov'); saveState(); };
-    rm.onclick=()=>{ delete MANUAL[p.id]; rm.style.display='none'; row.classList.remove('ov'); saveState(); };
+    if(sl){ sl.oninput=()=>{ MANUAL[item.id]=+sl.value; pv.textContent=(+sl.value).toFixed(2); rm.style.display=''; row.classList.add('ov'); saveState(); };
+      rm.onclick=()=>{ delete MANUAL[item.id]; rm.style.display='none'; row.classList.remove('ov'); saveState(); }; }
     host.appendChild(row);
   });
   paramFilter();
 }
-function paramFilter(){ const q=($('#psearch').value||'').toLowerCase().trim(); document.querySelectorAll('#params .prow').forEach(r=>{ r.style.display=(!q||r.dataset.id.toLowerCase().includes(q))?'':'none'; }); }
+function paramFilter(){ const q=($('#psearch').value||'').toLowerCase().trim(); document.querySelectorAll('#params .prow').forEach(r=>{ r.style.display=(!q||(r.dataset.nm||r.dataset.id||'').includes(q))?'':'none'; }); }
 $('#psearch').oninput=paramFilter;
 $('#pLive').onchange=startParamLive;
 function startParamLive(){ stopParamLive(); if(activeTab!=='params'||!$('#pLive').checked)return;
@@ -730,7 +816,7 @@ function saveState(){ clearTimeout(_saveT); _saveT=setTimeout(()=>{ try{ localSt
   pos: model?{x:model.x,y:model.y,s:model.scale.x}:null, active:[...activeExp], hot:HOTKEYS,
   manual:MANUAL, tab:activeTab,
   maps:MAPS.map(m=>({in:m.in,param:m.param,iLo:m.iLo,iHi:m.iHi,oLo:m.oLo,oHi:m.oHi,sm:m.sm})),
-  set:{smooth,hgain,mirror,pinv:pitchInv,faceSrc,camId,osfAddr,eyeSens,mouthSens,browSens,gazeSens,autoBlink,autoBreath,idleSway,breathSpd,physOn,bgOn,bgColorV,bgImgData,bright,tintHex}
+  set:{smooth,hgain,mirror,pinv:pitchInv,faceSrc,camId,osfAddr,eyeSens,mouthSens,browSens,gazeSens,autoBlink,autoBreath,idleSway,lostMot,breathSpd,physOn,bgOn,bgColorV,bgImgData,bright,tintHex}
 })); }catch(e){} },250); }
 function restoreSettings(){ let s; try{ s=JSON.parse(localStorage.getItem(LS)||'null'); }catch(e){} if(!s)return; const v=s.set||{};
   const set=(o,d)=>o==null?d:o;
@@ -739,7 +825,7 @@ function restoreSettings(){ let s; try{ s=JSON.parse(localStorage.getItem(LS)||'
   autoBlink=set(v.autoBlink,true); autoBreath=set(v.autoBreath,true); breathSpd=set(v.breathSpd,1); physOn=set(v.physOn,true);
   bgOn=set(v.bgOn,false); bgColorV=set(v.bgColorV,'#101018'); bgImgData=set(v.bgImgData,''); bright=set(v.bright,100); tintHex=set(v.tintHex,'#ffffff');
   HOTKEYS=s.hot||{}; MAPS=(s.maps&&s.maps.length)?s.maps.map(m=>Object.assign({},m)):defaultRig();
-  idleSway=set(v.idleSway,true); MANUAL=s.manual||{}; activeTab=set(s.tab,'model');
+  idleSway=set(v.idleSway,true); lostMot=set(v.lostMot,''); MANUAL=s.manual||{}; activeTab=set(s.tab,'model');
   $('#smooth').value=smooth;$('#smoothV').textContent=(+smooth).toFixed(2);
   $('#hgain').value=hgain;$('#hgainV').textContent=(+hgain).toFixed(1)+'×';
   $('#mirror').checked=mirror;$('#pinv').checked=pitchInv;$('#facesrc').value=faceSrc;$('#osfWrap').style.display=faceSrc==='osf'?'block':'none';

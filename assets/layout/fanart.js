@@ -2,12 +2,11 @@
    Calamytryx — fanart gallery (used by the home #fanart section AND
    /pages/fanart.html — both have a #fanart_gallery element).
 
-   Data source, in priority order (config = /assets/data/fanart.json):
-     1. cfg.apiKey set  -> live Drive API list -> credited masonry gallery
-     2. cfg.art[] set   -> committed manifest  -> credited masonry gallery
-                           (generate with: DRIVE_API_KEY=… node scripts/fetch_fanart.mjs)
-     3. otherwise       -> embed the public Drive folder live (zero setup;
-                           the folder just has to be "anyone with link → viewer")
+   ONE gallery UI for every source. The committed manifest (cfg.art[]) is the default
+   render (the "good backup"); if cfg.apiKey is set we then refresh LIVE from the Drive
+   API (true createdTime order) and re-render with the SAME look. No Google embed — if
+   there's genuinely no data we show a styled empty state, never a different UI.
+   Regenerate the manifest with: node scripts/fetch_fanart.mjs
 
    Credited gallery: each file is named by creator + optional number
    ("Alice.png", "Alice 2.png"); we parse that into a credit + piece number,
@@ -17,15 +16,24 @@
 (function () {
   'use strict';
 
+  var ITEMS = [], SORTED = [], GRID = null, STATUS = null;
+
   function thumb(id, w) { return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 600); }
 
-  /* "Alice 2.png" -> {creator:'Alice', n:2}; "Bob.jpg" -> {creator:'Bob', n:1} */
+  /* naming convention: "<creator>[ number].<ext>"  ->  "Edel 2.jpg" = Edel, #2.
+     a missing number is always treated as the first. */
   function parseName(name) {
     var base = String(name || '').replace(/\.[a-z0-9]+$/i, '').trim();
     var m = base.match(/^(.*?)[\s._-]*(\d+)\s*$/);
-    if (m && m[1].trim()) return { creator: m[1].trim(), n: parseInt(m[2], 10) || 1 };
-    return { creator: base || 'anon', n: 1 };
+    if (m && m[1].trim()) return { creator: m[1].trim(), n: parseInt(m[2], 10) || 1, hasNum: true };
+    return { creator: base || 'anon', n: 1, hasNum: false };
   }
+
+  function ord(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function possSuffix(name) { return /s$/i.test(name) ? "'" : "'s"; }      // "Chris'" vs "Edel's"
+  /* personality lives here: "Edel's 2nd fanart", "Calista Dela Cruz's fanart" */
+  function captionText(it) { var head = it.creator + possSuffix(it.creator); return it.count > 1 ? (head + ' ' + ord(it.n) + ' fanart') : (head + ' fanart'); }
+  function captionHTML(it) { var head = '<b>' + esc(it.creator) + '</b>' + possSuffix(it.creator); return it.count > 1 ? (head + ' ' + ord(it.n) + ' fanart') : (head + ' fanart'); }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -33,7 +41,7 @@
     });
   }
 
-  function buildLightbox(items) {
+  function buildLightbox() {
     var lb = document.getElementById('fa_lb');
     if (lb) return lb;
     lb = document.createElement('div');
@@ -45,10 +53,10 @@
     document.body.appendChild(lb);
     var img = lb.querySelector('img'), cap = lb.querySelector('.fa_cap'), idx = 0;
     function show(i) {
-      idx = (i + items.length) % items.length;
-      var it = items[idx];
+      idx = (i + SORTED.length) % SORTED.length;     // always follows the current sort order
+      var it = SORTED[idx];
       img.src = thumb(it.id, 1600);
-      cap.innerHTML = 'by <b>' + esc(it.creator) + '</b>' + (it.count > 1 ? ' · #' + it.n + ' of ' + it.count : '');
+      cap.innerHTML = '✦ ' + captionHTML(it);
     }
     lb._open = function (i) { show(i); lb.classList.add('on'); };
     function close() { lb.classList.remove('on'); img.src = ''; }
@@ -65,35 +73,70 @@
     return lb;
   }
 
-  function render(grid, status, art) {
-    /* parse + count per creator */
-    var counts = {};
-    var items = art.map(function (a) {
-      var p = parseName(a.name);
-      counts[p.creator] = (counts[p.creator] || 0) + 1;
-      return { id: a.id, name: a.name, creator: p.creator, n: p.n };
+  /* attach creator / piece-number / per-creator count to every file */
+  function prep(art) {
+    var groups = {};
+    art.forEach(function (a) {
+      var p = parseName(a.name), key = p.creator.toLowerCase();
+      if (!groups[key]) groups[key] = { display: p.creator, count: 0 };
+      if (!p.hasNum) groups[key].display = p.creator;     // a no-number file sets the canonical casing
+      groups[key].count++;
     });
-    items.forEach(function (it) { it.count = counts[it.creator]; });
-    /* group by creator (creators alphabetical, pieces by number) */
-    items.sort(function (a, b) {
-      return a.creator.toLowerCase() < b.creator.toLowerCase() ? -1
-        : a.creator.toLowerCase() > b.creator.toLowerCase() ? 1 : (a.n - b.n);
+    return art.map(function (a) {
+      var p = parseName(a.name), g = groups[p.creator.toLowerCase()];
+      return { id: a.id, name: a.name, pub: a.pub || 0, creator: g.display, key: p.creator.toLowerCase(), n: p.n, count: g.count };
     });
+  }
 
-    var lb = buildLightbox(items);
-    grid.removeAttribute('aria-busy');
-    grid.innerHTML = items.map(function (it, i) {
-      var sub = it.count > 1 ? ('<span class="n">#' + it.n + '/' + it.count + '</span>') : '';
-      return '<figure class="fa_tile" data-i="' + i + '">'
-        + '<img loading="lazy" src="' + thumb(it.id, 600) + '" alt="fan art by ' + esc(it.creator) + '">'
-        + '<figcaption class="fa_credit"><b>' + esc(it.creator) + '</b>' + sub + '</figcaption></figure>';
-    }).join('');
-    Array.prototype.forEach.call(grid.querySelectorAll('.fa_tile'), function (t) {
+  /* Always grouped by creator. Creator groups are ordered by their newest *published* piece
+     (frozen at first-seen, so edits don't reorder); pieces inside a creator go by number. */
+  function sortItems(items) {
+    var groups = {};
+    items.forEach(function (it) {
+      var g = groups[it.key] || (groups[it.key] = { display: it.creator, items: [], newest: 0 });
+      g.items.push(it); if (it.pub > g.newest) g.newest = it.pub;
+    });
+    var keys = Object.keys(groups);
+    keys.sort(function (a, b) { return (groups[b].newest - groups[a].newest) || (groups[a].display.toLowerCase() < groups[b].display.toLowerCase() ? -1 : 1); });
+    var out = [];
+    keys.forEach(function (k) {
+      groups[k].items.sort(function (a, b) { return (a.n - b.n) || a.name.localeCompare(b.name, undefined, { numeric: true }); });
+      groups[k].items.forEach(function (it) { out.push(it); });
+    });
+    return out;
+  }
+
+  function draw() {
+    SORTED = sortItems(ITEMS);
+    var lb = buildLightbox();
+    GRID.removeAttribute('aria-busy');
+    var html = '', cur = null;
+    SORTED.forEach(function (it, i) {
+      if (it.key !== cur) {                                // new creator -> a full-width section header (always grouped)
+        cur = it.key;
+        html += '<h3 class="fa_ghead">' + esc(it.creator)
+          + (it.count > 1 ? '<span class="fa_gcount">' + it.count + ' pieces</span>' : '') + '</h3>';
+      }
+      var rot = ((i * 41) % 5) - 2;                        // deterministic -2..2° scrapbook tilt
+      var chip = it.count > 1 ? ('<span class="fa_num">' + it.n + '</span>') : '';
+      var capInner = it.count > 1 ? (ord(it.n) + ' fanart') : '';
+      html += '<figure class="fa_tile" data-i="' + i + '" style="--rot:' + rot + 'deg">' + chip
+        + '<img loading="lazy" src="' + thumb(it.id, 600) + '" alt="' + esc(captionText(it)) + '">'
+        + (capInner ? ('<figcaption class="fa_credit">' + capInner + '</figcaption>') : '') + '</figure>';
+    });
+    GRID.innerHTML = html;
+    Array.prototype.forEach.call(GRID.querySelectorAll('.fa_tile'), function (t) {
       t.addEventListener('click', function () { lb._open(+t.dataset.i); });
     });
+    if (STATUS) {
+      var artists = {}; ITEMS.forEach(function (it) { artists[it.key] = 1; }); var na = Object.keys(artists).length;
+      STATUS.innerHTML = '<b>' + ITEMS.length + '</b> piece' + (ITEMS.length === 1 ? '' : 's')
+        + ' from <b>' + na + '</b> artist' + (na === 1 ? '' : 's') + ' · newest first · tap one to enlarge ✦';
+    }
+  }
 
-    var artists = Object.keys(counts).length;
-    if (status) status.innerHTML = '<b>' + items.length + '</b> piece' + (items.length === 1 ? '' : 's') + ' from <b>' + artists + '</b> artist' + (artists === 1 ? '' : 's') + ' · click to enlarge';
+  function render(grid, status, art) {
+    GRID = grid; STATUS = status; ITEMS = prep(art); draw();
   }
 
   function init() {
@@ -105,47 +148,47 @@
       .then(function (cfg) {
         cfg = cfg || {};
         var folderId = cfg.folderId || '';
-        /* 1) live Drive API (if an API key is configured) -> credited gallery */
+        var manifest = (Array.isArray(cfg.art) ? cfg.art : []).filter(function (a) { return a && a.id && a.name; });
+        /* PRIMARY = live Drive (true publish order); manifest is only the fallback. */
         if (cfg.apiKey && folderId) {
+          if (status) status.innerHTML = 'loading live from Drive…';
           driveList(folderId, cfg.apiKey)
-            .then(function (art) { done(grid, status, art, folderId); })
-            .catch(function () { done(grid, status, [], folderId); });
+            .then(function (art) { done(grid, status, (art && art.length) ? art : manifest, folderId); })
+            .catch(function () { done(grid, status, manifest, folderId); });   // Drive failed -> backup
           return;
         }
-        /* 2) committed manifest art[] -> credited gallery */
-        var art = (Array.isArray(cfg.art) ? cfg.art : []).filter(function (a) { return a && a.id && a.name; });
-        done(grid, status, art, folderId);
+        done(grid, status, manifest, folderId);
       })
       .catch(function () { done(grid, status, [], '1f8kTp0c46v4yJGJ3DantXlsPQZusCo2N'); });
   }
 
   function done(grid, status, art, folderId) {
-    if (art && art.length) { render(grid, status, art); }
-    else if (folderId) {
-      /* 3) no manifest/key -> embed the public Drive folder so it still shows live */
-      embedDrive(grid, folderId);
-      if (status) status.innerHTML = 'live from the <b>#CalArts</b> Drive folder';
-    } else if (status) { status.innerHTML = 'gallery coming soon'; }
+    if (art && art.length) { render(grid, status, art); return; }
+    /* no data yet — same gallery look, just an empty state (never the Google embed) */
+    grid.removeAttribute('aria-busy');
+    grid.innerHTML = '<p class="fa_empty">no fan art loaded yet — check back soon ✦</p>';
+    if (status) status.innerHTML = '';
   }
 
-  /* live list a public folder via the Drive API (needs an API key in fanart.json) */
+  /* LIVE list of a public folder via the Drive API (needs an API key in fanart.json).
+     This is the only browser-callable path — the embed view is CORS-blocked. We pull
+     createdTime so order is by true publish date (edits don't change it). Paginated. */
   function driveList(folderId, key) {
     var q = "'" + folderId + "' in parents and mimeType contains 'image/' and trashed = false";
-    var url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q)
-      + '&fields=' + encodeURIComponent('files(id,name)') + '&orderBy=name_natural&pageSize=1000&key=' + encodeURIComponent(key);
-    return fetch(url).then(function (r) { return r.json(); }).then(function (j) {
-      if (j.error) throw j.error;
-      return (j.files || []).map(function (f) { return { id: f.id, name: f.name }; });
-    });
+    var base = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q)
+      + '&fields=' + encodeURIComponent('nextPageToken,files(id,name,createdTime)')
+      + '&pageSize=1000&key=' + encodeURIComponent(key);
+    var all = [];
+    function page(tok) {
+      return fetch(base + (tok ? '&pageToken=' + tok : '')).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.error) throw j.error;
+        (j.files || []).forEach(function (f) { all.push({ id: f.id, name: f.name, pub: Date.parse(f.createdTime) || 0 }); });
+        return j.nextPageToken ? page(j.nextPageToken) : all;
+      });
+    }
+    return page('');
   }
 
-  /* zero-setup fallback: Google's own grid view of the public folder */
-  function embedDrive(grid, folderId) {
-    grid.removeAttribute('aria-busy');
-    grid.classList.add('fa_embedwrap');
-    grid.innerHTML = '<iframe class="fa_embed" src="https://drive.google.com/embeddedfolderview?id='
-      + encodeURIComponent(folderId) + '#grid" loading="lazy" title="Calamyty fan art (Google Drive)"></iframe>';
-  }
 
   if (window.__includesDone) init();
   else document.addEventListener('includes:done', init);

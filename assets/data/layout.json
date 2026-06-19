@@ -19,7 +19,11 @@
   },
   "projects": {
     "sections": [
-      { "id": "intro", "label": "Projects intro + repo grid", "include": "/assets/layout/body/projects_intro.html", "enabled": true }
+      { "id": "intro", "label": "Projects", "include": "/assets/layout/body/projects_intro.html", "enabled": true },
+      { "id": "look", "label": "Your look", "enabled": true },
+      { "id": "live", "label": "Go live", "enabled": true },
+      { "id": "extras", "label": "Extras", "enabled": true },
+      { "id": "github", "label": "GitHub", "enabled": true }
     ]
   }
 }

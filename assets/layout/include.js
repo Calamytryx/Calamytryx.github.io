@@ -8,6 +8,19 @@
 (function () {
   'use strict';
 
+  /* sections are injected asynchronously, so the document is near-empty at load
+     and grows afterwards. with scroll-snap-type:y mandatory the browser restores
+     the old scroll offset and snaps onto the LAST snap target (the 100vh footer),
+     dumping you at the bottom — worst after a reload. take scroll control ourselves. */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+  function restore_scroll() {
+    var id = (location.hash || '').slice(1);
+    var el = id && document.getElementById(id);
+    if (el) { el.scrollIntoView(); return; }
+    window.scrollTo(0, 0);
+  }
+
   async function inject_all() {
     /* section order/visibility is driven by /assets/data/layout.json.
        a <main data-sections> element gets its body partials (re)built from it;
@@ -29,6 +42,11 @@
     window.__includesDone = true;
     document.dispatchEvent(new CustomEvent('includes:done'));
     init_chrome();
+
+    /* now that the real content exists, pin to the top (or the hash target) —
+       once immediately, and again next frame after snap/layout settles. */
+    restore_scroll();
+    requestAnimationFrame(restore_scroll);
   }
 
   /* build the <main data-sections> body from layout.json for this page.

@@ -59,8 +59,20 @@
   button.act:hover{border-color:var(--blood);color:var(--blood)}
   button.x{padding:2px 8px;color:var(--blood)}
   button.big{background:var(--blood);color:#000;border:none;font-weight:700;width:100%;padding:11px;letter-spacing:.5px;font-size:13px;margin-top:6px;cursor:pointer}
-  .stage{padding:18px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:12px}
-  .frame{border:2px solid var(--line);border-radius:8px;background:#000 url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"%3E%3Crect width="10" height="10" fill="%23222"/%3E%3Crect x="10" y="10" width="10" height="10" fill="%23222"/%3E%3C/svg%3E');background-size:20px 20px;width:100%;aspect-ratio:16/9;overflow:hidden;position:relative}
+  .stage{padding:18px;overflow:hidden;min-height:0;display:flex;flex-direction:column;gap:12px}
+  /* canvas-size bar — boot-maker style: define W×H, then choose fit vs actual (1:1) view */
+  .cvbar{display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+  .cvbar select,.cvbar input{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:5px}
+  .cvbar input[type=number]{width:78px}
+  .cvbar .seg{display:flex;border:2px solid var(--line);border-radius:4px;overflow:hidden}
+  .cvbar .seg button{background:var(--panel2);color:var(--dim);border:0;font-family:var(--mono);font-size:12px;padding:5px 11px;cursor:pointer}
+  .cvbar .seg button.on{background:var(--blood);color:#000}
+  .cvbar .dims{margin-left:auto;color:var(--txt)}
+  .cvbar .dims b{color:var(--blood);font-weight:400}
+  /* the viewport scrolls in 1:1 mode; the canvas is rendered at true pixels and visually scaled */
+  .cvview{flex:1 1 auto;min-height:260px;overflow:auto;display:flex;background:#050506;border:2px solid var(--line);border-radius:8px}
+  .cvsizer{position:relative;margin:auto;flex:0 0 auto}
+  .frame{position:absolute;top:0;left:0;transform-origin:0 0;overflow:hidden;background:#000 url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"%3E%3Crect width="10" height="10" fill="%23222"/%3E%3Crect x="10" y="10" width="10" height="10" fill="%23222"/%3E%3C/svg%3E');background-size:20px 20px}
   .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   .meta{color:var(--dim);font-size:11px;line-height:1.6}
   .meta b{color:var(--txt)}
@@ -88,15 +100,31 @@
 
   <div class="stage">
     <div class="meta" id="howto"></div>
-    <div class="frame"><iframe id="preview" title="preview"></iframe></div>
+    <div class="cvbar">
+      <span>canvas</span>
+      <select id="cvPreset">
+        <option value="1920×1080">1920×1080 · 16:9</option>
+        <option value="1280×720">1280×720 · 16:9</option>
+        <option value="2560×1440">2560×1440 · 16:9</option>
+        <option value="1080×1920">1080×1920 · 9:16</option>
+        <option value="1080×1080">1080×1080 · 1:1</option>
+        <option value="custom">custom…</option>
+      </select>
+      <input id="cvW" type="number" min="160" step="1" title="canvas width (px)">
+      <span>×</span>
+      <input id="cvH" type="number" min="90" step="1" title="canvas height (px)">
+      <span class="seg"><button id="cvFit" type="button">⤢ fit</button><button id="cvActual" type="button">1:1 actual</button></span>
+      <span class="dims" id="cvDims"></span>
+    </div>
+    <div class="cvview" id="cvView"><div class="cvsizer" id="cvSizer"><div class="frame" id="frame"><iframe id="preview" title="preview"></iframe></div></div></div>
     <div class="meta">
-      Live preview (chat/alert show demo). In OBS: <b>Sources → + → Browser → Local file</b>,
-      pick the downloaded <b>.html</b>, set size to your canvas. Fully self-contained (font &amp; sounds embedded).
+      Live preview (chat/alert show demo) shown on your <b>canvas</b> at true pixels. In OBS: <b>Sources → + → Browser → Local file</b>,
+      pick the downloaded <b>.html</b>, set the browser-source size to this canvas. Fully self-contained (font &amp; sounds embedded).
     </div>
 
     <div class="planner" id="planner">
       <div class="plbar">
-        <select id="plRes"><option>1920×1080</option><option>1280×720</option><option>2560×1440</option><option>1080×1920</option></select>
+        <select id="plRes"><option>1920×1080</option><option>1280×720</option><option>2560×1440</option><option>1080×1920</option><option>1080×1080</option></select>
         <span class="meta" style="margin:0">drag to move · corner = resize (keeps aspect) · edge = stretch · right-click for transform · numbers = exact OBS pixels (x,y · w×h)</span>
       </div>
       <div class="plstage" id="plStage"><div class="plcanvas" id="plCanvas"></div></div>
@@ -1082,7 +1110,7 @@ function renderFields(){
     var pn=document.createElement('button'); pn.className='act'; pn.style.marginTop='8px'; pn.textContent='⬇ download scene as PNG';
     pn.onclick=scenePng;
     var ph=document.createElement('div'); ph.className='hint'; ph.style.marginTop='6px';
-    ph.innerHTML='Saves a 1920×1080 snapshot named <b>'+(cfg.template||'scene')+'_N.png</b>. <span class="warn">A PNG is a still image — it won\'t run the countdown.</span> For a live countdown or clock, use the <b>Timer / clock</b> widget on top of the scene.';
+    ph.innerHTML='Saves a '+RES.w+'×'+RES.h+' snapshot named <b>'+(cfg.template||'scene')+'_N.png</b>. <span class="warn">A PNG is a still image — it won\'t run the countdown.</span> For a live countdown or clock, use the <b>Timer / clock</b> widget on top of the scene.';
     extra.appendChild(pn); extra.appendChild(ph);
   }
   if(current==='stinger'){
@@ -1092,7 +1120,7 @@ function renderFields(){
     wb.onclick=function(){ wb.disabled=true; var old=wb.textContent; wb.textContent='encoding…';
       stingerWebm(function(){ wb.disabled=false; wb.textContent=old; }); };
     var wh=document.createElement('div'); wh.className='hint'; wh.style.marginTop='6px';
-    wh.innerHTML='Encodes a 1920×1080 <b>'+secs+'s</b> alpha webm frame-by-frame (WebCodecs — fast, no screen-recording). In OBS: <b>Settings → Scene Transitions → + → Stinger</b>, pick the file, set <b>Transition Point ≈ '+tp+' ms</b>. <span class="warn">Alpha works in Firefox &amp; recent Chrome;</span> if a browser drops it (black background), record in Firefox or assemble PNG frames with <code>ffmpeg … -pix_fmt yuva420p</code>.';
+    wh.innerHTML='Encodes a '+RES.w+'×'+RES.h+' <b>'+secs+'s</b> alpha webm frame-by-frame (WebCodecs — fast, no screen-recording). In OBS: <b>Settings → Scene Transitions → + → Stinger</b>, pick the file, set <b>Transition Point ≈ '+tp+' ms</b>. <span class="warn">Alpha works in Firefox &amp; recent Chrome;</span> if a browser drops it (black background), record in Firefox or assemble PNG frames with <code>ffmpeg … -pix_fmt yuva420p</code>.';
     extra.appendChild(wb); extra.appendChild(wh);
   }
 }
@@ -1100,9 +1128,12 @@ function renderFields(){
 /* ----- render the scene preview to a 1920x1080 PNG (SVG foreignObject) ----- */
 var pngCount={};
 function scenePng(){
-  var W=1920,H=1080;
+  var W=RES.w,H=RES.h;
   var face=fontFace(cfg); if(cfg.fontGoogle) face='';  /* external @import won't rasterize inside an SVG image */
-  var css=sceneCSS(cfg)+themeChrome(cfg);              /* include theme chrome so chromed themes export correctly */
+  /* free-layout needs the same positioning CSS the live build adds, or the dragged
+     positions (inline left/top %) have nothing to position against and collapse. */
+  var fp=cfg.freePos?'html,body{height:100%;position:relative}.fpel{position:absolute;transform:translate(-50%,-50%)}':'';
+  var css=sceneCSS(cfg)+themeChrome(cfg)+fp;           /* include theme chrome so chromed themes export correctly */
   var body=sceneBody(Object.assign({},cfg,{demo:false}));
   var doc='<html xmlns="http://www.w3.org/1999/xhtml"><head><style>html,body{image-rendering:pixelated}'+face+css+'</style></head><body class="thm-'+(cfg.chrome||'simple')+'">'+body+'</body></html>';
   var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" style="image-rendering:pixelated"><foreignObject x="0" y="0" width="100%" height="100%">'+doc+'</foreignObject></svg>';
@@ -1126,7 +1157,7 @@ function scenePng(){
 function stingerWebm(done){
   var fin=function(){ if(done) done(); };
   if(!window.MediaRecorder || !document.createElement('canvas').captureStream){ alert('This browser can’t record canvas video. Use Firefox or a recent Chrome.'); return fin(); }
-  var W=1920,H=1080,fps=30;
+  var W=RES.w,H=RES.h,fps=30;
   var dur=Math.max(0.1,+cfg.dur||0.5), hold=Math.max(0,+cfg.hold||0.4), total=dur*2+hold;
   var style=cfg.style||'wipe', dir=cfg.dir||'left', stepped=(cfg.ease!=='smooth');
   var color=cfg.color||'#d11c1c', accent=cfg.accent||'#d11c1c', comp=compl(accent), fg=cfg.fg||'#fff';
@@ -1311,7 +1342,7 @@ var CURSOR_CSS="html,body{cursor:url('/assets/icons/cursors/png/default.png') 4 
 /* ===== scene free layout: the SAME OBS composer as the layout planner =====
    overlay boxes over the scene preview · select · drag-move · 8-handle resize
    (corner keeps aspect, edge stretches) · distance guides · snapping · right-click menu */
-var SC_REF={w:1920,h:1080}, scSel=null, scOV={w:1,h:1}, scZONE={cam:1,game:1,chat:1};
+var SC_REF={w:1920,h:1080}, scSel=null, scOV={w:1,h:1}, scZONE={cam:1,game:1,chat:1};  /* scene-composer ref; synced to the shared canvas (RES) at init + on setCanvas */
 var compMode='scene', composerOn=false;   /* 'scene' = per-[data-el] boxes; 'widget' = one box = PLACE[current] */
 function scEnsure(){
   if(document.getElementById('scOverlay')) return;
@@ -1325,7 +1356,7 @@ function scEnsure(){
    +".scg{position:absolute;inset:0;pointer-events:none;z-index:30;display:none}.scg.on{display:block}.scgl{position:absolute;background:#d11c1c;opacity:.85}.scgt{position:absolute;background:#d11c1c;color:#000;font-size:22px;line-height:1;padding:3px 8px;transform:translate(-50%,-50%);white-space:nowrap}.scgt.v{writing-mode:vertical-rl}"
    +".scmenu{position:fixed;display:none;background:var(--panel);border:2px solid var(--line);z-index:99999;min-width:200px;font-size:13px;color:var(--txt);box-shadow:6px 6px 0 rgba(0,0,0,.6)}.scmenu.on{display:block}.scmi{padding:8px 14px;cursor:pointer}.scmi:hover{background:#d11c1c;color:#000}.scsep{height:1px;background:var(--line);margin:4px 0}";
   document.head.appendChild(st);
-  var fr=document.querySelector('.frame'); fr.style.position='relative';
+  var fr=document.querySelector('.frame'); if(getComputedStyle(fr).position==='static') fr.style.position='relative';  /* frame is absolute (scaled canvas); only force a context if somehow static */
   var ov=document.createElement('div'); ov.id='scOverlay'; ov.className='off'; fr.appendChild(ov);
   ov.addEventListener('pointerdown',function(e){ if(e.target===ov||e.target.id==='scGuides'){ scDeselect(); } });
   var mn=document.createElement('div'); mn.className='scmenu'; mn.id='scMenu'; document.body.appendChild(mn);
@@ -1335,7 +1366,7 @@ function scEnsure(){
 function scDeselect(){ scSel=null; var ov=$('#scOverlay'); if(ov)Array.prototype.forEach.call(ov.querySelectorAll('.scb.sel'),function(b){b.classList.remove('sel');}); scDrawGuides(); }
 function sceneComposer(){
   scEnsure(); var ov=$('#scOverlay'), ifr=$('#preview'), d=ifr.contentDocument; if(!d){ ov.className='off'; return; }
-  ov.className=''; cfg.scenePos=cfg.scenePos||{}; var r=ifr.getBoundingClientRect(); scOV={w:r.width||1,h:r.height||1};
+  ov.className=''; cfg.scenePos=cfg.scenePos||{}; scOV={w:RES.w,h:RES.h};   /* overlay lives in true canvas px; the .frame transform handles visual scaling */
   ov.innerHTML='<div class="scg" id="scGuides"></div>';
   Array.prototype.forEach.call(d.querySelectorAll('[data-el]'),function(el){ var name=el.getAttribute('data-el'), b=el.getBoundingClientRect();
     scAddBox(ov,name,b.left,b.top,b.width,b.height,!!scZONE[name]); });
@@ -1356,8 +1387,8 @@ function scWire(box,name,resz){
       if(name==='banner'){ normPlace('banner'); var bc=CFGS.banner||(CFGS.banner=defaults('banner')); bc.boxH=Math.round(PLACE.banner.h); bc.anchor=PLACE.banner.y<=0?'top':'bottom'; }
       savePlanner(); } }
   function start(el,mode){ el.addEventListener('pointerdown',function(e){ if(e.button===2)return; e.preventDefault(); e.stopPropagation(); scSelect(name);
-    var sx=e.clientX,sy=e.clientY,b=R(),asp=(b.w/b.h)||1,mn=16,SN=10; el.setPointerCapture(e.pointerId);
-    function mv(ev){ var dx=ev.clientX-sx,dy=ev.clientY-sy,x=b.x,y=b.y,w=b.w,h=b.h;
+    var sx=e.clientX,sy=e.clientY,b=R(),asp=(b.w/b.h)||1,mn=16,SN=10,fs=frScale(); el.setPointerCapture(e.pointerId);
+    function mv(ev){ var dx=(ev.clientX-sx)/fs,dy=(ev.clientY-sy)/fs,x=b.x,y=b.y,w=b.w,h=b.h;
       if(mode==='move'){ x=b.x+dx;y=b.y+dy; if(Math.abs((x+w/2)-scOV.w/2)<SN)x=scOV.w/2-w/2; if(Math.abs((y+h/2)-scOV.h/2)<SN)y=scOV.h/2-h/2; if(Math.abs(x)<SN)x=0; if(Math.abs(y)<SN)y=0; if(Math.abs((x+w)-scOV.w)<SN)x=scOV.w-w; if(Math.abs((y+h)-scOV.h)<SN)y=scOV.h-h; }
       else if(mode.length===2){ var east=mode.indexOf('e')>=0,south=mode.indexOf('s')>=0; w=Math.max(mn,b.w+(east?dx:-dx)); h=Math.max(mn,w/asp); w=h*asp; x=east?b.x:b.x+b.w-w; y=south?b.y:b.y+b.h-h; }
       else { if(mode==='e')w=Math.max(mn,b.w+dx); else if(mode==='s')h=Math.max(mn,b.h+dy); else if(mode==='w'){w=Math.max(mn,b.w-dx);x=b.x+b.w-w;} else if(mode==='n'){h=Math.max(mn,b.h-dy);y=b.y+b.h-h;} }
@@ -1397,7 +1428,7 @@ function scZ(name,dir){ if(compMode==='scene'){ var SP=cfg.scenePos; var p=SP[na
 function widgetComposer(){
   scEnsure(); compMode='widget'; var ov=$('#scOverlay'), ifr=$('#preview'); if(!ov)return;
   var name=current; if(!PLACE[name]){ ov.className='off'; return; }
-  ov.className=''; var r=ifr.getBoundingClientRect(); scOV={w:r.width||1,h:r.height||1};
+  ov.className=''; scOV={w:RES.w,h:RES.h};   /* overlay in true canvas px; .frame transform scales it */
   ov.innerHTML='<div class="scg" id="scGuides"></div>';
   if(!PLACE[name].on) PLACE[name].on=true; normPlace(name);
   var p=PLACE[name], fx=scOV.w/RES.w, fy=scOV.h/RES.h;
@@ -1437,20 +1468,21 @@ $('#exportBtn').onclick=function(){ download(WIDGETS[current].file, WIDGETS[curr
 var CFGS={};                                  /* per-widget configs (persist across tabs + feed the planner) */
 var CFG_LS='streammk_cfgs_v1', STORED_CFGS={};
 try{ var _c=JSON.parse(localStorage.getItem(CFG_LS)||'null'); if(_c&&typeof _c==='object') STORED_CFGS=_c; }catch(e){}
-/* persist edits + scene free-layout positions; skip big data-URLs (images/sounds) so we don't blow the localStorage quota */
-function saveCfgs(){ try{ var out={}; Object.keys(CFGS).forEach(function(k){ var c=CFGS[k]; if(!c)return; var o={}; Object.keys(c).forEach(function(p){ var v=c[p]; if(typeof v==='string'&&v.length>2000&&v.indexOf('data:')===0)return; o[p]=v; }); out[k]=o; }); localStorage.setItem(CFG_LS,JSON.stringify(out)); }catch(e){} }
-var PL_LS='streammk_layout_v1', RES={w:1920,h:1080};
+/* persist edits + scene free-layout positions; skip ANY big string (images/sounds/base64)
+   so a heavy embedded asset can't blow the quota and silently drop the whole save (incl. freePos/positions) */
+function saveCfgs(){ try{ var out={}; Object.keys(CFGS).forEach(function(k){ var c=CFGS[k]; if(!c)return; var o={}; Object.keys(c).forEach(function(p){ var v=c[p]; if(typeof v==='string'&&v.length>2000)return; o[p]=v; }); out[k]=o; }); localStorage.setItem(CFG_LS,JSON.stringify(out)); }catch(e){} }
+var PL_LS='streammk_layout_v1', RES={w:1920,h:1080}, cvFitMode=true;   /* RES = the shared canvas; cvFitMode: true=fit-to-view, false=1:1 actual */
 var PLACE={ scene:{x:0,y:0,w:1920,h:1080,z:1,on:false}, banner:{x:0,y:1024,w:1920,h:56,z:6,on:true},
   chat:{x:36,y:486,w:440,h:560,z:4,on:true}, alert:{x:600,y:90,w:720,h:360,z:7,on:true}, timer:{x:1560,y:36,w:328,h:120,z:5,on:true} };
-try{ var _s=JSON.parse(localStorage.getItem(PL_LS)||'null'); if(_s){ if(_s.RES)RES=_s.RES; if(_s.PLACE)Object.keys(_s.PLACE).forEach(function(k){ if(PLACE[k])PLACE[k]=_s.PLACE[k]; }); } }catch(e){}
-function savePlanner(){ try{ localStorage.setItem(PL_LS,JSON.stringify({RES:RES,PLACE:PLACE})); }catch(e){} }
+try{ var _s=JSON.parse(localStorage.getItem(PL_LS)||'null'); if(_s){ if(_s.RES)RES=_s.RES; if(typeof _s.fitMode==='boolean')cvFitMode=_s.fitMode; if(_s.PLACE)Object.keys(_s.PLACE).forEach(function(k){ if(PLACE[k])PLACE[k]=_s.PLACE[k]; }); } }catch(e){}
+function savePlanner(){ try{ localStorage.setItem(PL_LS,JSON.stringify({RES:RES,PLACE:PLACE,fitMode:cvFitMode})); }catch(e){} }
 
 var DEF_PLACE=JSON.parse(JSON.stringify(PLACE));   /* for "reset" */
 var selId=null;
 
 (function(){ var st=document.createElement('style'); st.textContent=
   ".tbtns{margin-left:auto;display:flex;gap:8px;align-items:center}#compBtn,#planBtn{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:6px 10px;cursor:pointer}#compBtn:hover,#compBtn.on,#planBtn:hover,#planBtn.on{border-color:var(--blood);color:#fff}.toolbar a{margin-left:14px}"
- +".planner{display:none;flex-direction:column;gap:8px;height:100%;min-height:0}.stage.planning .frame,.stage.planning>.meta{display:none}.stage.planning .planner{display:flex}"
+ +".planner{display:none;flex-direction:column;gap:8px;height:100%;min-height:0}.stage.planning .cvbar,.stage.planning .cvview,.stage.planning>.meta{display:none}.stage.planning .planner{display:flex}"
  +".plbar{display:flex;align-items:center;gap:10px;flex:0 0 auto}.plbar select{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:6px}"
  +".plstage{position:relative;flex:1 1 auto;min-height:0;background:#050506;border:2px solid var(--line);overflow:hidden}"
  +".plcanvas{position:absolute;top:0;left:0;transform-origin:0 0;background:repeating-conic-gradient(#0c0c10 0% 25%,#101016 0% 50%) 0/40px 40px;outline:1px solid #2a2a30}"
@@ -1567,17 +1599,59 @@ $('#planBtn').onclick=function(){ var stg=document.querySelector('.stage'); var 
   stg.classList.toggle('planning',on); $('#planBtn').classList.toggle('on',on); if(on) buildPlanner(); };
 /* compose = scene free-layout only */
 $('#compBtn').onclick=function(){ if(current!=='scene')return; cfg.freePos=!cfg.freePos; if(typeof renderFields==='function')renderFields(); update(); };
-$('#plRes').onchange=function(){ var v=this.value.split('×'); var nw=+v[0],nh=+v[1]; var fx=nw/RES.w, fy=nh/RES.h;   /* reposition + rescale everything to the new canvas so it still looks right */
-  Object.keys(PLACE).forEach(function(k){ var p=PLACE[k]; p.x=Math.round(p.x*fx); p.y=Math.round(p.y*fy); p.w=Math.round(p.w*fx); p.h=Math.round(p.h*fy); });
-  RES={w:nw,h:nh}; Object.keys(PLACE).forEach(normPlace); savePlanner(); buildPlanner(); };
+$('#plRes').onchange=function(){ var v=this.value.split('×'); setCanvas(+v[0],+v[1]); };
 $('#plStage').addEventListener('pointerdown',function(e){ if(e.target.id==='plStage'||e.target.id==='plCanvas') deselect(); });
 document.addEventListener('pointerdown',function(e){ var m=$('#plMenu'); if(m&&m.classList.contains('on')&&!m.contains(e.target)) hideMenu(); });
 document.addEventListener('keydown',function(e){ if(!document.querySelector('.stage').classList.contains('planning'))return;
   if(e.key==='Escape'){ hideMenu(); deselect(); } if(selId&&(e.key==='Delete')){ tHide(selId); } });
 window.addEventListener('resize',function(){ if(document.querySelector('.stage').classList.contains('planning')){ fitPlanner(); drawGuides(); } });
 
+/* ===================== canvas size + fit/actual view (boot-maker style) =====================
+   RES is the shared canvas (also used by the planner + scene/stinger exports). The preview
+   renders at TRUE canvas pixels and the .frame is visually scaled: "fit" shrinks it to the
+   viewport, "1:1 actual" shows real pixels with scrolling. */
+function frScale(){ var fr=$('#frame'); return fr?(+fr.dataset.scale||1):1; }
+function fitPreview(){
+  var view=$('#cvView'), sizer=$('#cvSizer'), fr=$('#frame'); if(!view||!fr)return;
+  fr.style.width=RES.w+'px'; fr.style.height=RES.h+'px';
+  var s=1;
+  if(cvFitMode){ s=Math.min((view.clientWidth-2)/RES.w,(view.clientHeight-2)/RES.h); if(!isFinite(s)||s<=0)s=1; }
+  fr.dataset.scale=s; fr.style.transform='scale('+s+')';
+  if(sizer){ sizer.style.width=Math.round(RES.w*s)+'px'; sizer.style.height=Math.round(RES.h*s)+'px'; }
+}
+function syncCanvasUI(){
+  var w=$('#cvW'),h=$('#cvH'),pre=$('#cvPreset'),dims=$('#cvDims');
+  if(w&&document.activeElement!==w)w.value=RES.w; if(h&&document.activeElement!==h)h.value=RES.h;
+  if(pre){ var key=RES.w+'×'+RES.h, has=false; Array.prototype.forEach.call(pre.options,function(o){ if(o.value===key)has=true; }); pre.value=has?key:'custom'; }
+  var plr=$('#plRes'); if(plr){ var pk=RES.w+'×'+RES.h; Array.prototype.forEach.call(plr.options,function(o){ if(o.value===pk)plr.value=pk; }); }
+  var bf=$('#cvFit'),ba=$('#cvActual'); if(bf)bf.classList.toggle('on',cvFitMode); if(ba)ba.classList.toggle('on',!cvFitMode);
+  if(dims)dims.innerHTML='<b>'+RES.w+'×'+RES.h+'</b> · '+(cvFitMode?('fit '+Math.round(frScale()*100)+'%'):'1:1 actual');
+}
+function setCanvas(nw,nh){
+  nw=Math.max(160,Math.round(nw||RES.w)); nh=Math.max(90,Math.round(nh||RES.h));
+  if(nw!==RES.w||nh!==RES.h){
+    var fx=nw/RES.w, fy=nh/RES.h;
+    Object.keys(PLACE).forEach(function(k){ var p=PLACE[k]; p.x=Math.round(p.x*fx); p.y=Math.round(p.y*fy); p.w=Math.round(p.w*fx); p.h=Math.round(p.h*fy); });
+    RES={w:nw,h:nh}; SC_REF.w=nw; SC_REF.h=nh; Object.keys(PLACE).forEach(normPlace);
+  }
+  savePlanner(); fitPreview(); syncCanvasUI();
+  if(document.querySelector('.stage').classList.contains('planning')) buildPlanner();
+  if(current==='scene'||current==='stinger') renderFields();   /* refresh export hints that quote the canvas size */
+  update();   /* rebuild the preview at the new canvas size — scene free-layout reflows to the new aspect, and the composer re-attaches via the iframe onload */
+}
+function setFitMode(fit){ cvFitMode=!!fit; savePlanner(); fitPreview(); syncCanvasUI(); if(current==='scene'&&cfg.freePos&&$('#preview').contentDocument) sceneComposer(); }
+$('#cvPreset').onchange=function(){ if(this.value==='custom'){ var w=$('#cvW'); if(w)w.focus(); return; } var v=this.value.split('×'); setCanvas(+v[0],+v[1]); };
+function cvNum(){ setCanvas(+$('#cvW').value||RES.w, +$('#cvH').value||RES.h); }
+$('#cvW').onchange=cvNum; $('#cvH').onchange=cvNum;
+$('#cvFit').onclick=function(){ setFitMode(true); };
+$('#cvActual').onclick=function(){ setFitMode(false); };
+window.addEventListener('resize',function(){ fitPreview(); syncCanvasUI(); });
+
+SC_REF.w=RES.w; SC_REF.h=RES.h;   /* sync scene-composer ref to the loaded canvas */
 cfg=CFGS[current]=defaults(current);
 renderTabs(); renderFields(); update();
+fitPreview(); syncCanvasUI();
+requestAnimationFrame(function(){ fitPreview(); syncCanvasUI(); });
 </script>
 </body>
 </html>
