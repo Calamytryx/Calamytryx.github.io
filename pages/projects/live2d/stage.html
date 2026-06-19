@@ -224,7 +224,8 @@
         <a class="fbtn" id="dl" href="/pages/projects/live2d/stage.html" download="live2d_mk_stage.html" style="display:block;text-align:center;margin-top:6px">⬇ download local copy</a>
         <div class="hint">
           <b>Browser Source:</b> add this page's URL, right-click the source → <b>Interact</b> to load your model, turn the backdrop OFF, press <b>H</b> to hide this panel.<br><br>
-          <b>Camera won't turn on in OBS?</b> OBS's browser blocks camera access — there's no allow-popup and no camera picker, so webcam tracking is denied. Two ways around it:<br>
+          <b>Camera won't turn on in OBS?</b> OBS's browser blocks camera access — there's no allow-popup and no camera picker, so webcam tracking is denied. Three ways around it:<br>
+          • <b>Launch OBS with camera flags (easiest):</b> start OBS with <code>--use-fake-ui-for-media-stream --enable-media-stream</code> — this auto-grants the browser-source camera (no prompt). <i>Windows:</i> right-click the OBS shortcut → Properties → add the flags to the end of <b>Target</b>, e.g. <code>obs64.exe --use-fake-ui-for-media-stream --enable-media-stream</code>. <i>macOS:</i> <code>open -a OBS --args --use-fake-ui-for-media-stream --enable-media-stream</code>. Then add the Browser Source again.<br>
           • <b>Window-Capture</b> a normal browser tab running this page instead (the real browser shows the camera prompt + picker), or<br>
           • use <b>OpenSeeFace</b> locally: download the local copy above into your repo clone, get <a href="https://github.com/emilianavt/OpenSeeFace/releases/latest" target="_blank" rel="noopener">OpenSeeFace</a>, run its tracker + <code>osf_bridge.js</code>, open the page from the bridge at <b>http://localhost</b>, then pick tracking source <b>OpenSeeFace</b>. (A hosted https page can't reach a local socket — that's why the local copy is needed.)
         </div>
