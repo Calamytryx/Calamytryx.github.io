@@ -254,6 +254,18 @@
 
 <script>
 'use strict';
+/* pixi-live2d folder-loader fixes for VTS models:
+   1) validateFiles compares resolveURL (raw) vs encodeURI(webkitRelativePath) — Unicode paths fail.
+   2) createSettings uses find(*model.json) — VTS items_pinned_to_model.json wins over *.model3.json. */
+(function(){
+  const p=PIXI.live2d.ModelSettings&&PIXI.live2d.ModelSettings.prototype;
+  if(p&&!p._pathFix){ const was=p.validateFiles; p.validateFiles=function(paths){ return was.call(this,paths.map(x=>{ try{return decodeURI(x);}catch(e){return x;} })); }; p._pathFix=1; }
+  const FL=PIXI.live2d.FileLoader; if(!FL||FL._vtsFix)return;
+  const mkSettings=f=>f.find(x=>/\.model3\.json$/i.test(x.name))||f.find(x=>/\.model\.json$/i.test(x.name)&&!/\.model3\.json$/i.test(x.name));
+  const wasCS=FL.createSettings;
+  FL.createSettings=function(files){ const sel=mkSettings(files); return wasCS.call(this,sel?[sel,...files.filter(x=>x!==sel)]:files); };
+  FL._vtsFix=1;
+})();
 const $=s=>document.querySelector(s);
 const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
 const toast=(m,keep)=>{const t=$('#toast');if(m==null){t.style.display='none';return;}t.style.display='block';t.textContent=m;if(!keep){clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',2800);}};
