@@ -1,12 +1,12 @@
 [
   {
-    "name": "musang",
-    "html_url": "https://github.com/Calamytryx/musang",
-    "description": "Text-based application launcher for KDE Plasma, inspired by Mako by rama-io.",
-    "language": "QML",
-    "stargazers_count": 1,
-    "updated_at": "2026-06-27T15:22:24Z",
-    "default_branch": "main"
+    "name": "Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
+    "html_url": "https://github.com/Calamytryx/Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
+    "description": "AI-Driven System for Efficient Scheduling and Performance Assessment of College Research Presentations in Lyceum of the Philippines University of Cavite Department of Computer Studies (LPU-C DCS)",
+    "language": "PHP",
+    "stargazers_count": 2,
+    "updated_at": "2026-06-29T06:37:04Z",
+    "default_branch": "feature/ga-cp-upgrade"
   },
   {
     "name": "Calamytryx.github.io",
@@ -14,17 +14,17 @@
     "description": null,
     "language": "HTML",
     "stargazers_count": 0,
-    "updated_at": "2026-06-27T12:51:55Z",
+    "updated_at": "2026-06-28T08:48:55Z",
     "default_branch": "main"
   },
   {
-    "name": "Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
-    "html_url": "https://github.com/Calamytryx/Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
-    "description": "AI-Driven System for Efficient Scheduling and Performance Assessment of College Research Presentations in Lyceum of the Philippines University of Cavite Department of Computer Studies (LPU-C DCS)",
-    "language": "PHP",
-    "stargazers_count": 2,
-    "updated_at": "2026-06-17T03:10:44Z",
-    "default_branch": "feature/ga-cp-upgrade"
+    "name": "musang",
+    "html_url": "https://github.com/Calamytryx/musang",
+    "description": "Text-based application launcher for KDE Plasma, inspired by Mako by rama-io.",
+    "language": "QML",
+    "stargazers_count": 1,
+    "updated_at": "2026-06-27T15:22:24Z",
+    "default_branch": "main"
   },
   {
     "name": "MineLauncher",
