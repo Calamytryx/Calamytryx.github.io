@@ -1,11 +1,20 @@
 [
   {
+    "name": "musang",
+    "html_url": "https://github.com/Calamytryx/musang",
+    "description": "Text-based application launcher for KDE Plasma, inspired by Mako by rama-io.",
+    "language": "QML",
+    "stargazers_count": 1,
+    "updated_at": "2026-07-02T06:19:48Z",
+    "default_branch": "main"
+  },
+  {
     "name": "Calamytryx.github.io",
     "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
     "description": null,
     "language": "HTML",
     "stargazers_count": 0,
-    "updated_at": "2026-06-30T09:31:07Z",
+    "updated_at": "2026-07-01T09:41:54Z",
     "default_branch": "main"
   },
   {
@@ -16,15 +25,6 @@
     "stargazers_count": 2,
     "updated_at": "2026-06-29T06:37:04Z",
     "default_branch": "feature/ga-cp-upgrade"
-  },
-  {
-    "name": "musang",
-    "html_url": "https://github.com/Calamytryx/musang",
-    "description": "Text-based application launcher for KDE Plasma, inspired by Mako by rama-io.",
-    "language": "QML",
-    "stargazers_count": 1,
-    "updated_at": "2026-06-27T15:22:24Z",
-    "default_branch": "main"
   },
   {
     "name": "MineLauncher",
