@@ -1,20 +1,20 @@
 [
   {
+    "name": "Calamytryx.github.io",
+    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
+    "description": null,
+    "language": "HTML",
+    "stargazers_count": 0,
+    "updated_at": "2026-07-02T08:53:24Z",
+    "default_branch": "main"
+  },
+  {
     "name": "musang",
     "html_url": "https://github.com/Calamytryx/musang",
     "description": "Text-based application launcher for KDE Plasma, inspired by Mako by rama-io.",
     "language": "QML",
     "stargazers_count": 1,
     "updated_at": "2026-07-02T06:19:48Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "Calamytryx.github.io",
-    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
-    "description": null,
-    "language": "HTML",
-    "stargazers_count": 0,
-    "updated_at": "2026-07-01T09:41:54Z",
     "default_branch": "main"
   },
   {
