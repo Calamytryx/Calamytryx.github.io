@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>search://</title>
+<style>
+@font-face {
+    font-family: 'Jersey 25';
+    src: url('https://raw.githubusercontent.com/scfried/soft-type-jersey/main/fonts/webfonts/Jersey25-Regular.woff2') format('woff2');
+}
+
+* {
+    font-family: 'Jersey 25', monospace !important;
+    image-rendering: pixelated !important;
+    border-radius: 0px !important;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:#0a0a0c;
+  --panel:#141418;
+  --panel2:#1b1b21;
+  --line:#2a2a30;
+  --txt:#cdcdd2;
+  --dim:#6b6b73;
+  --blood:#d11c1c;
+  --glitch-alt:#2ee3e3;
+  --shadow:6px 6px 0 #000;
+}
+
+html, body { height: 100vh;max-height:100vh background: var(--bg); color: var(--txt); }
+body { position: relative; overflow-x: hidden; }
+::selection { background: var(--blood); color: #000; }
+
+/* scanlines + grain */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,.22) 3px, rgba(0,0,0,0) 4px);
+  opacity: .5;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .04; mix-blend-mode: screen;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 60;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(10,10,12,.85);
+  border-bottom: 2px solid var(--line);
+}
+.burger {
+  background: transparent; border: 2px solid var(--line);
+  width: 40px; height: 36px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  transition: border-color .1s;
+}
+.burger:hover { border-color: var(--blood); }
+.burger span { width: 18px; height: 2px; background: var(--txt); display: block; }
+.burger:hover span { background: var(--blood); }
+.brand { color: var(--dim); font-size: .8rem; letter-spacing: 3px; text-transform: uppercase; }
+.brand b { color: var(--blood); }
+.clock { color: var(--dim); font-size: .8rem; letter-spacing: 1px; min-width: 64px; text-align: right; }
+
+/* ---------- sidebar ---------- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 70;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.overlay.open { opacity: 1; pointer-events: auto; }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; height: 100%; width: 280px; max-width: 82vw;
+  background: var(--panel); border-right: 2px solid var(--line);
+  z-index: 80; padding: 18px 16px 16px;
+  transform: translateX(-100%); transition: transform .22s ease;
+  overflow-y: auto;
+}
+.sidebar.open { transform: translateX(0); box-shadow: 10px 0 0 rgba(0,0,0,.4); }
+.sidebar_head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid var(--line);
+}
+.sidebar_head .title { color: #fff; font-size: 1.1rem; letter-spacing: 2px; }
+.sidebar_head .title span { color: var(--blood); }
+.closebtn {
+  background: transparent; border: 2px solid var(--line); color: var(--dim);
+  width: 30px; height: 30px; cursor: pointer; font-size: .9rem; line-height: 1;
+}
+.closebtn:hover { border-color: var(--blood); color: var(--blood); }
+
+.cat { margin-bottom: 20px; }
+.cat_label {
+  color: var(--blood); font-size: .7rem; letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.linklist { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.linklist a {
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--txt); text-decoration: none; font-size: .95rem;
+  padding: 9px 10px; border-left: 2px solid transparent;
+  transition: background .1s, border-color .1s, color .1s;
+}
+.linklist a:hover { background: var(--panel2); border-left-color: var(--blood); color: #fff; }
+.linklist a .arrow { color: var(--dim); font-size: .8rem; }
+.linklist a:hover .arrow { color: var(--blood); }
+
+/* ---------- main content ---------- */
+main {
+  min-height: 100vh; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 100px 20px 90px;
+}
+.wrap { width: 100%; max-width: 480px; position: relative; z-index: 1; }
+
+.title-wrap { text-align: center; margin-bottom: 6px; }
+.glitch {
+  position: relative; z-index: 0; display: inline-block;
+  font-size: 2.2rem; letter-spacing: 4px; color: #fff;
+}
+.glitch::before, .glitch::after {
+  content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;
+}
+.glitch::before { color: var(--blood); z-index: -2; }
+.glitch::after { color: var(--glitch-alt); z-index: -1; }
+@media (prefers-reduced-motion: no-preference) {
+  .glitch::before { animation: glitch_red 5s infinite; }
+  .glitch::after { animation: glitch_blue 5s infinite; }
+}
+@keyframes glitch_red {
+  0%,39%,45%,77%,83%,100% { transform: translate(0,0); }
+  40%,44% { transform: translate(-3px,-3px); }
+  78%,82% { transform: translate(-3px,-3px); }
+}
+@keyframes glitch_blue {
+  0%,39%,45%,77%,83%,100% { transform: translate(0,0); }
+  40%,44% { transform: translate(3px,3px); }
+  78%,82% { transform: translate(3px,3px); }
+}
+@media (prefers-reduced-motion: reduce) { .glitch::before, .glitch::after { display: none; } }
+
+.divider {
+  height: 10px; background: var(--blood);
+  -webkit-mask: repeating-linear-gradient(90deg,#000 0 10px,transparent 10px 20px);
+  mask: repeating-linear-gradient(90deg,#000 0 10px,transparent 10px 20px);
+  -webkit-mask-size: 20px 100%; mask-size: 20px 100%;
+  opacity: .9; margin-bottom: 22px;
+}
+
+.box { background: var(--panel); border: 2px solid var(--line); box-shadow: var(--shadow); padding: 18px; }
+.status { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 16px; color: var(--dim); }
+.status .prompt { color: var(--blood); }
+.cursor { display: inline-block; width: 7px; height: 13px; background: var(--blood); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+form { display: flex; flex-direction: column; gap: 12px; }
+.input-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel2); border: 2px solid var(--line); padding: 10px 12px;
+  transition: border-color .1s;
+}
+.input-row:focus-within { border-color: var(--blood); }
+.input-row span { color: var(--dim); }
+input[type="text"] {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--txt); font-family: inherit; font-size: 16px; caret-color: var(--blood);
+}
+input[type="text"]::placeholder { color: var(--dim); }
+
+button {
+  width: 100%;
+  background: transparent; color: var(--blood); border: 2px solid var(--blood);
+  font-family: inherit; font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+  padding: 10px; cursor: pointer; box-shadow: var(--shadow);
+  transition: transform .05s, box-shadow .05s, background .1s, color .1s;
+}
+button:hover, button:focus { background: var(--blood); color: #000; transform: translate(3px,3px); box-shadow: 3px 3px 0 #000; }
+button:active { transform: translate(6px,6px); box-shadow: 0 0 0 #000; }
+
+/* quick chips row */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
+.chip {
+  background: var(--panel); border: 2px solid var(--line); color: var(--txt);
+  text-decoration: none; font-size: .78rem; letter-spacing: 1px; text-transform: uppercase;
+  padding: 8px 12px; box-shadow: 4px 4px 0 #000;
+  transition: transform .06s, box-shadow .06s, border-color .1s, color .1s;
+}
+.chip:hover { border-color: var(--blood); color: #fff; transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #000; }
+
+/* ---------- footer status bar ---------- */
+.statusbar {
+  position: fixed; bottom: 0; left: 0; width: 100%; z-index: 60;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px;
+  background: rgba(10,10,12,.85);
+  border-top: 2px solid var(--line);
+  font-size: .72rem; letter-spacing: 1px; color: var(--dim);
+}
+.statusbar .dot {
+  display: inline-block; width: 8px; height: 8px; background: var(--blood);
+  margin-right: 6px; animation: blink 1.2s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .statusbar .dot { animation: none; } }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="burger" id="burgerBtn" aria-label="menu"><span></span><span></span><span></span></button>
+    <div class="brand">calamytryx<b>://</b>home</div>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar_head">
+      <div class="title">MENU<span>_</span></div>
+      <button class="closebtn" id="closeBtn">X</button>
+    </div>
+
+    <div class="cat">
+      <div class="cat_label">free stuff</div>
+      <ul class="linklist">
+        <li><a href="https://fmhy.net" target="_blank" rel="noopener">FMHY<span class="arrow">&#8594;</span></a></li>
+      </ul>
+    </div>
+
+    <div class="cat">
+      <div class="cat_label">ai tools</div>
+      <ul class="linklist">
+        <li><a href="https://claude.ai" target="_blank" rel="noopener">Claude<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://chatgpt.com" target="_blank" rel="noopener">ChatGPT<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://perplexity.ai" target="_blank" rel="noopener">Perplexity<span class="arrow">&#8594;</span></a></li>
+      </ul>
+    </div>
+
+    <div class="cat">
+      <div class="cat_label">dev</div>
+      <ul class="linklist">
+        <li><a href="https://github.com" target="_blank" rel="noopener">GitHub<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://developer.mozilla.org" target="_blank" rel="noopener">MDN Docs<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://stackoverflow.com" target="_blank" rel="noopener">Stack Overflow<span class="arrow">&#8594;</span></a></li>
+      </ul>
+    </div>
+
+    <div class="cat">
+      <div class="cat_label">media</div>
+      <ul class="linklist">
+        <li><a href="https://youtube.com" target="_blank" rel="noopener">YouTube<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://twitch.tv" target="_blank" rel="noopener">Twitch<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://reddit.com" target="_blank" rel="noopener">Reddit<span class="arrow">&#8594;</span></a></li>
+      </ul>
+    </div>
+
+    <div class="cat">
+      <div class="cat_label">productivity</div>
+      <ul class="linklist">
+        <li><a href="https://mail.google.com" target="_blank" rel="noopener">Gmail<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://drive.google.com" target="_blank" rel="noopener">Drive<span class="arrow">&#8594;</span></a></li>
+        <li><a href="https://calendar.google.com" target="_blank" rel="noopener">Calendar<span class="arrow">&#8594;</span></a></li>
+      </ul>
+    </div>
+
+    <div class="cat">
+      <div class="cat_label">misc</div>
+      <ul class="linklist">
+        <li><a href="https://calamytryx.github.io" target="_blank" rel="noopener">Calamytryx<span class="arrow">&#8594;</span></a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="wrap">
+      <div class="title-wrap"><span class="glitch" data-text="SEARCH">SEARCH</span></div>
+      <div class="divider"></div>
+      <div class="box">
+        <div class="status"><span class="prompt">&gt;</span><span>ready<span class="cursor"></span></span></div>
+        <form action="https://www.google.com/search" method="GET">
+          <div class="input-row">
+            <span>/</span>
+            <input type="text" name="q" placeholder="type query_" autofocus autocomplete="off">
+          </div>
+          <button type="submit">[ ENTER ]</button>
+        </form>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://fmhy.net" target="_blank" rel="noopener">FMHY</a>
+        <a class="chip" href="https://youtube.com" target="_blank" rel="noopener">YouTube</a>
+        <a class="chip" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+        <a class="chip" href="https://claude.ai" target="_blank" rel="noopener">Claude</a>
+        <a class="chip" href="https://calamytryx.github.io" target="_blank" rel="noopener">Calamytryx</a>
+      </div>
+    </div>
+  </main>
+
+  <div class="statusbar">
+    <span><span class="dot"></span>online</span>
+    <span id="dateline">loading_</span>
+  </div>
+
+  <script>
+    var burgerBtn = document.getElementById('burgerBtn');
+    var closeBtn = document.getElementById('closeBtn');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('overlay');
+
+    function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('open'); }
+    function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+
+    burgerBtn.addEventListener('click', openSidebar);
+    closeBtn.addEventListener('click', closeSidebar);
+    overlay.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeSidebar(); });
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function tick() {
+      var d = new Date();
+      document.getElementById('clock').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+      var days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+      document.getElementById('dateline').textContent = days[d.getDay()] + ' ' + pad(d.getDate()) + '.' + pad(d.getMonth()+1) + '.' + d.getFullYear();
+    }
+    tick();
+    setInterval(tick, 1000 * 15);
+  </script>
+</body>
+</html>
