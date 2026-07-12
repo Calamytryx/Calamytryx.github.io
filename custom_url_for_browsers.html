@@ -246,14 +246,21 @@ var burgerBtn = document.getElementById('burgerBtn');
 var closeBtn = document.getElementById('closeBtn');
 var sidebar = document.getElementById('sidebar');
 var overlay = document.getElementById('overlay');
+var searchInput = document.querySelector('input[name="q"]');
+
+function forceFocus(){ if (searchInput) searchInput.focus({ preventScroll: true }); }
 
 function openSidebar(){ sidebar.classList.add('open'); overlay.classList.add('open'); }
-function closeSidebar(){ sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+function closeSidebar(){ sidebar.classList.remove('open'); overlay.classList.remove('open'); forceFocus(); }
 
 burgerBtn.addEventListener('click', openSidebar);
 closeBtn.addEventListener('click', closeSidebar);
 overlay.addEventListener('click', closeSidebar);
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSidebar(); });
+
+window.addEventListener('load', forceFocus);
+window.addEventListener('pageshow', forceFocus);   // catches back/forward-cache restores
+setTimeout(forceFocus, 50);                          // catches late layout on some mobile browsers
 
 function pad(n){ return n < 10 ? '0' + n : '' + n; }
 function tick(){
