@@ -1,5 +1,14 @@
 [
   {
+    "name": "Calamytryx.github.io",
+    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
+    "description": null,
+    "language": "HTML",
+    "stargazers_count": 1,
+    "updated_at": "2026-07-17T08:06:48Z",
+    "default_branch": "main"
+  },
+  {
     "name": "Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
     "html_url": "https://github.com/Calamytryx/Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
     "description": "AI-Driven System for Efficient Scheduling and Performance Assessment of College Research Presentations in Lyceum of the Philippines University of Cavite Department of Computer Studies (LPU-C DCS)",
@@ -7,15 +16,6 @@
     "stargazers_count": 3,
     "updated_at": "2026-07-17T01:49:33Z",
     "default_branch": "feature/ga-cp-upgrade"
-  },
-  {
-    "name": "Calamytryx.github.io",
-    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
-    "description": null,
-    "language": "HTML",
-    "stargazers_count": 1,
-    "updated_at": "2026-07-16T08:09:04Z",
-    "default_branch": "main"
   },
   {
     "name": "musang",
