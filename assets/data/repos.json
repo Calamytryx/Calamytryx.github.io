@@ -1,20 +1,20 @@
 [
   {
+    "name": "Calamytryx.github.io",
+    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
+    "description": null,
+    "language": "HTML",
+    "stargazers_count": 1,
+    "updated_at": "2026-07-24T08:25:21Z",
+    "default_branch": "main"
+  },
+  {
     "name": "MineLauncher",
     "html_url": "https://github.com/Calamytryx/MineLauncher",
     "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
     "language": "QML",
     "stargazers_count": 27,
     "updated_at": "2026-07-23T19:16:47Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "Calamytryx.github.io",
-    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
-    "description": null,
-    "language": "HTML",
-    "stargazers_count": 1,
-    "updated_at": "2026-07-23T09:43:54Z",
     "default_branch": "main"
   },
   {
