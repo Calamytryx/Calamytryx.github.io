@@ -1,4 +1,5 @@
 # Calamytryx.github.io
+
 Welcome to my official website! I’m calamytryx, a disaster in the matrix who likes to play games and have fun. On this website, you can find all my latest streams, videos, tweets, and fan art. You can also learn more about me and my chaotic personality and style. If you want to join me on my adventures or just hang out with me, this website is for you!
 
 This website is made by me and my awesome fans who contribute to it. If you want to use this website, you can clone this repository and open the index.html file in your browser. If you want to contribute to this website, you can fork this repository and make a pull request with your changes. You can also report any issues or suggestions in the issues tab.
@@ -9,3 +10,5 @@ Twitter: @Calamytryx
 Twitch: Calamytryx_
 YouTube: Calamyty Mytryx
 Facebook: Calamytryx
+
+The portfolio site is mirrored into the `portfolio/` folder and is served from `https://calamytryx.github.io/portfolio`.

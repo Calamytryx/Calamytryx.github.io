@@ -1,0 +1,39 @@
+name: Sync Portfolio Site
+
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-portfolio
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main site
+        uses: actions/checkout@v4
+
+      - name: Fetch portfolio repo
+        run: |
+          tmpdir="$(mktemp -d)"
+          git clone --depth 1 --branch main https://github.com/Calamytryx/Agustin-Portfolio.git "$tmpdir"
+          rsync -a --delete --exclude '.git' "$tmpdir"/ portfolio/
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- portfolio; then
+            echo "No portfolio updates"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add portfolio
+          git commit -m "chore: sync portfolio site"
+          git push
