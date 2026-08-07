@@ -5,7 +5,16 @@
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 0,
-    "updated_at": "2026-08-06T06:07:08Z",
+    "updated_at": "2026-08-07T05:05:49Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "true-custom-clock",
+    "html_url": "https://github.com/Calamytryx/true-custom-clock",
+    "description": "A simple custom digital clock plasmoid for KDE Plasma 6, designed to support vertical panels, adaptive layouts, and flexible time/date formatting.  Inspired by minimal panel clocks but extended with full orientation-aware rendering and customizable layouts.",
+    "language": "QML",
+    "stargazers_count": 3,
+    "updated_at": "2026-08-06T22:55:26Z",
     "default_branch": "main"
   },
   {
@@ -14,7 +23,7 @@
     "description": null,
     "language": "HTML",
     "stargazers_count": 1,
-    "updated_at": "2026-08-05T12:40:32Z",
+    "updated_at": "2026-08-06T08:32:17Z",
     "default_branch": "main"
   },
   {
@@ -42,15 +51,6 @@
     "language": "QML",
     "stargazers_count": 1,
     "updated_at": "2026-07-02T06:19:48Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "true-custom-clock",
-    "html_url": "https://github.com/Calamytryx/true-custom-clock",
-    "description": "A simple custom digital clock plasmoid for KDE Plasma 6, designed to support vertical panels, adaptive layouts, and flexible time/date formatting.  Inspired by minimal panel clocks but extended with full orientation-aware rendering and customizable layouts.",
-    "language": "QML",
-    "stargazers_count": 2,
-    "updated_at": "2026-05-13T09:58:27Z",
     "default_branch": "main"
   },
   {
