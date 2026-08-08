@@ -5,7 +5,16 @@
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 0,
-    "updated_at": "2026-08-07T05:05:49Z",
+    "updated_at": "2026-08-08T04:30:44Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "Calamytryx.github.io",
+    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
+    "description": null,
+    "language": "HTML",
+    "stargazers_count": 1,
+    "updated_at": "2026-08-07T07:12:53Z",
     "default_branch": "main"
   },
   {
@@ -15,15 +24,6 @@
     "language": "QML",
     "stargazers_count": 3,
     "updated_at": "2026-08-06T22:55:26Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "Calamytryx.github.io",
-    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
-    "description": null,
-    "language": "HTML",
-    "stargazers_count": 1,
-    "updated_at": "2026-08-06T08:32:17Z",
     "default_branch": "main"
   },
   {
