@@ -5,7 +5,25 @@
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 0,
-    "updated_at": "2026-08-09T04:39:37Z",
+    "updated_at": "2026-08-10T04:57:14Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "MineLauncher",
+    "html_url": "https://github.com/Calamytryx/MineLauncher",
+    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
+    "language": "QML",
+    "stargazers_count": 28,
+    "updated_at": "2026-08-09T20:24:58Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "Calamytryx.github.io",
+    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
+    "description": null,
+    "language": "HTML",
+    "stargazers_count": 1,
+    "updated_at": "2026-08-09T06:52:20Z",
     "default_branch": "main"
   },
   {
@@ -36,30 +54,12 @@
     "default_branch": "main"
   },
   {
-    "name": "Calamytryx.github.io",
-    "html_url": "https://github.com/Calamytryx/Calamytryx.github.io",
-    "description": null,
-    "language": "HTML",
-    "stargazers_count": 1,
-    "updated_at": "2026-08-08T06:48:29Z",
-    "default_branch": "main"
-  },
-  {
     "name": "true-custom-clock",
     "html_url": "https://github.com/Calamytryx/true-custom-clock",
     "description": "A simple custom digital clock plasmoid for KDE Plasma 6, designed to support vertical panels, adaptive layouts, and flexible time/date formatting.  Inspired by minimal panel clocks but extended with full orientation-aware rendering and customizable layouts.",
     "language": "QML",
     "stargazers_count": 3,
     "updated_at": "2026-08-06T22:55:26Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "MineLauncher",
-    "html_url": "https://github.com/Calamytryx/MineLauncher",
-    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
-    "language": "QML",
-    "stargazers_count": 27,
-    "updated_at": "2026-07-23T19:16:47Z",
     "default_branch": "main"
   },
   {
