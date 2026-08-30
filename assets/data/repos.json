@@ -5,7 +5,16 @@
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 0,
-    "updated_at": "2026-08-29T10:10:25Z",
+    "updated_at": "2026-08-30T09:20:10Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "MineClock",
+    "html_url": "https://github.com/Calamytryx/MineClock",
+    "description": "MC Clock is a lightweight KDE Plasma widget that maps the current time to one of 64 PNG frames (Minecraft clock style). Includes an optional digital time overlay and a small settings panel for padding and visibility.",
+    "language": "QML",
+    "stargazers_count": 4,
+    "updated_at": "2026-08-30T07:18:38Z",
     "default_branch": "main"
   },
   {
@@ -14,7 +23,7 @@
     "description": null,
     "language": "HTML",
     "stargazers_count": 1,
-    "updated_at": "2026-08-28T18:17:12Z",
+    "updated_at": "2026-08-29T12:16:43Z",
     "default_branch": "main"
   },
   {
@@ -78,15 +87,6 @@
     "language": "QML",
     "stargazers_count": 1,
     "updated_at": "2026-07-02T06:19:48Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "MineClock",
-    "html_url": "https://github.com/Calamytryx/MineClock",
-    "description": "MC Clock is a lightweight KDE Plasma widget that maps the current time to one of 64 PNG frames (Minecraft clock style). Includes an optional digital time overlay and a small settings panel for padding and visibility.",
-    "language": "QML",
-    "stargazers_count": 3,
-    "updated_at": "2026-05-08T17:23:49Z",
     "default_branch": "main"
   },
   {
