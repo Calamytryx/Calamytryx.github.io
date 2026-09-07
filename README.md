@@ -7,8 +7,8 @@ This website is made by me and my awesome fans who contribute to it. If you want
 Thank you for visiting my website and supporting me. You can follow me on my social media platforms:
 
 Twitter: @Calamytryx
-Twitch: Calamytryx_
-YouTube: Calamyty Mytryx
+Twitch: @Calamytryx
+YouTube: @Calamytryx
 Facebook: Calamytryx
 
 The portfolio site is mirrored into the `portfolio/` folder and is served from `https://calamytryx.github.io/portfolio`.
