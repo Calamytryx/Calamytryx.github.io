@@ -1,11 +1,20 @@
 [
   {
+    "name": "Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
+    "html_url": "https://github.com/Calamytryx/Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
+    "description": "AI-Driven System for Efficient Scheduling and Performance Assessment of College Research Presentations in Lyceum of the Philippines University of Cavite Department of Computer Studies (LPU-C DCS)",
+    "language": "PHP",
+    "stargazers_count": 2,
+    "updated_at": "2026-10-06T11:16:15Z",
+    "default_branch": "feature/ga-cp-upgrade"
+  },
+  {
     "name": "Agustin-Portfolio",
     "html_url": "https://github.com/Calamytryx/Agustin-Portfolio",
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 0,
-    "updated_at": "2026-10-05T10:33:54Z",
+    "updated_at": "2026-10-06T10:26:00Z",
     "default_branch": "main"
   },
   {
@@ -14,7 +23,7 @@
     "description": null,
     "language": "HTML",
     "stargazers_count": 1,
-    "updated_at": "2026-10-04T11:46:53Z",
+    "updated_at": "2026-10-05T13:35:54Z",
     "default_branch": "main"
   },
   {
@@ -70,15 +79,6 @@
     "stargazers_count": 0,
     "updated_at": "2026-08-08T09:32:25Z",
     "default_branch": "main"
-  },
-  {
-    "name": "Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
-    "html_url": "https://github.com/Calamytryx/Automated-Thesis-Lifecycle-and-Assessment-Scheduler",
-    "description": "AI-Driven System for Efficient Scheduling and Performance Assessment of College Research Presentations in Lyceum of the Philippines University of Cavite Department of Computer Studies (LPU-C DCS)",
-    "language": "PHP",
-    "stargazers_count": 3,
-    "updated_at": "2026-07-17T01:49:33Z",
-    "default_branch": "feature/ga-cp-upgrade"
   },
   {
     "name": "musang",
