@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>tally.mk — counters, notes, timers</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+  .toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+  .toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+  .toolbar h1 .dot{color:var(--blood)}
+  .toolbar .tbsub{color:var(--dim);font-size:11px}
+  .toolbar a{margin-left:auto;font-size:12px}
+  main.wrap{padding-top:24px;padding-bottom:60px}
+  input,select,textarea{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:8px 10px;min-width:0}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blood)}
+  .btn.sm{font-size:.75rem;padding:6px 12px;box-shadow:3px 3px 0 #000}
+  .btn.sm:hover{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+  .btn:disabled{opacity:.4;pointer-events:none}
+  .hint{color:var(--dim);font-size:11px}
+  .tag{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase}
+  .bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .addrow,.row2{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .seg{display:flex;border:2px solid var(--line)}
+  .seg button{background:none;border:0;color:var(--dim);font-family:var(--mono);font-size:.75rem;padding:6px 12px;text-transform:uppercase}
+  .seg button.on{background:var(--blood);color:#000}
+  .items.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px}
+  .items.list{display:flex;flex-direction:column;gap:12px}
+  .item{display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}
+  .item h3{font-family:var(--display);color:#fff;font-size:1.15rem;overflow-wrap:anywhere}
+  .items.list .item{flex-direction:row;align-items:center;gap:18px;padding:14px 20px}
+  .items.list .item h3{flex:1}
+  .items.list .item .tag{width:84px}
+  .cnt{font-family:var(--display);color:#fff;font-size:1.8rem}
+  .pv{color:var(--dim);font-size:.85rem;overflow-wrap:anywhere}
+  .sm_t b{font-family:var(--display);color:#fff;font-size:1.4rem;font-weight:400}
+  .detail{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+  .mod{display:flex;flex-direction:column;gap:14px}
+  .mod.nested{background:var(--panel2);box-shadow:none;margin-top:8px}
+  .dhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .nm{flex:1;min-width:120px;font-family:var(--display);font-size:1rem;color:#fff}
+  .val{font-family:var(--display);color:#fff;font-size:clamp(3rem,12vw,5.5rem);line-height:1;text-align:center;padding:10px 0;overflow-wrap:anywhere}
+  .row2.c{justify-content:center}
+  .big_b{font-size:1.05rem;padding:14px 26px}
+  .sub_t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;border-top:1px solid var(--line);padding-top:12px}
+  .amt{width:130px}.num{width:100px}
+  .hist{list-style:none;color:var(--dim);font-size:.8rem;display:flex;flex-direction:column;gap:2px}
+  .note{width:100%;min-height:200px;resize:vertical;font-size:13px;line-height:1.5}
+  .done{color:var(--blood)}
+  @media(max-width:600px){.items.list .item{flex-wrap:wrap;gap:6px}.items.list .item .tag{width:auto}}
+</style>
+</head>
+<body data-page="projects">
+
+<header class="toolbar">
+  <h1>tally<span class="dot">.</span>mk</h1>
+  <span class="tbsub">counters · notes · timers — saved in this browser</span>
+  <a href="index.html">← projects</a>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'tally.v1';
+const DEFNAME = {counter:'Counter', notepad:'Notepad', timer:'Timer'};
+const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3);
+
+/* ---------- state (items are flat; attachments link via parent / noteId / timerId) ---------- */
+function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.items)) return s; }catch(_){} return {view:'grid', items:[]}; }
+let S = load(), route = null;
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} }
+const get = id => S.items.find(x=>x.id===id);
+window.addEventListener('pagehide', save);
+
+/* ---------- tiny DOM helper ---------- */
+function h(tag, a, ...kids){
+  const e = document.createElement(tag);
+  for(const k in (a||{})){ const v=a[k];
+    if(k==='class') e.className=v; else if(k.startsWith('on')) e[k]=v; else if(v!==false && v!=null) e.setAttribute(k,v); }
+  for(const c of kids.flat()) if(c!=null) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+
+/* ---------- item factory / delete ---------- */
+const MAKE = {
+  counter: ()=>({interval:200, value:0, history:[], noteId:null, timerId:null}),
+  notepad: ()=>({text:''}),
+  timer:   ()=>({mode:'up', target:300000, acc:0, t0:null})
+};
+function defName(type){ return DEFNAME[type]+' '+(S.items.filter(x=>x.type===type).length+1); }
+function create(type, parent){
+  const d = defName(type), n = prompt('Name', d); if(n===null) return null;
+  const it = Object.assign({id:uid(), type, name:n.trim()||d, parent:parent||null}, MAKE[type]());
+  S.items.push(it);
+  if(parent) get(parent)[type==='notepad'?'noteId':'timerId'] = it.id;
+  save(); return it;
+}
+function del(id){
+  const it = get(id); if(!it) return;
+  const kids = [it.noteId, it.timerId];
+  S.items = S.items.filter(x => x.id!==id && !kids.includes(x.id));
+  if(it.parent){ const p=get(it.parent); if(p){ if(p.noteId===id) p.noteId=null; if(p.timerId===id) p.timerId=null; } }
+  save();
+}
+function detach(it){
+  const p = get(it.parent);
+  if(p){ if(p.noteId===it.id) p.noteId=null; if(p.timerId===it.id) p.timerId=null; }
+  it.parent = null; save(); render();
+}
+
+/* ---------- timer math (timestamps, so it survives reloads) ---------- */
+const el = t => t.acc + (t.t0 ? Date.now()-t.t0 : 0);
+const shown = t => t.mode==='down' ? Math.max(0, t.target-el(t)) : el(t);
+function fmt(ms){ const s=Math.floor(ms/1000), p=n=>String(n).padStart(2,'0'), hh=Math.floor(s/3600);
+  return (hh ? hh+':' : '') + p(Math.floor(s%3600/60)) + ':' + p(s%60); }
+function parseDur(v){ const p=String(v).trim().split(':').map(Number); if(!p.length || p.some(isNaN)) return null;
+  if(p.length===1) return p[0]*60000;                 /* bare number = minutes */
+  return p.reduce((a,n)=>a*60+n, 0)*1000; }
+function tick(){
+  let dirty=false;
+  document.querySelectorAll('[data-tm]').forEach(n=>{
+    const t=get(n.dataset.tm); if(!t) return;
+    if(t.t0 && t.mode==='down' && el(t)>=t.target){ t.acc=t.target; t.t0=null; save(); dirty=true; }
+    n.textContent = fmt(shown(t));
+  });
+  if(dirty) render();
+}
+setInterval(tick, 250);
+
+/* ---------- modules: each takes its own item only; no module reads another ---------- */
+const MOD = {};
+
+MOD.counter = c => {
+  const val=h('div',{class:'val'}), hist=h('ul',{class:'hist'});
+  const plus=h('button',{class:'btn big_b'}), minus=h('button',{class:'btn big_b ghost'}), undoB=h('button',{class:'btn sm ghost'},'undo');
+  const amt=h('input',{type:'number',class:'amt',step:'any',placeholder:'one-off amount'});
+  const setIn=h('input',{type:'number',class:'num',step:'any',placeholder:'value'});
+  const intIn=h('input',{type:'number',class:'num',min:'0',step:'any',value:c.interval});
+  const r6=n=>Math.round(n*1e6)/1e6;
+  const paint=()=>{
+    val.textContent=c.value;
+    plus.textContent='+ '+c.interval; minus.textContent='− '+c.interval;
+    undoB.disabled=!c.history.length;
+    hist.replaceChildren(...c.history.slice(-8).reverse().map(x=>h('li',{},x.label+'   '+x.prev+' → '+x.next)));
+  };
+  const log=(next,label)=>{ next=r6(next); c.history.push({prev:c.value,next,label}); if(c.history.length>500) c.history.shift(); c.value=next; save(); paint(); };
+  const oneOff=sign=>{ const n=parseFloat(amt.value); if(isNaN(n)) return; const a=Math.abs(n); log(c.value+sign*a,(sign>0?'+':'−')+a); };
+  plus.onclick=()=>log(c.value+c.interval,'+'+c.interval);
+  minus.onclick=()=>log(c.value-c.interval,'−'+c.interval);
+  undoB.onclick=()=>{ const x=c.history.pop(); if(!x) return; c.value=x.prev; save(); paint(); };
+  intIn.onchange=()=>{ const v=parseFloat(intIn.value); if(v>0) c.interval=v; else intIn.value=c.interval; save(); paint(); };
+  const att=(key,type,label)=>{ const it=c[key]&&get(c[key]);
+    return it ? panel(it,true) : h('button',{class:'btn sm ghost',onclick:()=>{ if(create(type,c.id)) render(); }},'+ attach '+label); };
+  paint();
+  return h('div',{class:'mod'},
+    val,
+    h('div',{class:'row2 c'},minus,plus),
+    h('div',{class:'sub_t'},'one-off amount (interval untouched)'),
+    h('div',{class:'row2'},amt,h('button',{class:'btn sm',onclick:()=>oneOff(1)},'add'),h('button',{class:'btn sm ghost',onclick:()=>oneOff(-1)},'subtract')),
+    h('div',{class:'sub_t'},'set / reset / undo'),
+    h('div',{class:'row2'},setIn,h('button',{class:'btn sm',onclick:()=>{ const v=parseFloat(setIn.value); if(isNaN(v)) return; log(v,'set'); setIn.value=''; }},'set'),
+      h('button',{class:'btn sm ghost',onclick:()=>log(0,'reset')},'reset'),undoB),
+    h('div',{class:'sub_t'},'settings'),
+    h('div',{class:'row2'},h('span',{class:'hint'},'saved interval'),intIn),
+    h('div',{class:'sub_t'},'recent'),
+    hist,
+    h('div',{class:'sub_t'},'attachments'),
+    att('noteId','notepad','notepad'),
+    att('timerId','timer','timer'));
+};
+
+MOD.notepad = n => {
+  const ta=h('textarea',{class:'note',placeholder:'write something'}), st=h('span',{class:'hint'},'saved'); let to;
+  ta.value=n.text;
+  ta.oninput=()=>{ n.text=ta.value; st.textContent='saving…'; clearTimeout(to); to=setTimeout(()=>{ save(); st.textContent='saved'; },300); };
+  ta.onblur=()=>{ clearTimeout(to); save(); st.textContent='saved'; };
+  return h('div',{class:'mod'},ta,st);
+};
+
+MOD.timer = t => {
+  const disp=h('div',{class:'val','data-tm':t.id}), startB=h('button',{class:'btn big_b'});
+  const mode=h('select',{},h('option',{value:'up'},'count up (stopwatch)'),h('option',{value:'down'},'count down'));
+  const dur=h('input',{class:'num',value:fmt(t.target)}), durW=h('div',{class:'row2'},h('span',{class:'hint'},'duration mm:ss'),dur);
+  mode.value=t.mode;
+  const paint=()=>{ disp.textContent=fmt(shown(t)); startB.textContent=t.t0?'pause':'start';
+    disp.classList.toggle('done',t.mode==='down'&&!t.t0&&t.acc>=t.target); durW.style.display=t.mode==='down'?'':'none'; };
+  startB.onclick=()=>{ if(t.t0){ t.acc=el(t); t.t0=null; } else { if(t.mode==='down'&&t.acc>=t.target) t.acc=0; t.t0=Date.now(); } save(); paint(); };
+  mode.onchange=()=>{ t.mode=mode.value; t.acc=0; t.t0=null; save(); paint(); };
+  dur.onchange=()=>{ const v=parseDur(dur.value); if(v>0){ t.target=v; save(); } dur.value=fmt(t.target); paint(); };
+  paint();
+  return h('div',{class:'mod'},disp,
+    h('div',{class:'row2 c'},startB,h('button',{class:'btn big_b ghost',onclick:()=>{ t.acc=0; t.t0=null; save(); paint(); }},'reset')),
+    h('div',{class:'row2'},mode,durW));
+};
+
+/* ---------- generic shell: name / detach / delete around any module ---------- */
+function panel(it, nested){
+  const nm=h('input',{class:'nm',value:it.name});
+  nm.oninput=()=>{ it.name=nm.value; save(); };
+  nm.onblur=()=>{ if(!nm.value.trim()){ it.name=defName(it.type); nm.value=it.name; save(); } };
+  const acts=[];
+  if(nested) acts.push(h('button',{class:'btn sm ghost',onclick:()=>detach(it)},'detach'));
+  acts.push(h('button',{class:'btn sm ghost',onclick:()=>{
+    if(!confirm('Delete "'+it.name+'"'+((it.noteId||it.timerId)?' and its attachments':'')+'?')) return;
+    del(it.id); nested ? render() : go(null);
+  }},'delete'));
+  return h('section',{class:'panel mod'+(nested?' nested':'')},
+    h('div',{class:'dhead'},h('span',{class:'tag'},it.type),nm,acts), MOD[it.type](it));
+}
+
+/* ---------- overview ---------- */
+function summary(it){
+  if(it.type==='notepad'){ const t=it.text.trim(); return h('p',{class:'pv'}, t ? t.slice(0,90)+(t.length>90?'…':'') : '(empty)'); }
+  if(it.type==='timer') return h('div',{class:'sm_t'},h('b',{'data-tm':it.id}),' ',it.mode==='down'?'countdown':'stopwatch',it.t0?' · running':'');
+  const n=it.noteId&&get(it.noteId), t=it.timerId&&get(it.timerId);
+  return h('div',{},h('b',{class:'cnt'},String(it.value)),h('span',{class:'hint'},'  +'+it.interval),
+    (n||t) ? h('div',{class:'hint'}, n?'note: '+(n.text.trim().slice(0,40)||'empty'):'', n&&t?' · ':'', t?h('span',{'data-tm':t.id}):'', t&&t.t0?' ▶':'') : null);
+}
+function card(it){
+  return h('div',{class:'card item',onclick:()=>go(it.id)}, h('span',{class:'tag'},it.type+((it.noteId||it.timerId)?' +':'')), h('h3',{},it.name), summary(it));
+}
+function overview(){
+  const top=S.items.filter(x=>!x.parent);
+  return h('div',{},
+    h('div',{class:'bar'},
+      h('div',{class:'addrow'},['counter','notepad','timer'].map(t=>h('button',{class:'btn sm',onclick:()=>{ const it=create(t); if(it) go(it.id); }},'+ '+t))),
+      h('div',{class:'seg'},['grid','list'].map(v=>h('button',{class:S.view===v?'on':'',onclick:()=>{ S.view=v; save(); render(); }},v)))),
+    top.length ? h('div',{class:'items '+S.view},top.map(card)) : h('p',{class:'hint'},'Nothing yet. Add a counter, notepad or timer above.'));
+}
+
+/* ---------- routing ---------- */
+function go(id){ route=id; save(); render(); window.scrollTo(0,0); }
+function render(){
+  const it = route && get(route), m=$('main');
+  m.replaceChildren(it ? h('div',{class:'detail'},h('button',{class:'btn sm ghost',style:'align-self:flex-start',onclick:()=>go(null)},'← all'),panel(it,false)) : overview());
+  if(!it) route=null;
+  tick();
+}
+
+render();
+</script>
+
+</body>
+</html>
