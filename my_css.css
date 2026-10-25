@@ -542,3 +542,51 @@ html[data-snap] .footer{ scroll-snap-align:start; min-height:100vh; display:flex
   .panel_nav{ display:none; }
   html[data-snap] .section{ padding:84px 0 72px; }
 }
+
+/* ============================================================
+   FOCUS STATES — replaces the browser's default white/blue ring
+   with a square, pixel-style one. keyboard focus only
+   (:focus-visible), so mouse clicks don't leave a ring behind.
+   ============================================================ */
+*{ -webkit-tap-highlight-color:transparent; }
+
+/* kill Firefox's extra inner dotted ring on buttons */
+button::-moz-focus-inner,
+input[type=button]::-moz-focus-inner,
+input[type=submit]::-moz-focus-inner{ border:0; padding:0; }
+
+/* no ring on mouse / touch focus */
+:focus:not(:focus-visible){ outline:none; }
+
+/* default: square dashed ring, offset so it never touches the border */
+:focus-visible{
+  outline:2px dashed var(--txt);
+  outline-offset:3px;
+}
+
+/* buttons: a little more room so it clears the 2px border */
+.btn:focus-visible,
+button:focus-visible{
+  outline:2px dashed var(--txt);
+  outline-offset:4px;
+}
+
+/* text fields already swap to a red border; add a rust halo, no outline */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
+  outline:none;
+  border-color:var(--blood);
+  box-shadow:0 0 0 2px var(--rust);
+}
+
+/* links: tight ring so it hugs the text */
+a:focus-visible{ outline-offset:2px; }
+
+/* panel nav dots + small icon-only buttons: ring sits outside the dot */
+.panel_nav button:focus-visible{ outline-offset:6px; }
+.panel_nav button:focus-visible .dot{ border-color:var(--blood); }
+
+@media (prefers-reduced-motion:reduce){
+  :focus-visible{ transition:none; }
+}
