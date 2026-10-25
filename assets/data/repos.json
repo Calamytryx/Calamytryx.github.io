@@ -5,7 +5,16 @@
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 0,
-    "updated_at": "2026-10-20T08:38:12Z",
+    "updated_at": "2026-10-24T08:12:43Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "MineLauncher",
+    "html_url": "https://github.com/Calamytryx/MineLauncher",
+    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
+    "language": "QML",
+    "stargazers_count": 28,
+    "updated_at": "2026-10-23T11:00:53Z",
     "default_branch": "main"
   },
   {
@@ -14,7 +23,7 @@
     "description": null,
     "language": "HTML",
     "stargazers_count": 1,
-    "updated_at": "2026-10-19T12:07:25Z",
+    "updated_at": "2026-10-23T11:00:10Z",
     "default_branch": "main"
   },
   {
@@ -51,15 +60,6 @@
     "language": null,
     "stargazers_count": 0,
     "updated_at": "2026-08-13T04:43:23Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "MineLauncher",
-    "html_url": "https://github.com/Calamytryx/MineLauncher",
-    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
-    "language": "QML",
-    "stargazers_count": 28,
-    "updated_at": "2026-08-09T20:24:58Z",
     "default_branch": "main"
   },
   {
