@@ -20,8 +20,8 @@
     {
       "title": "Watch",
       "links": [
-        { "label": "TikTok", "href": "https://www.tiktok.com/@calamytryxvt", "icon": "tiktok" },
-        { "label": "Twitch", "href": "https://www.twitch.tv/calamytryx_/", "icon": "twitch" },
+        { "label": "TikTok", "href": "https://www.tiktok.com/@calamytryx", "icon": "tiktok" },
+        { "label": "Twitch", "href": "https://www.twitch.tv/calamytryx/", "icon": "twitch" },
         { "label": "YouTube", "href": "https://www.youtube.com/channel/calamytryx", "icon": "youtube" }
       ]
     },

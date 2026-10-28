@@ -88,6 +88,8 @@
     <a href="#emote">emote.mk</a>
     <a href="#avatar">avatar.mk</a>
     <a href="#sound">sound.mk</a>
+    <a href="#shift">shift.mk</a>
+    <a href="#tally">tally.mk</a>
   </nav>
 
   <!-- ================= CONTENT ================= -->
@@ -232,6 +234,71 @@
     </ul>
     <p>Hit <b>Export WAV</b> to render the loop (1–32 loops) to a 16-bit WAV via an offline render. Tip: export a single hit / short loop and use it as an <b>alert or chat sound in stream.mk</b>. Retro <b>amber / green / CRT</b> themes in the top bar.</p>
     <a class="open" href="sound_maker.html">open sound.mk →</a>
+
+    <!-- ===================== SHIFT.MK ===================== -->
+    <h2 id="shift"><span class="mk">//</span> shift.mk — productivity tracker</h2>
+    <p>A tickets-per-hour tracker that keeps all your data <b>in your browser</b> and exports Google Sheets workbooks with <b>live formulas</b>. Pick a tag on each interval, enter tickets and minutes, and hours, deductions, tickets per hour and the day’s totals all calculate automatically. Scheduled breaks auto-deduct from any interval they overlap, so a 15-minute break inside a 30-minute slot leaves 15 productive minutes.</p>
+    <a class="open" href="shift.html">open shift.mk →</a>
+
+    <h3>Track intervals</h3>
+    <p>On the <b>track</b> tab, each row is one time slot (default 30 min, adjustable in <b>setup</b>). Pick a tag from the dropdown, enter tickets (only counted on productive tags), and optionally enter real minutes. Leave minutes blank to use the full interval minus any scheduled break overlap. The <b>hours</b> column shows productive time and any deduction in parentheses.</p>
+
+    <h3>Tags &amp; quotas</h3>
+    <p>A <b>productive</b> tag is a task — it counts toward tickets/hr and can carry a quota per hour. Non-productive tags (breaks, lunch, idle) count as time but not productivity. Set tags, productive flags, quotas and auto-fill minutes under <b>setup</b>. Tag names must match exactly between setup and the interval rows.</p>
+
+    <h3>Scheduled breaks</h3>
+    <p>Add breaks under setup with a name, start time and minutes. Any interval that overlaps a break gets its available minutes reduced automatically, and the row shows <code>sched: Break −15m</code> so you can see exactly what happened. This flows through to the export too, so blank minutes use the available time after break overlap.</p>
+
+    <h3>Summary &amp; views</h3>
+    <p>Switch between <b>day</b>, <b>week</b> and <b>month</b>. Week and month add up the daily totals, so tickets/hr is <b>weighted by hours</b>, not an average of averages. Click a day in the by-day table to open it. The productive-tags-vs-quota table shows tickets, hours, t/hr, quota, expected and attainment (green ≥100%, red &lt;100%).</p>
+
+    <h3>Export to Google Sheets</h3>
+    <p>Choose a range (day / week / month) and how many interval rows to include (only tagged intervals, every interval, or full calendar months). Download <b>.xlsx</b> and upload to Drive → open with Sheets. Three tabs:</p>
+    <ul>
+      <li><b>Daily</b> — one interval table per day, exactly like the track tab. Pick tags, enter tickets and minutes; hours, deductions, prod hrs, tickets and t/hr are formulas. Each day closes with its own TOTAL row.</li>
+      <li><b>Summary</b> — set FROM / TO and everything recalculates from Daily: tasks vs quota, time by tag.</li>
+      <li><b>Setup</b> — tags, productive flags, quotas. Add new tags in the blank rows under the list.</li>
+    </ul>
+    <p>Everything recalculates in Sheets without this page. Re-export after changing breaks to bake in the new deductions.</p>
+
+    <h3>Themes</h3>
+    <p>The toolbar swatches (top-right) and the full picker in the export tab both drive the same setting. Pick a preset or drag the four custom color pickers (background / rows / text / accent). Your choice persists in this browser, and the exported workbook uses the same palette.</p>
+
+    <h3>Data &amp; backup</h3>
+    <p>Everything lives in this browser’s localStorage. Use <b>download backup .json</b> in the export tab to save, and <b>restore</b> to load it back. There’s also CSV export and copy-to-clipboard for daily summaries and intervals if you want static values instead of formulas.</p>
+
+    <!-- ===================== TALLY.MK ===================== -->
+    <h2 id="tally"><span class="mk">//</span> tally.mk — counters, notes, timers</h2>
+    <p>A lightweight dashboard of little cards: <b>counters</b> you click up or down, <b>notepads</b> that save as you type, and <b>timers</b> that count up or down. Everything lives in your browser's localStorage — no account, no sync, no server. Timers keep running while the page is closed because they use timestamps, not intervals.</p>
+    <a class="open" href="tally.html">open tally.mk →</a>
+
+    <h3>Overview</h3>
+    <p>The landing view shows every top-level item as a card in <b>grid</b> or <b>list</b> layout (toggle with the segmented control). Card previews show the live counter value, a snippet of the note, or a ticking timer. Click a card to open its detail view. The top bar has <b>+ counter</b>, <b>+ notepad</b> and <b>+ timer</b> buttons to add new top-level items — each prompts for a name.</p>
+
+    <h3>Counters</h3>
+    <ul>
+      <li><b>Big +/− buttons</b> add or subtract the saved interval (default 200).</li>
+      <li><b>One-off amount</b> field adds or subtracts any value without changing the interval.</li>
+      <li><b>Set</b> jumps to a specific value; <b>reset</b> goes to 0; <b>undo</b> steps back through history.</li>
+      <li>Every change is logged with the previous → next value and a timestamp, so you can see exactly what happened and when.</li>
+    </ul>
+
+    <h3>Notepads</h3>
+    <p>A large text area with debounced autosave — it saves as you type (300ms after you stop) and on blur. The "saved" hint confirms persistence. Notes can be attached to counters (see below) so you can keep context next to a number.</p>
+
+    <h3>Timers</h3>
+    <ul>
+      <li><b>Count up</b> — a stopwatch that keeps running across page reloads (it stores start time, not an interval).</li>
+      <li><b>Count down</b> — enter a duration as <code>mm:ss</code> or just a number of minutes, then start. When it hits zero it pauses at exactly the target, so you don't overshoot.</li>
+      <li><b>Pause / reset</b> buttons pause and zero the accumulator.</li>
+      <li>Displays use the same timestamp-based math, so a countdown started yesterday is still accurate today.</li>
+    </ul>
+
+    <h3>Attachments (nested items)</h3>
+    <p>On a counter's detail view, the <b>attachments</b> section lets you attach a <b>notepad</b> and/or a <b>timer</b> to that counter. Attached items show up nested inside the counter (with a <b>detach</b> button so you can promote them back to top-level). Deleting a counter also deletes its attachments. Attached timers tick live on the overview card, so you can see a running timer without opening it.</p>
+
+    <h3>Navigation &amp; persistence</h3>
+    <p>Every view has a <b>← all</b> button that returns to the overview. The current view and the entire item list (counters, notes, timers, history, attachments) are saved to localStorage under <code>tally.v1</code>, so a refresh restores your dashboard exactly. There's no cloud sync — clearing site data wipes it, so back up if it matters.</p>
 
     <p class="muted mt_3" style="border-top:1px solid var(--line);padding-top:18px">// everything here is free, offline-capable, and yours. report weirdness on github.</p>
   </main>
