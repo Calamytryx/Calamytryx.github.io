@@ -1,270 +1,2733 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex">
-<title>tally.mk — counters, notes, timers</title>
-<link rel="icon" href="/assets/media/logo.png">
-<link rel="stylesheet" href="/my_css.css">
-<script src="/assets/layout/cursors.js" defer></script>
-<style>
-.toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
-.toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
-.toolbar h1 .dot{color:var(--blood)}
-.toolbar .tbsub{color:var(--dim);font-size:11px}
-.toolbar a{margin-left:auto;font-size:12px}
-main.wrap{padding-top:24px;padding-bottom:60px}
-input,select,textarea{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:8px 10px;min-width:0}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blood)}
-.btn.sm{font-size:.75rem;padding:6px 12px;box-shadow:3px 3px 0 #000}
-.btn.sm:hover{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
-.btn:disabled{opacity:.4;pointer-events:none}
-.hint{color:var(--dim);font-size:11px}
-.tag{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase}
-.bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:22px}
-.addrow,.row2{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.seg{display:flex;border:2px solid var(--line)}
-.seg button{background:none;border:0;color:var(--dim);font-family:var(--mono);font-size:.75rem;padding:6px 12px;text-transform:uppercase}
-.seg button.on{background:var(--blood);color:#000}
-.items.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px}
-.items.list{display:flex;flex-direction:column;gap:12px}
-.item{display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}
-.item h3{font-family:var(--display);color:#fff;font-size:1.15rem;overflow-wrap:anywhere}
-.items.list .item{flex-direction:row;align-items:center;gap:18px;padding:14px 20px}
-.items.list .item h3{flex:1}
-.items.list .item .tag{width:84px}
-.cnt{font-family:var(--display);color:#fff;font-size:1.8rem}
-.pv{color:var(--dim);font-size:.85rem;overflow-wrap:anywhere}
-.sm_t b{font-family:var(--display);color:#fff;font-size:1.4rem;font-weight:400}
-.detail{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-.mod{display:flex;flex-direction:column;gap:14px}
-.mod.nested{background:var(--panel2);box-shadow:none;margin-top:8px}
-.dhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.nm{flex:1;min-width:120px;font-family:var(--display);font-size:1rem;color:#fff}
-.val{font-family:var(--display);color:#fff;font-size:clamp(3rem,12vw,5.5rem);line-height:1;text-align:center;padding:10px 0;overflow-wrap:anywhere}
-.row2.c{justify-content:center}
-.big_b{font-size:1.05rem;padding:14px 26px}
-.sub_t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;border-top:1px solid var(--line);padding-top:12px}
-.amt{width:130px}.num{width:100px}
-.hist{list-style:none;color:var(--dim);font-size:.8rem;display:flex;flex-direction:column;gap:2px}
-.note{width:100%;min-height:200px;resize:vertical;font-size:13px;line-height:1.5}
-.done{color:var(--blood)}
-@media(max-width:600px){.items.list .item{flex-wrap:wrap;gap:6px}.items.list .item .tag{width:auto}}
-</style>
-</head>
-<body data-page="projects">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>tally.mk — counters, notes, timers</title>
+    <link rel="icon" href="/assets/media/logo.png" />
+    <link rel="stylesheet" href="/my_css.css" />
+    <script src="/assets/layout/cursors.js" defer></script>
+    <style>
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 10px;
+        padding: 12px 18px;
+        border-bottom: 2px solid var(--line);
+        background: var(--panel);
+      }
+      .toolbar h1 {
+        font-family: var(--display);
+        font-size: 15px;
+        color: var(--txt);
+        letter-spacing: 1px;
+      }
+      .toolbar h1 .dot {
+        color: var(--blood);
+      }
+      .toolbar .tbsub {
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .toolbar-end {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .toolbar .tlinks {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+      }
+      .toolbar .tlinks a {
+        color: var(--dim);
+      }
+      .toolbar .tlinks a:hover {
+        color: var(--blood);
+      }
+      .themebar {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .themebar button {
+        width: 18px;
+        height: 18px;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        outline: 2px solid var(--line);
+        outline-offset: 2px;
+        border-radius: 0;
+      }
+      .themebar button.on {
+        outline-color: var(--blood);
+        outline-width: 3px;
+      }
+      .custom-bar {
+        flex-basis: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: flex-end;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        margin-top: 6px;
+      }
+      .custom-bar label {
+        color: var(--dim);
+        font-size: 10px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        align-items: flex-start;
+      }
+      .custom-bar input[type="color"] {
+        width: 46px;
+        height: 26px;
+        padding: 1px;
+        cursor: pointer;
+        background: var(--panel2);
+        border: 2px solid var(--line);
+        min-width: 0;
+      }
+      main.wrap {
+        padding-top: 24px;
+        padding-bottom: 60px;
+      }
+      input,
+      select,
+      textarea {
+        background: var(--panel2);
+        border: 2px solid var(--line);
+        color: var(--txt);
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 8px 10px;
+        min-width: 0;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--blood);
+      }
+      .btn.sm {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+        box-shadow: 3px 3px 0 #000;
+      }
+      .btn.sm:hover {
+        transform: translate(2px, 2px);
+        box-shadow: 1px 1px 0 #000;
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+      .hint {
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .tag {
+        color: var(--blood);
+        font-size: 0.7rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+      .addrow,
+      .row2 {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .seg {
+        display: flex;
+        border: 2px solid var(--line);
+      }
+      .seg button {
+        background: none;
+        border: 0;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        padding: 6px 12px;
+        text-transform: uppercase;
+      }
+      .seg button.on {
+        background: var(--blood);
+        color: var(--bg);
+      }
+      .items.grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 20px;
+      }
+      .items.list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        cursor: pointer;
+        min-width: 0;
+      }
+      .item h3 {
+        font-family: var(--display);
+        color: var(--txt);
+        font-size: 1.15rem;
+        overflow-wrap: anywhere;
+      }
+      .items.list .item {
+        flex-direction: row;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 20px;
+      }
+      .items.list .item h3 {
+        flex: 1;
+      }
+      .items.list .item .tag {
+        width: 84px;
+      }
+      .cnt {
+        font-family: var(--display);
+        color: var(--txt);
+        font-size: 1.8rem;
+      }
+      .pv {
+        color: var(--dim);
+        font-size: 0.85rem;
+        overflow-wrap: anywhere;
+      }
+      .sm_t b {
+        font-family: var(--display);
+        color: var(--txt);
+        font-size: 1.4rem;
+        font-weight: 400;
+      }
+      .detail {
+        max-width: 760px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .mod {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .mod.nested {
+        background: var(--panel2);
+        box-shadow: none;
+        margin-top: 8px;
+      }
+      .mod.nested .note {
+        min-height: 120px;
+      }
+      .dhead {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .nm {
+        flex: 1;
+        min-width: 120px;
+        font-family: var(--display);
+        font-size: 1rem;
+        color: var(--txt);
+      }
+      .val {
+        font-family: var(--display);
+        color: var(--txt);
+        font-size: clamp(3rem, 12vw, 5.5rem);
+        line-height: 1;
+        text-align: center;
+        padding: 10px 0;
+        overflow-wrap: anywhere;
+      }
+      .row2.c {
+        justify-content: center;
+      }
+      .big_b {
+        font-size: 1.05rem;
+        padding: 14px 26px;
+      }
+      .sub_t {
+        color: var(--blood);
+        font-size: 0.7rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      .amt {
+        width: 130px;
+      }
+      .num {
+        width: 100px;
+      }
+      .hist {
+        list-style: none;
+        color: var(--dim);
+        font-size: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0;
+        padding: 0;
+      }
+      .hist li {
+        line-height: 1.4;
+      }
+      .hist_wrap {
+        position: relative;
+      }
+      .hist_wrap.expanded .hist {
+        max-height: 420px;
+        overflow-y: auto;
+        padding-right: 6px;
+      }
+      .hist_toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--dim);
+        font-size: 11px;
+        margin-bottom: 6px;
+      }
+      .hist_toggle button {
+        background: none;
+        border: 0;
+        color: var(--blood);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+        padding: 0;
+        text-decoration: underline;
+      }
+      .hist_toggle button:hover {
+        color: var(--txt);
+      }
+      .note {
+        width: 100%;
+        min-height: 200px;
+        resize: vertical;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .done {
+        color: var(--blood);
+      }
+      .slot_head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .slot_big {
+        font-family: var(--display);
+        color: var(--txt);
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+      }
+      .slot_meta {
+        color: var(--dim);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .slot_ot {
+        display: inline-block;
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border: 1px solid var(--blood);
+        color: var(--blood);
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .slot_live {
+        color: var(--blood);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .slot_live::before {
+        content: "";
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        background: var(--blood);
+        border-radius: 50%;
+        animation: pulse 1.4s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.35;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .slot_cd_row {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin: 16px 0 2px;
+        flex-wrap: wrap;
+      }
+      .slot_cd_label {
+        color: var(--dim);
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .slot_cd {
+        font-family: var(--display);
+        font-size: clamp(2.2rem, 6.5vw, 3.2rem);
+        line-height: 1;
+        letter-spacing: 2px;
+        color: var(--txt);
+        font-variant-numeric: tabular-nums;
+      }
+      .slot_cd.live {
+        color: var(--blood);
+      }
+      .slot_cd.warning {
+        color: var(--blood);
+        animation: urgent 1s infinite;
+      }
+      @keyframes urgent {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .slot_cd.done,
+      .slot_cd.waiting {
+        color: var(--dim);
+        font-size: 1.2rem;
+        letter-spacing: 1px;
+        font-family: var(--mono);
+      }
+      .slot_sum {
+        color: var(--dim);
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      .slot_sum b {
+        color: var(--txt);
+        font-family: var(--display);
+        font-weight: 400;
+        font-size: 1rem;
+      }
+      .slot_bar {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .slot_bar .f {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .slot_bar label {
+        color: var(--dim);
+        font-size: 10px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      .slot_save {
+        color: var(--dim);
+        font-size: 11px;
+        min-height: 1em;
+      }
+      .slot_save.ok {
+        color: #34d399;
+      }
+      /* data view */
+      .data_wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .data_h {
+        font-family: var(--display);
+        color: var(--txt);
+        font-size: 1.6rem;
+        letter-spacing: 1px;
+        margin: 4px 0;
+      }
+      .data_io {
+        width: 100%;
+        min-height: 180px;
+        font-family: var(--mono);
+        font-size: 11px;
+        line-height: 1.45;
+        resize: vertical;
+        white-space: pre;
+        overflow: auto;
+      }
+      .data_io.tall {
+        min-height: 240px;
+      }
+      .data_status {
+        color: var(--dim);
+        font-size: 11px;
+        min-height: 1em;
+      }
+      .data_status.ok {
+        color: #34d399;
+      }
+      .data_status.err {
+        color: #f87171;
+      }
+      .data_meta {
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .data_meta b {
+        color: var(--txt);
+        font-family: var(--display);
+        font-weight: 400;
+      }
+      .cc2 {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+      }
+      @media (max-width: 600px) {
+        .items.list .item {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .items.list .item .tag {
+          width: auto;
+        }
+      }
+    </style>
+  </head>
+  <body data-page="projects">
+    <header class="toolbar">
+      <h1>tally<span class="dot">.</span>mk</h1>
+      <span class="tbsub"
+        >counters · notes · timers — saved in this browser</span
+      >
+      <div class="toolbar-end">
+        <div class="themebar" id="themebar"></div>
+        <div class="tlinks">
+          <a href="#" data-data title="export / import data">data</a>
+          <a href="shift.html">shift.mk →</a>
+          <a href="index.html">← projects</a>
+        </div>
+      </div>
+      <div class="custom-bar" id="custom-bar" style="display: none"></div>
+    </header>
 
-<header class="toolbar">
-<h1>tally<span class="dot">.</span>mk</h1>
-<span class="tbsub">counters · notes · timers — saved in this browser</span>
-<a href="index.html">← projects</a>
-</header>
+    <main class="wrap" id="main"></main>
 
-<main class="wrap" id="main"></main>
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const KEY = "tally.v1";
+      const SHIFT_KEY = "shift.v1";
+      const DEFNAME = {
+        counter: "Counter",
+        notepad: "Notepad",
+        timer: "Timer",
+        slot: "Time slot",
+      };
+      const uid = () =>
+        Math.random().toString(36).slice(2, 9) +
+        Date.now().toString(36).slice(-3);
+      const HIST_PREVIEW = 8;
+      const HIST_CAP = 500;
 
-<script>
-'use strict';
-const $ = id => document.getElementById(id);
-const KEY = 'tally.v1';
-const DEFNAME = {counter:'Counter', notepad:'Notepad', timer:'Timer'};
-const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3);
+      /* ---------- state ---------- */
+      const DEFTHEME = {
+        bg: "0b0b0c",
+        panel: "141416",
+        txt: "e6e6e6",
+        acc: "e11d2e",
+      };
 
-/* ---------- state (items are flat; attachments link via parent / noteId / timerId) ---------- */
-function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.items)) return s; }catch(_){} return {view:'grid', items:[]}; }
-let S = load(), route = null;
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} }
-const get = id => S.items.find(x=>x.id===id);
-window.addEventListener('pagehide', save);
+      function load() {
+        try {
+          const s = JSON.parse(localStorage.getItem(KEY));
+          if (s && Array.isArray(s.items)) {
+            if (!s.theme) s.theme = "site";
+            if (!s.custom || typeof s.custom !== "object")
+              s.custom = { ...DEFTHEME };
+            return s;
+          }
+        } catch (_) {}
+        return {
+          view: "grid",
+          items: [],
+          theme: "site",
+          custom: { ...DEFTHEME },
+        };
+      }
+      let S = load(),
+        route = null;
+      function save() {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(S));
+        } catch (_) {}
+      }
+      const get = (id) => S.items.find((x) => x.id === id);
+      window.addEventListener("pagehide", save);
 
-/* ---------- tiny DOM helper ---------- */
-function h(tag, a, ...kids){
-const e = document.createElement(tag);
-for(const k in (a||{})){ const v=a[k];
-if(k==='class') e.className=v; else if(k.startsWith('on')) e[k]=v; else if(v!==false && v!=null) e.setAttribute(k,v); }
-for(const c of kids.flat()) if(c!=null) e.append(c.nodeType ? c : document.createTextNode(c));
-return e;
-}
+      /* ---------- theming ---------- */
+      const rgb = (h) => [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+      const mix = (a, b, t) => {
+        const x = rgb(a),
+          y = rgb(b);
+        return x
+          .map((v, i) =>
+            Math.round(v * (1 - t) + y[i] * t)
+              .toString(16)
+              .padStart(2, "0"),
+          )
+          .join("");
+      };
+      const hex6 = (v, d) =>
+        /^[0-9a-f]{6}$/i.test(v || "") ? v.toLowerCase() : d;
+      const PRESETS = [
+        {
+          id: "site",
+          name: "tally.mk",
+          bg: "0b0b0c",
+          panel: "141416",
+          txt: "e6e6e6",
+          acc: "e11d2e",
+        },
+        {
+          id: "ocean",
+          name: "Ocean",
+          bg: "0a1620",
+          panel: "0f2230",
+          txt: "dbe9f3",
+          acc: "38bdf8",
+        },
+        {
+          id: "forest",
+          name: "Forest",
+          bg: "0b140e",
+          panel: "111d15",
+          txt: "dfeee3",
+          acc: "34d399",
+        },
+        {
+          id: "amber",
+          name: "Amber",
+          bg: "140e06",
+          panel: "1d1409",
+          txt: "f3e8d7",
+          acc: "f59e0b",
+        },
+        {
+          id: "violet",
+          name: "Violet",
+          bg: "0f0b1a",
+          panel: "171226",
+          txt: "ece8fa",
+          acc: "a78bfa",
+        },
+        {
+          id: "mono",
+          name: "Mono",
+          bg: "0e0e0e",
+          panel: "161616",
+          txt: "ededed",
+          acc: "ffffff",
+        },
+        {
+          id: "paper",
+          name: "Paper",
+          bg: "f1eee7",
+          panel: "ffffff",
+          txt: "1c1c1c",
+          acc: "c21f30",
+        },
+      ];
+      const pal = (t) => ({
+        id: t.id,
+        name: t.name,
+        bg: t.bg,
+        panel: t.panel,
+        txt: t.txt,
+        acc: t.acc,
+        panel2: mix(t.panel, t.txt, 0.07),
+        line: mix(t.panel, t.txt, 0.2),
+        dim: mix(t.txt, t.panel, 0.5),
+      });
+      const thm = (id) =>
+        id === "custom"
+          ? pal(Object.assign({ id: "custom", name: "Custom" }, S.custom))
+          : pal(PRESETS.find((t) => t.id === id) || PRESETS[0]);
 
-/* ---------- item factory / delete ---------- */
-const MAKE = {
-counter: ()=>({interval:200, value:0, history:[], noteId:null, timerId:null}),
-notepad: ()=>({text:''}),
-timer:   ()=>({mode:'up', target:300000, acc:0, t0:null})
-};
-function defName(type){ return DEFNAME[type]+' '+(S.items.filter(x=>x.type===type).length+1); }
-function create(type, parent){
-const d = defName(type), n = prompt('Name', d); if(n===null) return null;
-const it = Object.assign({id:uid(), type, name:n.trim()||d, parent:parent||null}, MAKE[type]());
-S.items.push(it);
-if(parent) get(parent)[type==='notepad'?'noteId':'timerId'] = it.id;
-save(); return it;
-}
-function del(id){
-const it = get(id); if(!it) return;
-const kids = [it.noteId, it.timerId];
-S.items = S.items.filter(x => x.id!==id && !kids.includes(x.id));
-if(it.parent){ const p=get(it.parent); if(p){ if(p.noteId===id) p.noteId=null; if(p.timerId===id) p.timerId=null; } }
-save();
-}
-function detach(it){
-const p = get(it.parent);
-if(p){ if(p.noteId===it.id) p.noteId=null; if(p.timerId===it.id) p.timerId=null; }
-it.parent = null; save(); render();
-}
+      function applyTheme() {
+        const p = thm(S.theme);
+        let st = document.getElementById("theme-style");
+        if (!st) {
+          st = document.createElement("style");
+          st.id = "theme-style";
+          document.head.appendChild(st);
+        }
+        st.textContent =
+          ":root{--bg:#" +
+          p.bg +
+          ";--panel:#" +
+          p.panel +
+          ";--panel2:#" +
+          p.panel2 +
+          ";--txt:#" +
+          p.txt +
+          ";--dim:#" +
+          p.dim +
+          ";--line:#" +
+          p.line +
+          ";--blood:#" +
+          p.acc +
+          ";}" +
+          "body{background:var(--bg)!important;color:var(--txt);}";
+      }
+      function renderThemebar() {
+        const bar = $("themebar");
+        if (!bar) return;
+        const cur = S.theme;
+        const mk = (id, bg, acc, name) =>
+          '<button data-th="' +
+          id +
+          '" class="' +
+          (id === cur ? "on" : "") +
+          '" style="background:linear-gradient(135deg,#' +
+          bg +
+          " 0%,#" +
+          bg +
+          " 50%,#" +
+          acc +
+          " 50%,#" +
+          acc +
+          ' 100%)" title="' +
+          name +
+          '"></button>';
+        bar.innerHTML =
+          PRESETS.map((t) => mk(t.id, t.bg, t.acc, t.name)).join("") +
+          mk("custom", S.custom.bg, S.custom.acc, "Custom");
+        syncCustomBar();
+      }
 
-/* ---------- timer math (timestamps, so it survives reloads) ---------- */
-const el = t => t.acc + (t.t0 ? Date.now()-t.t0 : 0);
-const shown = t => t.mode==='down' ? Math.max(0, t.target-el(t)) : el(t);
-function fmt(ms){ const s=Math.floor(ms/1000), p=n=>String(n).padStart(2,'0'), hh=Math.floor(s/3600);
-return (hh ? hh+':' : '') + p(Math.floor(s%3600/60)) + ':' + p(s%60); }
-function parseDur(v){ const p=String(v).trim().split(':').map(Number); if(!p.length || p.some(isNaN)) return null;
-if(p.length===1) return p[0]*60000;                 /* bare number = minutes */
-return p.reduce((a,n)=>a*60+n, 0)*1000; }
+      /* Build the toolbar color pickers once. They are shown only when the
+         Custom theme is active — so a user clicking the Custom swatch
+         immediately sees how to edit it. */
+      const CUSTOM_FIELDS = [
+        ["bg", "background"],
+        ["panel", "rows"],
+        ["txt", "text"],
+        ["acc", "accent"],
+      ];
+      function buildCustomBar() {
+        const bar = $("custom-bar");
+        if (!bar || bar._built) return;
+        bar._built = true;
+        for (const [k, l] of CUSTOM_FIELDS) {
+          const inp = h("input", {
+            type: "color",
+            "data-cc": k,
+            value: "#" + S.custom[k],
+          });
+          bar.append(h("label", {}, l, inp));
+        }
+        bar.append(
+          h(
+            "button",
+            {
+              class: "btn sm ghost",
+              style: "align-self: flex-end;",
+              onclick: () => {
+                S.custom = { ...DEFTHEME };
+                save();
+                applyTheme();
+                syncCustomInputs();
+                renderThemebar();
+              },
+            },
+            "reset",
+          ),
+          h(
+            "button",
+            {
+              class: "btn sm ghost",
+              style:
+                "align-self: flex-end; padding: 6px 9px; font-size: 0.95rem;",
+              title: "close",
+              onclick: () => hideCustomBar(),
+            },
+            "×",
+          ),
+        );
+        /* keep the bar open while the user is using it */
+        bar.addEventListener("pointerdown", resetCustomHideTimer);
+        bar.addEventListener("focusin", resetCustomHideTimer);
+        bar.addEventListener("input", resetCustomHideTimer);
+      }
+      /* Custom bar is visible only while S.theme === "custom". It also auto-hides
+   after 10s of no interaction, or immediately when the X button is clicked.
+   Clicking the Custom swatch (or any color picker) restarts the timer. */
+      let customHideTimer = null;
 
-/* ---------- timestamps ---------- */
-const pad = n => String(n).padStart(2,'0');
-function isoLocal(ts){
-  const d=new Date(ts), o=-d.getTimezoneOffset(), a=Math.abs(o);
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+
-         pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+
-         (o>=0?'+':'-')+pad(Math.floor(a/60))+':'+pad(a%60);
-}
-function ago(ts){
-  const s=Math.max(0,Math.floor((Date.now()-ts)/1000));
-  if(s<60) return s+'s ago';
-  const m=Math.floor(s/60); if(m<60) return m+'m ago';
-  const hr=Math.floor(m/60); if(hr<24) return hr+'h ago';
-  return Math.floor(hr/24)+'d ago';
-}
-const stamp = ts => ' · '+isoLocal(ts)+' ('+ago(ts)+')';
+      function resetCustomHideTimer() {
+        clearTimeout(customHideTimer);
+        customHideTimer = setTimeout(() => {
+          const bar = $("custom-bar");
+          if (bar) bar.style.display = "none";
+        }, 10000);
+      }
 
-function tick(){
-document.querySelectorAll('[data-ts]').forEach(n=>{ n.textContent=stamp(+n.dataset.ts); });
-let dirty=false;
-document.querySelectorAll('[data-tm]').forEach(n=>{
-const t=get(n.dataset.tm); if(!t) return;
-if(t.t0 && t.mode==='down' && el(t)>=t.target){ t.acc=t.target; t.t0=null; save(); dirty=true; }
-n.textContent = fmt(shown(t));
-  });
-if(dirty) render();
-}
-setInterval(tick, 250);
+      function showCustomBar() {
+        const bar = $("custom-bar");
+        if (!bar) return;
+        bar.style.display = "";
+        resetCustomHideTimer();
+      }
 
-/* ---------- modules: each takes its own item only; no module reads another ---------- */
-const MOD = {};
+      function hideCustomBar() {
+        const bar = $("custom-bar");
+        if (!bar) return;
+        bar.style.display = "none";
+        clearTimeout(customHideTimer);
+      }
 
-MOD.counter = c => {
-const val=h('div',{class:'val'}), hist=h('ul',{class:'hist'});
-const plus=h('button',{class:'btn big_b'}), minus=h('button',{class:'btn big_b ghost'}), undoB=h('button',{class:'btn sm ghost'},'undo');
-const amt=h('input',{type:'number',class:'amt',step:'any',placeholder:'one-off amount'});
-const setIn=h('input',{type:'number',class:'num',step:'any',placeholder:'value'});
-const intIn=h('input',{type:'number',class:'num',min:'0',step:'any',value:c.interval});
-const r6=n=>Math.round(n*1e6)/1e6;
-const paint=()=>{
-val.textContent=c.value;
-plus.textContent='+ '+c.interval; minus.textContent='− '+c.interval;
-undoB.disabled=!c.history.length;
-hist.replaceChildren(...c.history.slice(-8).reverse().map(x=>
-  h('li',{}, x.label+'   '+x.prev+' → '+x.next,
-    x.ts ? h('span',{'data-ts':x.ts},stamp(x.ts)) : null)));
-  };
-const log=(next,label)=>{ next=r6(next); c.history.push({prev:c.value,next,label,ts:Date.now()}); if(c.history.length>500) c.history.shift(); c.value=next; save(); paint(); };
-const oneOff=sign=>{ const n=parseFloat(amt.value); if(isNaN(n)) return; const a=Math.abs(n); log(c.value+sign*a,(sign>0?'+':'−')+a); };
-plus.onclick=()=>log(c.value+c.interval,'+'+c.interval);
-minus.onclick=()=>log(c.value-c.interval,'−'+c.interval);
-undoB.onclick=()=>{ const x=c.history.pop(); if(!x) return; c.value=x.prev; save(); paint(); };
-intIn.onchange=()=>{ const v=parseFloat(intIn.value); if(v>0) c.interval=v; else intIn.value=c.interval; save(); paint(); };
-const att=(key,type,label)=>{ const it=c[key]&&get(c[key]);
-return it ? panel(it,true) : h('button',{class:'btn sm ghost',onclick:()=>{ if(create(type,c.id)) render(); }},'+ attach '+label); };
-paint();
-return h('div',{class:'mod'},
-val,
-h('div',{class:'row2 c'},minus,plus),
-h('div',{class:'sub_t'},'one-off amount (interval untouched)'),
-h('div',{class:'row2'},amt,h('button',{class:'btn sm',onclick:()=>oneOff(1)},'add'),h('button',{class:'btn sm ghost',onclick:()=>oneOff(-1)},'subtract')),
-h('div',{class:'sub_t'},'set / reset / undo'),
-h('div',{class:'row2'},setIn,h('button',{class:'btn sm',onclick:()=>{ const v=parseFloat(setIn.value); if(isNaN(v)) return; log(v,'set'); setIn.value=''; }},'set'),
-h('button',{class:'btn sm ghost',onclick:()=>log(0,'reset')},'reset'),undoB),
-h('div',{class:'sub_t'},'settings'),
-h('div',{class:'row2'},h('span',{class:'hint'},'saved interval'),intIn),
-h('div',{class:'sub_t'},'recent'),
-hist,
-h('div',{class:'sub_t'},'attachments'),
-att('noteId','notepad','notepad'),
-att('timerId','timer','timer'));
-};
+      function syncCustomBar() {
+        if (S.theme === "custom") showCustomBar();
+        else hideCustomBar();
+      }
+      function syncCustomInputs(skip) {
+        document.querySelectorAll("[data-cc]").forEach((inp) => {
+          if (inp === skip) return;
+          const v = S.custom[inp.dataset.cc];
+          if (v) inp.value = "#" + v;
+        });
+      }
 
-MOD.notepad = n => {
-const ta=h('textarea',{class:'note',placeholder:'write something'}), st=h('span',{class:'hint'},'saved'); let to;
-ta.value=n.text;
-ta.oninput=()=>{ n.text=ta.value; st.textContent='saving…'; clearTimeout(to); to=setTimeout(()=>{ save(); st.textContent='saved'; },300); };
-ta.onblur=()=>{ clearTimeout(to); save(); st.textContent='saved'; };
-return h('div',{class:'mod'},ta,st);
-};
+      /* ---------- tiny DOM helper ---------- */
+      function h(tag, a, ...kids) {
+        const e = document.createElement(tag);
+        for (const k in a || {}) {
+          const v = a[k];
+          if (k === "class") e.className = v;
+          else if (k.startsWith("on")) e[k] = v;
+          else if (v !== false && v != null) e.setAttribute(k, v);
+        }
+        for (const c of kids.flat())
+          if (c != null) e.append(c.nodeType ? c : document.createTextNode(c));
+        return e;
+      }
 
-MOD.timer = t => {
-const disp=h('div',{class:'val','data-tm':t.id}), startB=h('button',{class:'btn big_b'});
-const mode=h('select',{},h('option',{value:'up'},'count up (stopwatch)'),h('option',{value:'down'},'count down'));
-const dur=h('input',{class:'num',value:fmt(t.target)}), durW=h('div',{class:'row2'},h('span',{class:'hint'},'duration mm:ss'),dur);
-mode.value=t.mode;
-const paint=()=>{ disp.textContent=fmt(shown(t)); startB.textContent=t.t0?'pause':'start';
-disp.classList.toggle('done',t.mode==='down'&&!t.t0&&t.acc>=t.target); durW.style.display=t.mode==='down'?'':'none'; };
-startB.onclick=()=>{ if(t.t0){ t.acc=el(t); t.t0=null; } else { if(t.mode==='down'&&t.acc>=t.target) t.acc=0; t.t0=Date.now(); } save(); paint(); };
-mode.onchange=()=>{ t.mode=mode.value; t.acc=0; t.t0=null; save(); paint(); };
-dur.onchange=()=>{ const v=parseDur(dur.value); if(v>0){ t.target=v; save(); } dur.value=fmt(t.target); paint(); };
-paint();
-return h('div',{class:'mod'},disp,
-h('div',{class:'row2 c'},startB,h('button',{class:'btn big_b ghost',onclick:()=>{ t.acc=0; t.t0=null; save(); paint(); }},'reset')),
-h('div',{class:'row2'},mode,durW));
-};
+      /* ---------- shift.mk bridge ---------- */
+      function readShift() {
+        try {
+          return JSON.parse(localStorage.getItem(SHIFT_KEY) || "null");
+        } catch (_) {
+          return null;
+        }
+      }
+      function writeShift(d) {
+        try {
+          localStorage.setItem(SHIFT_KEY, JSON.stringify(d));
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
 
-/* ---------- generic shell: name / detach / delete around any module ---------- */
-function panel(it, nested){
-const nm=h('input',{class:'nm',value:it.name});
-nm.oninput=()=>{ it.name=nm.value; save(); };
-nm.onblur=()=>{ if(!nm.value.trim()){ it.name=defName(it.type); nm.value=it.name; save(); } };
-const acts=[];
-if(nested) acts.push(h('button',{class:'btn sm ghost',onclick:()=>detach(it)},'detach'));
-acts.push(h('button',{class:'btn sm ghost',onclick:()=>{
-if(!confirm('Delete "'+it.name+'"'+((it.noteId||it.timerId)?' and its attachments':'')+'?')) return;
-del(it.id); nested ? render() : go(null);
-  }},'delete'));
-return h('section',{class:'panel mod'+(nested?' nested':'')},
-h('div',{class:'dhead'},h('span',{class:'tag'},it.type),nm,acts), MOD[it.type](it));
-}
+      const pad2 = (n) => String(n).padStart(2, "0");
+      const todayYMD = () => {
+        const d = new Date();
+        return (
+          d.getFullYear() +
+          "-" +
+          pad2(d.getMonth() + 1) +
+          "-" +
+          pad2(d.getDate())
+        );
+      };
+      const sToMins = (s) => {
+        const [a, b] = s.split(":").map(Number);
+        return a * 60 + b;
+      };
+      const minsToHM = (m) => {
+        m = ((m % 1440) + 1440) % 1440;
+        return pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
+      };
 
-/* ---------- overview ---------- */
-function summary(it){
-if(it.type==='notepad'){ const t=it.text.trim(); return h('p',{class:'pv'}, t ? t.slice(0,90)+(t.length>90?'…':'') : '(empty)'); }
-if(it.type==='timer') return h('div',{class:'sm_t'},h('b',{'data-tm':it.id}),' ',it.mode==='down'?'countdown':'stopwatch',it.t0?' · running':'');
-const n=it.noteId&&get(it.noteId), t=it.timerId&&get(it.timerId);
-return h('div',{},h('b',{class:'cnt'},String(it.value)),h('span',{class:'hint'},'  +'+it.interval),
-    (n||t) ? h('div',{class:'hint'}, n?'note: '+(n.text.trim().slice(0,40)||'empty'):'', n&&t?' · ':'', t?h('span',{'data-tm':t.id}):'', t&&t.t0?' ▶':'') : null);
-}
-function card(it){
-return h('div',{class:'card item',onclick:()=>go(it.id)}, h('span',{class:'tag'},it.type+((it.noteId||it.timerId)?' +':'')), h('h3',{},it.name), summary(it));
-}
-function overview(){
-const top=S.items.filter(x=>!x.parent);
-return h('div',{},
-h('div',{class:'bar'},
-h('div',{class:'addrow'},['counter','notepad','timer'].map(t=>h('button',{class:'btn sm',onclick:()=>{ const it=create(t); if(it) go(it.id); }},'+ '+t))),
-h('div',{class:'seg'},['grid','list'].map(v=>h('button',{class:S.view===v?'on':'',onclick:()=>{ S.view=v; save(); render(); }},v)))),
-top.length ? h('div',{class:'items '+S.view},top.map(card)) : h('p',{class:'hint'},'Nothing yet. Add a counter, notepad or timer above.'));
-}
+      function shiftDay(sh, date) {
+        const ov = sh.days && sh.days[date];
+        return {
+          start: (ov && ov.start) || sh.cfg.start,
+          end: (ov && ov.end) || sh.cfg.end,
+          slots: (ov && ov.slots) || {},
+          preOT: (ov && ov.preOT) || 0,
+          postOT: (ov && ov.postOT) || 0,
+        };
+      }
 
-/* ---------- routing ---------- */
-function go(id){ route=id; save(); render(); window.scrollTo(0,0); }
-function render(){
-const it = route && get(route), m=$('main');
-m.replaceChildren(it ? h('div',{class:'detail'},h('button',{class:'btn sm ghost',style:'align-self:flex-start',onclick:()=>go(null)},'← all'),panel(it,false)) : overview());
-if(!it) route=null;
-tick();
-}
+      function shiftGrid(sh, date) {
+        const d = shiftDay(sh, date),
+          iv = Math.max(1, +sh.cfg.interval || 30);
+        let bs = sToMins(d.start),
+          be = sToMins(d.end);
+        if (be <= bs) be += 1440;
+        const a = Math.max(0, bs - d.preOT);
+        const b = be + d.postOT;
+        const out = [];
+        for (let t = a; t < b; t += iv) {
+          const e = Math.min(t + iv, b);
+          let zone = "";
+          if (e <= bs) zone = "pre";
+          else if (t >= be) zone = "post";
+          out.push({
+            key: minsToHM(t),
+            start: t,
+            end: e,
+            def: Math.min(iv, b - t),
+            zone,
+          });
+        }
+        return out;
+      }
 
-render();
-</script>
+      function shiftBreaks(sh, date, g) {
+        const d = shiftDay(sh, date);
+        let bs = sToMins(d.start),
+          be = sToMins(d.end);
+        if (be <= bs) be += 1440;
+        const a = Math.max(0, bs - d.preOT);
+        const b = be + d.postOT;
+        let total = 0;
+        for (const br of sh.breaks || []) {
+          if (!br.start) continue;
+          const bm = +br.mins || 0;
+          if (bm <= 0) continue;
+          let bstart = sToMins(br.start);
+          if (bstart < a) bstart += 1440;
+          if (bstart >= b) continue;
+          const bend = bstart + bm;
+          const os = Math.max(g.start, bstart),
+            oe = Math.min(g.end, bend);
+          if (oe > os) total += oe - os;
+        }
+        return total;
+      }
+      function shiftEffMin(sh, date, g) {
+        return Math.max(0, g.def - shiftBreaks(sh, date, g));
+      }
 
-</body>
+      function shiftCurrentSlot(sh, date) {
+        const grid = shiftGrid(sh, date);
+        if (!grid.length) return null;
+        if (date === todayYMD()) {
+          const d = new Date();
+          const cur = d.getHours() * 60 + d.getMinutes();
+          for (const g of grid) {
+            if (cur >= g.start && cur < g.end) return g;
+          }
+          if (cur < grid[0].start) return grid[0];
+          return grid[grid.length - 1];
+        }
+        return grid[0];
+      }
+      function shiftResolveSlot(sh, date, key) {
+        if (key) {
+          const g = shiftGrid(sh, date).find((x) => x.key === key);
+          if (g) return g;
+        }
+        return shiftCurrentSlot(sh, date);
+      }
+      function fmtDate(s) {
+        const [a, b, c] = s.split("-").map(Number);
+        return new Date(a, b - 1, c).toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+      }
+      function fmtRange(g) {
+        return minsToHM(g.start) + "–" + minsToHM(g.end);
+      }
+      function fmtRangeOT(g) {
+        const r = fmtRange(g);
+        return g.zone
+          ? r + "  ·  " + (g.zone === "pre" ? "PRE-OT" : "POST-OT")
+          : r;
+      }
+      function fmtSlotTitle(date, g) {
+        return (
+          fmtDate(date) +
+          " · " +
+          fmtRange(g) +
+          (g.zone ? " · " + (g.zone === "pre" ? "PRE-OT" : "POST-OT") : "")
+        );
+      }
+      function otText(d) {
+        if (!d.preOT && !d.postOT) return "";
+        const parts = [];
+        if (d.preOT) parts.push("−" + d.preOT / 60 + "h pre");
+        if (d.postOT) parts.push("+" + d.postOT / 60 + "h post");
+        return "OT " + parts.join(" ");
+      }
+
+      function slotStartMs(date, g) {
+        const [y, m, d] = date.split("-").map(Number);
+        const dt = new Date(y, m - 1, d, 0, 0, 0, 0);
+        dt.setMinutes(dt.getMinutes() + g.start);
+        return dt.getTime();
+      }
+      function slotEndMs(date, g) {
+        const [y, m, d] = date.split("-").map(Number);
+        const dt = new Date(y, m - 1, d, 0, 0, 0, 0);
+        dt.setMinutes(dt.getMinutes() + g.end);
+        return dt.getTime();
+      }
+      function countdownState(date, g) {
+        const start = slotStartMs(date, g);
+        const end = slotEndMs(date, g);
+        const now = Date.now();
+        if (now >= end) return { state: "done", text: "ended" };
+        if (now < start) {
+          const wait = start - now;
+          if (wait > 3600000) return { state: "waiting", text: "not started" };
+          const mm = Math.floor(wait / 60000);
+          const ss = Math.floor((wait % 60000) / 1000);
+          return {
+            state: "waiting",
+            text: "starts in " + pad2(mm) + ":" + pad2(ss),
+          };
+        }
+        const remain = end - now;
+        const hh = Math.floor(remain / 3600000);
+        const mm = Math.floor((remain % 3600000) / 60000);
+        const ss = Math.floor((remain % 60000) / 1000);
+        return {
+          state: remain < 60000 ? "warning" : "live",
+          text: (hh ? hh + ":" : "") + pad2(mm) + ":" + pad2(ss),
+        };
+      }
+
+      /* ---------- item factory / delete ---------- */
+      const MAKE = {
+        counter: () => ({
+          interval: 200,
+          value: 0,
+          history: [],
+          noteId: null,
+          timerId: null,
+        }),
+        notepad: () => ({ text: "" }),
+        timer: () => ({ mode: "up", target: 300000, acc: 0, t0: null }),
+        slot: () => ({
+          date: null,
+          slotKey: null,
+          tag: null,
+          interval: 1,
+          history: [],
+          noteId: null,
+        }),
+      };
+      function defName(type) {
+        return (
+          DEFNAME[type] +
+          " " +
+          (S.items.filter((x) => x.type === type).length + 1)
+        );
+      }
+      function create(type, parent) {
+        const d = defName(type);
+        let n = d;
+        if (type === "slot") {
+          const sh = readShift();
+          if (sh) {
+            const date = todayYMD();
+            const g = shiftResolveSlot(sh, date, null);
+            if (g) n = fmtSlotTitle(date, g);
+          }
+        } else {
+          n = prompt("Name", d);
+          if (n === null) return null;
+          n = (n || d).trim() || d;
+        }
+        const it = Object.assign(
+          { id: uid(), type, name: n, parent: parent || null },
+          MAKE[type](),
+        );
+        S.items.push(it);
+        if (parent)
+          get(parent)[type === "notepad" ? "noteId" : "timerId"] = it.id;
+        save();
+        return it;
+      }
+      function del(id) {
+        const it = get(id);
+        if (!it) return;
+        const kids = [it.noteId, it.timerId];
+        S.items = S.items.filter((x) => x.id !== id && !kids.includes(x.id));
+        if (it.parent) {
+          const p = get(it.parent);
+          if (p) {
+            if (p.noteId === id) p.noteId = null;
+            if (p.timerId === id) p.timerId = null;
+          }
+        }
+        save();
+      }
+      function detach(it) {
+        const p = get(it.parent);
+        if (p) {
+          if (p.noteId === it.id) p.noteId = null;
+          if (p.timerId === it.id) p.timerId = null;
+        }
+        it.parent = null;
+        save();
+        render();
+      }
+
+      /* ---------- timer math ---------- */
+      const el = (t) => t.acc + (t.t0 ? Date.now() - t.t0 : 0);
+      const shown = (t) =>
+        t.mode === "down" ? Math.max(0, t.target - el(t)) : el(t);
+      function fmt(ms) {
+        const s = Math.floor(ms / 1000),
+          p = (n) => String(n).padStart(2, "0"),
+          hh = Math.floor(s / 3600);
+        return (
+          (hh ? hh + ":" : "") +
+          p(Math.floor((s % 3600) / 60)) +
+          ":" +
+          p(s % 60)
+        );
+      }
+      function parseDur(v) {
+        const p = String(v).trim().split(":").map(Number);
+        if (!p.length || p.some(isNaN)) return null;
+        if (p.length === 1) return p[0] * 60000;
+        return p.reduce((a, n) => a * 60 + n, 0) * 1000;
+      }
+
+      /* ---------- timestamps ---------- */
+      function isoLocal(ts) {
+        const d = new Date(ts),
+          o = -d.getTimezoneOffset(),
+          a = Math.abs(o);
+        return (
+          d.getFullYear() +
+          "-" +
+          pad2(d.getMonth() + 1) +
+          "-" +
+          pad2(d.getDate()) +
+          "T" +
+          pad2(d.getHours()) +
+          ":" +
+          pad2(d.getMinutes()) +
+          ":" +
+          pad2(d.getSeconds()) +
+          (o >= 0 ? "+" : "-") +
+          pad2(Math.floor(a / 60)) +
+          ":" +
+          pad2(a % 60)
+        );
+      }
+      function ago(ts) {
+        const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+        if (s < 60) return s + "s ago";
+        const m = Math.floor(s / 60);
+        if (m < 60) return m + "m ago";
+        const hr = Math.floor(m / 60);
+        if (hr < 24) return hr + "h ago";
+        return Math.floor(hr / 24) + "d ago";
+      }
+      const stamp = (ts) => " · " + isoLocal(ts) + " (" + ago(ts) + ")";
+
+      /* ---------- history view ---------- */
+      function makeHistView(item) {
+        const ul = h("ul", { class: "hist" });
+        const wrap = h("div", { class: "hist_wrap" }, ul);
+        let expanded = false;
+
+        function paint() {
+          const hist = item.history || [];
+          const total = hist.length;
+          const shownCount = expanded ? total : Math.min(HIST_PREVIEW, total);
+          const slice = expanded ? hist : hist.slice(-HIST_PREVIEW);
+          const display = slice.slice().reverse();
+
+          wrap.querySelectorAll(".hist_toggle").forEach((n) => n.remove());
+          if (total > HIST_PREVIEW) {
+            const toggle = h(
+              "div",
+              { class: "hist_toggle" },
+              h(
+                "span",
+                {},
+                expanded
+                  ? `all ${total} entries` +
+                      (total >= HIST_CAP ? ` · capped at ${HIST_CAP}` : "")
+                  : `showing last ${shownCount} of ${total}`,
+              ),
+              h(
+                "button",
+                {
+                  onclick: (e) => {
+                    e.preventDefault();
+                    expanded = !expanded;
+                    wrap.classList.toggle("expanded", expanded);
+                    paint();
+                  },
+                },
+                expanded ? "collapse" : "show all →",
+              ),
+            );
+            wrap.insertBefore(toggle, ul);
+          }
+
+          if (!total) {
+            ul.replaceChildren(h("li", { class: "hint" }, "no changes yet"));
+            return;
+          }
+          ul.replaceChildren(
+            ...display.map((x) =>
+              h(
+                "li",
+                {},
+                x.label + "   " + x.prev + " → " + x.next,
+                x.ts ? h("span", { "data-ts": x.ts }, stamp(x.ts)) : null,
+              ),
+            ),
+          );
+        }
+
+        paint();
+        return { wrap, paint };
+      }
+      function pushHist(item, entry) {
+        item.history.push(entry);
+        if (item.history.length > HIST_CAP) item.history.shift();
+      }
+
+      /* ---------- export / import ---------- */
+      function exportBundle() {
+        const sh = readShift();
+        const bundle = {
+          v: 1,
+          app: "tally.mk",
+          exportedAt: new Date().toISOString(),
+          tally: S,
+        };
+        if (sh) bundle.shift = sh;
+        return bundle;
+      }
+      function importBundle(text) {
+        let o;
+        try {
+          o = JSON.parse(text);
+        } catch (err) {
+          throw new Error("not valid JSON (" + err.message + ")");
+        }
+        if (!o || typeof o !== "object") throw new Error("not a JSON object");
+
+        if (o.v === 1 && o.tally) {
+          if (!o.tally.items || !Array.isArray(o.tally.items))
+            throw new Error("bundle.tally.items missing");
+          S = o.tally;
+          if (!S.view) S.view = "grid";
+          if (!S.theme) S.theme = "site";
+          if (!S.custom || typeof S.custom !== "object")
+            S.custom = { ...DEFTHEME };
+          save();
+          let wroteShift = false;
+          if (o.shift && typeof o.shift === "object") {
+            wroteShift = writeShift(o.shift);
+          }
+          return { shift: wroteShift };
+        }
+
+        if (o.items && Array.isArray(o.items)) {
+          S = o;
+          if (!S.view) S.view = "grid";
+          if (!S.theme) S.theme = "site";
+          if (!S.custom || typeof S.custom !== "object")
+            S.custom = { ...DEFTHEME };
+          save();
+          return { shift: false };
+        }
+
+        throw new Error("unrecognized file — expected a tally backup");
+      }
+      function downloadText(name, text, type) {
+        const blob = new Blob([text], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      async function copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (_) {
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.top = "-1000px";
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand("copy");
+            ta.remove();
+            return ok;
+          } catch (_2) {
+            return false;
+          }
+        }
+      }
+
+      /* ---------- tick loop ---------- */
+      let lastMinute = -1;
+      function tick() {
+        document.querySelectorAll("[data-ts]").forEach((n) => {
+          n.textContent = stamp(+n.dataset.ts);
+        });
+        let dirty = false;
+        document.querySelectorAll("[data-tm]").forEach((n) => {
+          const t = get(n.dataset.tm);
+          if (!t) return;
+          if (t.t0 && t.mode === "down" && el(t) >= t.target) {
+            t.acc = t.target;
+            t.t0 = null;
+            save();
+            dirty = true;
+          }
+          n.textContent = fmt(shown(t));
+        });
+
+        const slotTimers = document.querySelectorAll("[data-slot-timer]");
+        if (slotTimers.length) {
+          const sh = readShift();
+          slotTimers.forEach((n) => {
+            const item = get(n.dataset.slotTimer);
+            if (!item) return;
+            if (!sh) {
+              n.textContent = "—";
+              n.className = "slot_cd";
+              return;
+            }
+            const date = item.date || todayYMD();
+            let g = null;
+            if (item.slotKey) {
+              g =
+                shiftGrid(sh, date).find((x) => x.key === item.slotKey) || null;
+            }
+            if (!g) g = shiftResolveSlot(sh, date, null);
+            if (!g) {
+              n.textContent = "—";
+              n.className = "slot_cd";
+              return;
+            }
+            const cd = countdownState(date, g);
+            n.textContent = cd.text;
+            n.className = "slot_cd " + cd.state;
+          });
+        }
+
+        const m = new Date().getMinutes();
+        if (m !== lastMinute) {
+          lastMinute = m;
+          document.querySelectorAll("[data-slot]").forEach((n) => {
+            const fn = n._slotRefresh;
+            if (fn) fn();
+          });
+        }
+        if (dirty) render();
+      }
+      setInterval(tick, 250);
+
+      /* ---------- modules ---------- */
+      const MOD = {};
+
+      MOD.counter = (c) => {
+        const val = h("div", { class: "val" });
+        const plus = h("button", { class: "btn big_b" }),
+          minus = h("button", { class: "btn big_b ghost" }),
+          undoB = h("button", { class: "btn sm ghost" }, "undo");
+        const amt = h("input", {
+          type: "number",
+          class: "amt",
+          step: "any",
+          placeholder: "one-off amount",
+        });
+        const setIn = h("input", {
+          type: "number",
+          class: "num",
+          step: "any",
+          placeholder: "value",
+        });
+        const intIn = h("input", {
+          type: "number",
+          class: "num",
+          min: "0",
+          step: "any",
+          value: c.interval,
+        });
+        const histView = makeHistView(c);
+        const r6 = (n) => Math.round(n * 1e6) / 1e6;
+        const paint = () => {
+          val.textContent = c.value;
+          plus.textContent = "+ " + c.interval;
+          minus.textContent = "− " + c.interval;
+          undoB.disabled = !c.history.length;
+          histView.paint();
+        };
+        const log = (next, label) => {
+          next = r6(next);
+          pushHist(c, { prev: c.value, next, label, ts: Date.now() });
+          c.value = next;
+          save();
+          paint();
+        };
+        const oneOff = (sign) => {
+          const n = parseFloat(amt.value);
+          if (isNaN(n)) return;
+          const a = Math.abs(n);
+          log(c.value + sign * a, (sign > 0 ? "+" : "−") + a);
+        };
+        plus.onclick = () => log(c.value + c.interval, "+" + c.interval);
+        minus.onclick = () => log(c.value - c.interval, "−" + c.interval);
+        undoB.onclick = () => {
+          const x = c.history.pop();
+          if (!x) return;
+          c.value = x.prev;
+          save();
+          paint();
+        };
+        intIn.onchange = () => {
+          const v = parseFloat(intIn.value);
+          if (v > 0) c.interval = v;
+          else intIn.value = c.interval;
+          save();
+          paint();
+        };
+        const att = (key, type, label) => {
+          const it = c[key] && get(c[key]);
+          return it
+            ? panel(it, true)
+            : h(
+                "button",
+                {
+                  class: "btn sm ghost",
+                  onclick: () => {
+                    if (create(type, c.id)) render();
+                  },
+                },
+                "+ attach " + label,
+              );
+        };
+        paint();
+        return h(
+          "div",
+          { class: "mod" },
+          val,
+          h("div", { class: "row2 c" }, minus, plus),
+          h("div", { class: "sub_t" }, "one-off amount (interval untouched)"),
+          h(
+            "div",
+            { class: "row2" },
+            amt,
+            h("button", { class: "btn sm", onclick: () => oneOff(1) }, "add"),
+            h(
+              "button",
+              { class: "btn sm ghost", onclick: () => oneOff(-1) },
+              "subtract",
+            ),
+          ),
+          h("div", { class: "sub_t" }, "set / reset / undo"),
+          h(
+            "div",
+            { class: "row2" },
+            setIn,
+            h(
+              "button",
+              {
+                class: "btn sm",
+                onclick: () => {
+                  const v = parseFloat(setIn.value);
+                  if (isNaN(v)) return;
+                  log(v, "set");
+                  setIn.value = "";
+                },
+              },
+              "set",
+            ),
+            h(
+              "button",
+              { class: "btn sm ghost", onclick: () => log(0, "reset") },
+              "reset",
+            ),
+            undoB,
+          ),
+          h("div", { class: "sub_t" }, "settings"),
+          h(
+            "div",
+            { class: "row2" },
+            h("span", { class: "hint" }, "saved interval"),
+            intIn,
+          ),
+          h("div", { class: "sub_t" }, "history"),
+          histView.wrap,
+          h("div", { class: "sub_t" }, "attachments"),
+          att("noteId", "notepad", "notepad"),
+          att("timerId", "timer", "timer"),
+        );
+      };
+
+      MOD.notepad = (n) => {
+        const ta = h("textarea", {
+            class: "note",
+            placeholder: "write something",
+          }),
+          st = h("span", { class: "hint" }, "saved");
+        let to;
+        ta.value = n.text;
+        ta.oninput = () => {
+          n.text = ta.value;
+          st.textContent = "saving…";
+          clearTimeout(to);
+          to = setTimeout(() => {
+            save();
+            st.textContent = "saved";
+          }, 300);
+        };
+        ta.onblur = () => {
+          clearTimeout(to);
+          save();
+          st.textContent = "saved";
+        };
+        return h("div", { class: "mod" }, ta, st);
+      };
+
+      MOD.timer = (t) => {
+        const disp = h("div", { class: "val", "data-tm": t.id }),
+          startB = h("button", { class: "btn big_b" });
+        const mode = h(
+          "select",
+          {},
+          h("option", { value: "up" }, "count up (stopwatch)"),
+          h("option", { value: "down" }, "count down"),
+        );
+        const dur = h("input", { class: "num", value: fmt(t.target) }),
+          durW = h(
+            "div",
+            { class: "row2" },
+            h("span", { class: "hint" }, "duration mm:ss"),
+            dur,
+          );
+        mode.value = t.mode;
+        const paint = () => {
+          disp.textContent = fmt(shown(t));
+          startB.textContent = t.t0 ? "pause" : "start";
+          disp.classList.toggle(
+            "done",
+            t.mode === "down" && !t.t0 && t.acc >= t.target,
+          );
+          durW.style.display = t.mode === "down" ? "" : "none";
+        };
+        startB.onclick = () => {
+          if (t.t0) {
+            t.acc = el(t);
+            t.t0 = null;
+          } else {
+            if (t.mode === "down" && t.acc >= t.target) t.acc = 0;
+            t.t0 = Date.now();
+          }
+          save();
+          paint();
+        };
+        mode.onchange = () => {
+          t.mode = mode.value;
+          t.acc = 0;
+          t.t0 = null;
+          save();
+          paint();
+        };
+        dur.onchange = () => {
+          const v = parseDur(dur.value);
+          if (v > 0) {
+            t.target = v;
+            save();
+          }
+          dur.value = fmt(t.target);
+          paint();
+        };
+        paint();
+        return h(
+          "div",
+          { class: "mod" },
+          disp,
+          h(
+            "div",
+            { class: "row2 c" },
+            startB,
+            h(
+              "button",
+              {
+                class: "btn big_b ghost",
+                onclick: () => {
+                  t.acc = 0;
+                  t.t0 = null;
+                  save();
+                  paint();
+                },
+              },
+              "reset",
+            ),
+          ),
+          h("div", { class: "row2" }, mode, durW),
+        );
+      };
+
+      /* ---------- MOD.slot ---------- */
+      MOD.slot = (it) => {
+        const wrap = h("div", { class: "mod", "data-slot": it.id });
+
+        let sh = readShift();
+        if (!sh || !Array.isArray(sh.tags) || !sh.tags.length) {
+          wrap.append(
+            h("div", { class: "sub_t" }, "time slot"),
+            h(
+              "div",
+              { class: "hint" },
+              "No shift.mk data yet. Open shift.mk and set up at least one tag, then come back here.",
+            ),
+            h(
+              "div",
+              { class: "row2", style: "margin-top:12px" },
+              h(
+                "a",
+                {
+                  href: "shift.html",
+                  class: "btn sm",
+                  style:
+                    "text-decoration:none;color:var(--txt);display:inline-block",
+                },
+                "open shift.mk →",
+              ),
+              h(
+                "button",
+                {
+                  class: "btn sm ghost",
+                  onclick: () => {
+                    const f = readShift();
+                    if (f && Array.isArray(f.tags)) {
+                      sh = f;
+                      render();
+                    }
+                  },
+                },
+                "↻ reload",
+              ),
+            ),
+          );
+          return wrap;
+        }
+
+        if (it.interval == null) it.interval = 1;
+        if (!Array.isArray(it.history)) it.history = [];
+
+        const slotBig = h("div", { class: "slot_big" });
+        const slotOT = h("span", { class: "slot_ot" });
+        const slotMeta = h("div", { class: "slot_meta" });
+        const liveTag = h("span", { class: "slot_live" }, "live");
+        const cdEl = h(
+          "div",
+          { class: "slot_cd", "data-slot-timer": it.id },
+          "—",
+        );
+
+        const dateIn = h("input", { type: "date" });
+        const slotSel = h("select");
+        const tagSel = h("select");
+        const minIn = h("input", {
+          type: "number",
+          min: "0",
+          step: "1",
+          style: "width:100px",
+        });
+        const minHint = h("span", { class: "hint" }, "");
+
+        const valEl = h("div", { class: "val" });
+        const minusB = h("button", { class: "btn big_b ghost" });
+        const plusB = h("button", { class: "btn big_b" });
+        const undoB = h("button", { class: "btn sm ghost" }, "undo");
+        const resetB = h("button", { class: "btn sm ghost" }, "reset");
+        const amtEl = h("input", {
+          type: "number",
+          class: "amt",
+          step: "any",
+          placeholder: "one-off amount",
+        });
+        const setEl = h("input", {
+          type: "number",
+          class: "num",
+          step: "any",
+          placeholder: "value",
+        });
+        const intEl = h("input", {
+          type: "number",
+          class: "num",
+          min: "1",
+          step: "any",
+          value: it.interval,
+        });
+        const histView = makeHistView(it);
+        const noteWrap = h("div", {});
+
+        const statusEl = h("div", { class: "slot_save" });
+        const sumEl = h("div", { class: "slot_sum" });
+        const reloadBtn = h(
+          "button",
+          {
+            class: "btn sm ghost",
+            onclick: () => {
+              const fresh = readShift();
+              if (fresh && Array.isArray(fresh.tags)) {
+                sh = fresh;
+                refresh();
+                flash("reloaded");
+              } else flash("shift.mk data unavailable");
+            },
+          },
+          "↻ reload",
+        );
+        const syncBtn = h(
+          "button",
+          { class: "btn sm", onclick: syncCurrentSlot },
+          "↻ sync to shift",
+        );
+        const todayBtn = h(
+          "button",
+          {
+            class: "btn sm ghost",
+            onclick: () => {
+              it.date = null;
+              it.slotKey = null;
+              save();
+              refresh();
+            },
+          },
+          "today · now",
+        );
+
+        const curDate = () => it.date || todayYMD();
+
+        function curSlot() {
+          const date = curDate();
+          if (it.slotKey) {
+            const g = shiftGrid(sh, date).find((x) => x.key === it.slotKey);
+            if (g) return g;
+          }
+          return shiftCurrentSlot(sh, date);
+        }
+
+        function getSlotState() {
+          const g = curSlot();
+          if (!g) return null;
+          const s = shiftDay(sh, curDate()).slots[g.key] || {};
+          const tag = s.tag && sh.tags.find((t) => t.id === s.tag);
+          return { g, s, tag };
+        }
+        function isActiveSlot() {
+          if (curDate() !== todayYMD()) return false;
+          const g = curSlot();
+          if (!g) return false;
+          const d = new Date();
+          const m = d.getHours() * 60 + d.getMinutes();
+          return m >= g.start && m < g.end;
+        }
+        function fillSlots() {
+          const grid = shiftGrid(sh, curDate());
+          const sig = grid.map((g) => g.key).join("|");
+          if (slotSel._sig !== sig) {
+            slotSel._sig = sig;
+            slotSel.innerHTML = "";
+            for (const g of grid)
+              slotSel.append(h("option", { value: g.key }, fmtRangeOT(g)));
+          }
+          const g = curSlot();
+          if (g) slotSel.value = g.key;
+          else if (grid[0]) slotSel.value = grid[0].key;
+        }
+        function fillTags() {
+          const sig = sh.tags
+            .map(
+              (t) =>
+                t.id +
+                ":" +
+                t.name +
+                ":" +
+                (t.prod ? "1" : "0") +
+                ":" +
+                (t.quota ?? ""),
+            )
+            .join("|");
+          if (tagSel._sig !== sig) {
+            tagSel._sig = sig;
+            const keep = tagSel.value;
+            tagSel.innerHTML = "";
+            tagSel.append(h("option", { value: "" }, "—"));
+            const sorted = [...sh.tags].sort(
+              (a, b) => (b.prod ? 1 : 0) - (a.prod ? 1 : 0),
+            );
+            sorted.forEach((t) => {
+              const lbl =
+                t.name +
+                (t.prod && t.quota
+                  ? " · " + t.quota + "/h"
+                  : t.prod
+                    ? ""
+                    : " (non-prod)");
+              tagSel.append(h("option", { value: t.id }, lbl));
+            });
+            if (keep && sh.tags.some((t) => t.id === keep)) tagSel.value = keep;
+          }
+        }
+        function flash(msg, ok) {
+          statusEl.textContent = msg;
+          statusEl.className = "slot_save" + (ok ? " ok" : "");
+          setTimeout(() => {
+            if (statusEl.textContent === msg) {
+              statusEl.textContent = "";
+              statusEl.className = "slot_save";
+            }
+          }, 1500);
+        }
+
+        function paintNote() {
+          noteWrap.innerHTML = "";
+          const n = it.noteId && get(it.noteId);
+          if (n) noteWrap.append(panel(n, true));
+          else
+            noteWrap.append(
+              h(
+                "button",
+                {
+                  class: "btn sm ghost",
+                  onclick: () => {
+                    if (create("notepad", it.id)) render();
+                  },
+                },
+                "+ attach notepad",
+              ),
+            );
+        }
+
+        function paintCounter() {
+          const st = getSlotState();
+          if (!st) {
+            valEl.textContent = "—";
+            return;
+          }
+          valEl.textContent = String(+st.s.tickets || 0);
+          const iv = it.interval || 1;
+          plusB.textContent = "+ " + iv;
+          minusB.textContent = "− " + iv;
+          undoB.disabled = !it.history.length;
+          histView.paint();
+        }
+
+        function updateSummary() {
+          const date = curDate();
+          const d = shiftDay(sh, date);
+          const grid = shiftGrid(sh, date);
+          let logged = 0,
+            otLogged = 0,
+            tk = 0,
+            ph = 0;
+          for (const g of grid) {
+            const s = d.slots[g.key];
+            if (!s || !s.tag) continue;
+            const tag = sh.tags.find((t) => t.id === s.tag);
+            if (!tag) continue;
+            const eff = shiftEffMin(sh, date, g);
+            const m =
+              s.mins == null ? eff : Math.min(Math.max(0, s.mins), g.def);
+            const hrs = m / 60;
+            logged++;
+            if (g.zone) otLogged++;
+            if (tag.prod) {
+              ph += hrs;
+              tk += +s.tickets || 0;
+            }
+          }
+          sumEl.innerHTML = "";
+          sumEl.append(
+            document.createTextNode("day · "),
+            h("b", {}, String(tk)),
+            document.createTextNode(" tickets · "),
+            h("b", {}, ph.toFixed(2)),
+            document.createTextNode(" prod hrs · "),
+            h("b", {}, ph > 0 ? (tk / ph).toFixed(2) : "0.00"),
+            document.createTextNode("/hr · "),
+            h("b", {}, String(logged)),
+            document.createTextNode("/" + grid.length + " slots logged"),
+          );
+          if (otLogged)
+            sumEl.append(
+              document.createTextNode("  ·  "),
+              h("b", {}, String(otLogged)),
+              document.createTextNode(" OT slots"),
+            );
+        }
+
+        function refresh() {
+          const fresh = readShift();
+          if (fresh && Array.isArray(fresh.tags)) sh = fresh;
+
+          const date = curDate();
+          const g = curSlot();
+          if (!g) return;
+
+          if (!it.slotKey) {
+            it.slotKey = g.key;
+            save();
+          }
+
+          const d = shiftDay(sh, date);
+          const st = getSlotState();
+          const s = st.s;
+
+          const autoName = fmtSlotTitle(date, g);
+          if (it.name !== autoName) {
+            it.name = autoName;
+            save();
+          }
+
+          dateIn.value = date;
+          fillSlots();
+          slotSel.value = g.key;
+          slotBig.textContent = fmtRange(g);
+          if (g.zone) {
+            slotOT.textContent = g.zone === "pre" ? "PRE-OT" : "POST-OT";
+            slotOT.style.display = "";
+          } else slotOT.style.display = "none";
+
+          const otlbl = otText(d);
+          slotMeta.textContent =
+            fmtDate(date) +
+            " · shift " +
+            d.start +
+            " → " +
+            d.end +
+            (otlbl ? " · " + otlbl : "") +
+            " · " +
+            sh.cfg.interval +
+            " min slots";
+          liveTag.style.display = isActiveSlot() ? "" : "none";
+
+          const cd = countdownState(date, g);
+          cdEl.textContent = cd.text;
+          cdEl.className = "slot_cd " + cd.state;
+
+          fillTags();
+          tagSel.value = s.tag || "";
+          const eff = shiftEffMin(sh, date, g);
+          const br = shiftBreaks(sh, date, g);
+          minIn.value = s.mins == null ? "" : s.mins;
+          minIn.placeholder = String(eff);
+          minHint.textContent =
+            br > 0 ? "break −" + br + "m → " + eff + "m available" : "";
+
+          paintNote();
+          paintCounter();
+          updateSummary();
+        }
+
+        function syncCurrentSlot() {
+          const date = curDate();
+          const g = curSlot();
+          if (!g) {
+            flash("no slot selected");
+            return;
+          }
+
+          const fresh = readShift();
+          if (!fresh || !Array.isArray(fresh.tags)) {
+            flash("shift data unavailable");
+            return;
+          }
+          if (!fresh.days) fresh.days = {};
+          if (!fresh.days[date]) fresh.days[date] = {};
+          if (!fresh.days[date].slots) fresh.days[date].slots = {};
+
+          const cur = fresh.days[date].slots[g.key] || {};
+          if (tagSel.value) cur.tag = tagSel.value;
+          else delete cur.tag;
+
+          if (minIn.value === "" || isNaN(+minIn.value)) delete cur.mins;
+          else cur.mins = Math.max(0, +minIn.value);
+
+          fresh.days[date].slots[g.key] = cur;
+          if (!writeShift(fresh)) {
+            flash("sync failed");
+            return;
+          }
+
+          sh = fresh;
+          save();
+          refresh();
+          flash("synced to shift", true);
+        }
+
+        function writeTickets(newVal, label) {
+          const date = curDate();
+          const g = curSlot();
+          if (!g) return;
+          const fresh = readShift() || sh;
+          if (!fresh.days) fresh.days = {};
+          if (!fresh.days[date]) fresh.days[date] = {};
+          if (!fresh.days[date].slots) fresh.days[date].slots = {};
+          const cur = fresh.days[date].slots[g.key] || {};
+          const prev = +cur.tickets || 0;
+          const next = Math.max(0, Math.floor(newVal));
+          if (prev === next) return;
+          cur.tickets = next;
+          fresh.days[date].slots[g.key] = cur;
+          if (writeShift(fresh)) {
+            sh = fresh;
+            pushHist(it, { prev, next, label, ts: Date.now() });
+            save();
+            paintCounter();
+            updateSummary();
+          } else {
+            flash("write failed");
+          }
+        }
+
+        plusB.onclick = () => {
+          const st = getSlotState();
+          if (!st) return;
+          writeTickets(
+            (+st.s.tickets || 0) + (it.interval || 1),
+            "+" + (it.interval || 1),
+          );
+        };
+        minusB.onclick = () => {
+          const st = getSlotState();
+          if (!st) return;
+          writeTickets(
+            (+st.s.tickets || 0) - (it.interval || 1),
+            "−" + (it.interval || 1),
+          );
+        };
+        undoB.onclick = () => {
+          const x = it.history.pop();
+          if (!x) return;
+          const date = curDate();
+          const g = curSlot();
+          if (!g) return;
+          const fresh = readShift() || sh;
+          if (!fresh.days[date]) fresh.days[date] = {};
+          if (!fresh.days[date].slots) fresh.days[date].slots = {};
+          const cur = fresh.days[date].slots[g.key] || {};
+          cur.tickets = x.prev;
+          fresh.days[date].slots[g.key] = cur;
+          if (writeShift(fresh)) {
+            sh = fresh;
+            save();
+            paintCounter();
+            updateSummary();
+          }
+        };
+        resetB.onclick = () => writeTickets(0, "reset");
+
+        const doOneOff = (sign) => {
+          const n = parseFloat(amtEl.value);
+          if (isNaN(n)) return;
+          const st = getSlotState();
+          if (!st) return;
+          writeTickets(
+            (+st.s.tickets || 0) + sign * Math.abs(n),
+            (sign > 0 ? "+" : "−") + Math.abs(n),
+          );
+          amtEl.value = "";
+        };
+        const doSet = () => {
+          const v = parseFloat(setEl.value);
+          if (isNaN(v)) return;
+          writeTickets(v, "set " + v);
+          setEl.value = "";
+        };
+
+        intEl.onchange = () => {
+          const v = parseFloat(intEl.value);
+          if (v > 0) it.interval = v;
+          else intEl.value = it.interval;
+          save();
+          paintCounter();
+        };
+
+        dateIn.onchange = () => {
+          it.date =
+            dateIn.value && dateIn.value !== todayYMD() ? dateIn.value : null;
+          it.slotKey = null;
+          save();
+          refresh();
+        };
+        slotSel.onchange = () => {
+          it.slotKey = slotSel.value || null;
+          save();
+          refresh();
+        };
+
+        tagSel.onchange = () => {
+          const date = curDate();
+          const g = curSlot();
+          if (!g) return;
+          const fresh = readShift() || sh;
+          if (!fresh.days) fresh.days = {};
+          if (!fresh.days[date]) fresh.days[date] = {};
+          if (!fresh.days[date].slots) fresh.days[date].slots = {};
+          const cur = fresh.days[date].slots[g.key] || {};
+          if (tagSel.value) cur.tag = tagSel.value;
+          else delete cur.tag;
+          fresh.days[date].slots[g.key] = cur;
+          if (writeShift(fresh)) {
+            sh = fresh;
+            save();
+            paintCounter();
+            updateSummary();
+            flash("tag saved", true);
+          } else flash("tag save failed");
+        };
+        minIn.onchange = () => {
+          const date = curDate();
+          const g = curSlot();
+          if (!g) return;
+          const fresh = readShift() || sh;
+          if (!fresh.days) fresh.days = {};
+          if (!fresh.days[date]) fresh.days[date] = {};
+          if (!fresh.days[date].slots) fresh.days[date].slots = {};
+          const cur = fresh.days[date].slots[g.key] || {};
+          if (minIn.value === "" || isNaN(+minIn.value)) delete cur.mins;
+          else cur.mins = Math.max(0, +minIn.value);
+          fresh.days[date].slots[g.key] = cur;
+          if (writeShift(fresh)) {
+            sh = fresh;
+            save();
+            updateSummary();
+            flash("minutes saved", true);
+          }
+        };
+
+        fillTags();
+        refresh();
+        wrap._slotRefresh = refresh;
+
+        wrap.append(
+          h("div", { class: "slot_head" }, slotBig, slotOT, liveTag),
+          slotMeta,
+
+          h(
+            "div",
+            { class: "slot_cd_row" },
+            h("span", { class: "slot_cd_label" }, "time left"),
+            cdEl,
+          ),
+
+          h("div", { class: "sub_t" }, "tickets"),
+          valEl,
+          h("div", { class: "row2 c" }, minusB, plusB),
+          h("div", { class: "row2 c", style: "margin-top:6px" }, resetB, undoB),
+
+          h("div", { class: "sub_t" }, "quick"),
+          h(
+            "div",
+            { class: "row2" },
+            h("span", { class: "hint" }, "increment"),
+            intEl,
+          ),
+          h(
+            "div",
+            { class: "row2" },
+            amtEl,
+            h("button", { class: "btn sm", onclick: () => doOneOff(1) }, "add"),
+            h(
+              "button",
+              { class: "btn sm ghost", onclick: () => doOneOff(-1) },
+              "subtract",
+            ),
+          ),
+          h(
+            "div",
+            { class: "row2" },
+            setEl,
+            h("button", { class: "btn sm", onclick: doSet }, "set"),
+          ),
+
+          h("div", { class: "sub_t" }, "slot"),
+          h(
+            "div",
+            { class: "slot_bar" },
+            h("div", { class: "f" }, h("label", {}, "date"), dateIn),
+            h("div", { class: "f" }, h("label", {}, "slot"), slotSel),
+            h("div", { class: "f" }, h("label", {}, "tag"), tagSel),
+          ),
+          h(
+            "div",
+            { class: "slot_bar", style: "margin-top:6px" },
+            h("div", { class: "f" }, h("label", {}, "minutes"), minIn, minHint),
+          ),
+          h(
+            "div",
+            { class: "row2", style: "margin-top:8px" },
+            statusEl,
+            syncBtn,
+            todayBtn,
+            reloadBtn,
+            h(
+              "a",
+              {
+                href: "shift.html",
+                class: "hint",
+                style: "margin-left:auto;text-decoration:underline",
+              },
+              "open shift.mk →",
+            ),
+          ),
+
+          h("div", { class: "sub_t" }, "note"),
+          noteWrap,
+
+          h("div", { class: "sub_t" }, "day totals"),
+          sumEl,
+
+          h("div", { class: "sub_t" }, "history"),
+          histView.wrap,
+        );
+
+        return wrap;
+      };
+
+      /* ---------- generic shell ---------- */
+      function panel(it, nested) {
+        const headKids = [h("span", { class: "tag" }, it.type)];
+        if (it.type !== "slot") {
+          const nm = h("input", { class: "nm", value: it.name });
+          nm.oninput = () => {
+            it.name = nm.value;
+            save();
+          };
+          nm.onblur = () => {
+            if (!nm.value.trim()) {
+              it.name = defName(it.type);
+              nm.value = it.name;
+              save();
+            }
+          };
+          headKids.push(nm);
+        }
+        const acts = [];
+        if (nested)
+          acts.push(
+            h(
+              "button",
+              { class: "btn sm ghost", onclick: () => detach(it) },
+              "detach",
+            ),
+          );
+        acts.push(
+          h(
+            "button",
+            {
+              class: "btn sm ghost",
+              onclick: () => {
+                if (
+                  !confirm(
+                    'Delete "' +
+                      it.name +
+                      '"' +
+                      (it.noteId || it.timerId ? " and its attachments" : "") +
+                      "?",
+                  )
+                )
+                  return;
+                del(it.id);
+                nested ? render() : go(null);
+              },
+            },
+            "delete",
+          ),
+        );
+        headKids.push(...acts);
+        return h(
+          "section",
+          { class: "panel mod" + (nested ? " nested" : "") },
+          h("div", { class: "dhead" }, ...headKids),
+          MOD[it.type](it),
+        );
+      }
+
+      /* ---------- overview ---------- */
+      function summary(it) {
+        if (it.type === "notepad") {
+          const t = it.text.trim();
+          return h(
+            "p",
+            { class: "pv" },
+            t ? t.slice(0, 90) + (t.length > 90 ? "…" : "") : "(empty)",
+          );
+        }
+        if (it.type === "timer")
+          return h(
+            "div",
+            { class: "sm_t" },
+            h("b", { "data-tm": it.id }),
+            " ",
+            it.mode === "down" ? "countdown" : "stopwatch",
+            it.t0 ? " · running" : "",
+          );
+        if (it.type === "slot") {
+          const sh = readShift();
+          if (!sh)
+            return h("div", { class: "hint" }, "shift.mk not set up yet");
+          const date = it.date || todayYMD();
+          const g = shiftResolveSlot(sh, date, it.slotKey);
+          if (!g) return h("div", { class: "hint" }, "no slot");
+          const dd = shiftDay(sh, date);
+          const s = dd.slots[g.key] || {};
+          const tag = s.tag && sh.tags.find((t) => t.id === s.tag);
+          const tickets = +s.tickets || 0;
+          const n = it.noteId && get(it.noteId);
+          const meta = [];
+          if (tag) meta.push(tag.name);
+          if (g.zone) meta.push(g.zone === "pre" ? "PRE-OT" : "POST-OT");
+          if (n) meta.push("note: " + (n.text.trim().slice(0, 30) || "empty"));
+          return h(
+            "div",
+            {},
+            h("b", { class: "cnt" }, String(tickets)),
+            h("span", { class: "hint" }, " tickets"),
+            meta.length
+              ? h("div", { class: "hint" }, meta.join(" · "))
+              : h("div", { class: "hint" }, "no tag yet"),
+          );
+        }
+        const n = it.noteId && get(it.noteId),
+          t = it.timerId && get(it.timerId);
+        return h(
+          "div",
+          {},
+          h("b", { class: "cnt" }, String(it.value)),
+          h("span", { class: "hint" }, "  +" + it.interval),
+          n || t
+            ? h(
+                "div",
+                { class: "hint" },
+                n ? "note: " + (n.text.trim().slice(0, 40) || "empty") : "",
+                n && t ? " · " : "",
+                t ? h("span", { "data-tm": t.id }) : "",
+                t && t.t0 ? " ▶" : "",
+              )
+            : null,
+        );
+      }
+      function card(it) {
+        return h(
+          "div",
+          { class: "card item", onclick: () => go(it.id) },
+          h(
+            "span",
+            { class: "tag" },
+            it.type + (it.noteId || it.timerId ? " +" : ""),
+          ),
+          h("h3", {}, it.name),
+          summary(it),
+        );
+      }
+      function overview() {
+        const top = S.items.filter((x) => !x.parent);
+        return h(
+          "div",
+          {},
+          h(
+            "div",
+            { class: "bar" },
+            h(
+              "div",
+              { class: "addrow" },
+              ["counter", "notepad", "timer", "slot"].map((t) =>
+                h(
+                  "button",
+                  {
+                    class: "btn sm",
+                    onclick: () => {
+                      const it = create(t);
+                      if (it) go(it.id);
+                    },
+                  },
+                  "+ " + t,
+                ),
+              ),
+            ),
+            h(
+              "div",
+              { class: "seg" },
+              ["grid", "list"].map((v) =>
+                h(
+                  "button",
+                  {
+                    class: S.view === v ? "on" : "",
+                    onclick: () => {
+                      S.view = v;
+                      save();
+                      render();
+                    },
+                  },
+                  v,
+                ),
+              ),
+            ),
+          ),
+          top.length
+            ? h("div", { class: "items " + S.view }, top.map(card))
+            : h(
+                "p",
+                { class: "hint" },
+                "Nothing yet. Add a counter, notepad, timer or time slot above.",
+              ),
+        );
+      }
+
+      /* ---------- data view (export / import) ---------- */
+      function dataView() {
+        const bundle = exportBundle();
+        const expBytes = new Blob([JSON.stringify(bundle, null, 2)]).size;
+        const nItems = (S.items || []).length;
+        const hasShift = !!bundle.shift;
+        const shDays =
+          hasShift && bundle.shift.days
+            ? Object.keys(bundle.shift.days).length
+            : 0;
+        const shTags =
+          hasShift && Array.isArray(bundle.shift.tags)
+            ? bundle.shift.tags.length
+            : 0;
+
+        const statusTop = h("div", { class: "data_status" });
+
+        const exp = h("textarea", {
+          class: "data_io tall",
+          readonly: "readonly",
+          spellcheck: "false",
+        });
+        exp.value = JSON.stringify(exportBundle(), null, 2);
+
+        const copyBtn = h("button", { class: "btn sm" }, "copy to clipboard");
+        copyBtn.onclick = async () => {
+          const ok = await copyText(JSON.stringify(exportBundle(), null, 2));
+          statusTop.textContent = ok
+            ? "copied ✓ — paste it into the other machine"
+            : "copy blocked — select all and Ctrl/Cmd+C instead";
+          statusTop.className = "data_status " + (ok ? "ok" : "err");
+          if (!ok) {
+            exp.focus();
+            exp.select();
+          }
+        };
+
+        const dlBtn = h("button", { class: "btn sm ghost" }, "download .json");
+        dlBtn.onclick = () => {
+          const name = "tally-backup-" + todayYMD() + ".json";
+          downloadText(
+            name,
+            JSON.stringify(exportBundle(), null, 2),
+            "application/json",
+          );
+          statusTop.textContent = "downloaded " + name;
+          statusTop.className = "data_status ok";
+        };
+
+        const selAll = h("button", { class: "btn sm ghost" }, "select all");
+        selAll.onclick = () => {
+          exp.focus();
+          exp.select();
+        };
+
+        const imp = h("textarea", {
+          class: "data_io tall",
+          spellcheck: "false",
+          placeholder: "paste a tally backup JSON here…",
+        });
+        const impStatus = h("div", { class: "data_status" });
+
+        const doImport = h("button", { class: "btn sm" }, "import");
+        doImport.onclick = () => {
+          const t = imp.value.trim();
+          if (!t) {
+            impStatus.textContent = "nothing to import — paste a backup first";
+            impStatus.className = "data_status err";
+            return;
+          }
+          if (
+            !confirm(
+              "Importing will replace all current tally.mk data in this browser (and shift.mk data if the backup includes it). Continue?",
+            )
+          )
+            return;
+          try {
+            const r = importBundle(t);
+            impStatus.textContent =
+              "imported ✓" +
+              (r.shift ? " (tally + shift.mk)" : " (tally only)");
+            impStatus.className = "data_status ok";
+            buildCustomBar();
+            syncCustomInputs();
+            applyTheme();
+            renderThemebar();
+            render();
+          } catch (err) {
+            impStatus.textContent = "import failed: " + err.message;
+            impStatus.className = "data_status err";
+          }
+        };
+
+        const clearImp = h("button", { class: "btn sm ghost" }, "clear");
+        clearImp.onclick = () => {
+          imp.value = "";
+          impStatus.textContent = "";
+          impStatus.className = "data_status";
+        };
+
+        return h(
+          "div",
+          { class: "data_wrap" },
+          h(
+            "button",
+            {
+              class: "btn sm ghost",
+              style: "align-self:flex-start",
+              onclick: () => go(null),
+            },
+            "← back",
+          ),
+          h("h2", { class: "data_h" }, "export / import"),
+          h(
+            "p",
+            { class: "hint" },
+            "Move tally.mk between PCs with plain text. Copy the JSON below on one machine, paste it into the other — or download it as a .json file. No cloud, no account.",
+          ),
+
+          h(
+            "div",
+            { class: "data_meta" },
+            h("b", {}, String(nItems)),
+            " items · ",
+            h("b", {}, hasShift ? String(shTags) : "0"),
+            " shift tags · ",
+            h("b", {}, hasShift ? String(shDays) : "0"),
+            " days of shift data · ",
+            h("b", {}, (expBytes / 1024).toFixed(1)),
+            " KB",
+          ),
+
+          h("div", { class: "sub_t" }, "theme"),
+          h(
+            "p",
+            { class: "hint" },
+            "Click the last swatch in the toolbar (or the swatches below) to pick a preset. Choose Custom and the color pickers appear in the toolbar — changes apply live. The theme travels inside the tally backup.",
+          ),
+          h(
+            "div",
+            { class: "row2" },
+            ...[
+              ["bg", "background"],
+              ["panel", "rows"],
+              ["txt", "text"],
+              ["acc", "accent"],
+            ].map(([k, l]) =>
+              h(
+                "label",
+                { class: "hint cc2" },
+                l,
+                h("input", {
+                  type: "color",
+                  "data-cc": k,
+                  value: "#" + S.custom[k],
+                }),
+              ),
+            ),
+            h(
+              "button",
+              {
+                class: "btn sm ghost",
+                onclick: () => {
+                  S.custom = { ...DEFTHEME };
+                  save();
+                  applyTheme();
+                  syncCustomInputs();
+                  renderThemebar();
+                  render();
+                },
+              },
+              "reset custom",
+            ),
+          ),
+
+          h("div", { class: "sub_t" }, "export"),
+          h("div", { class: "row2" }, copyBtn, dlBtn, selAll, statusTop),
+          exp,
+
+          h("div", { class: "sub_t" }, "import"),
+          h(
+            "p",
+            { class: "hint" },
+            "Paste a backup below and press import. This will replace the tally.mk data in this browser. If the backup was made by this version, it also carries shift.mk tags, breaks and interval tickets — so slot cards work immediately.",
+          ),
+          imp,
+          h("div", { class: "row2" }, doImport, clearImp, impStatus),
+        );
+      }
+
+      /* ---------- routing ---------- */
+      function go(id) {
+        route = id;
+        save();
+        render();
+        window.scrollTo(0, 0);
+      }
+      function render() {
+        const m = $("main");
+        if (route === "_data") {
+          m.replaceChildren(dataView());
+        } else {
+          const it = route && get(route);
+          m.replaceChildren(
+            it
+              ? h(
+                  "div",
+                  { class: "detail" },
+                  h(
+                    "button",
+                    {
+                      class: "btn sm ghost",
+                      style: "align-self:flex-start",
+                      onclick: () => go(null),
+                    },
+                    "← all",
+                  ),
+                  panel(it, false),
+                )
+              : overview(),
+          );
+          if (!it) route = null;
+        }
+        tick();
+      }
+
+      /* ---------- events ---------- */
+      document.addEventListener("click", (e) => {
+        const th = e.target.closest("[data-th]");
+        if (th) {
+          S.theme = th.dataset.th;
+          save();
+          applyTheme();
+          renderThemebar();
+          return;
+        }
+        const dd = e.target.closest("[data-data]");
+        if (dd) {
+          e.preventDefault();
+          go("_data");
+          return;
+        }
+      });
+
+      document.addEventListener("input", (e) => {
+        const t = e.target;
+        if (!t.dataset || !t.dataset.cc) return;
+        S.custom[t.dataset.cc] = hex6(t.value.slice(1), S.custom[t.dataset.cc]);
+        S.theme = "custom";
+        applyTheme();
+        syncCustomInputs(t);
+        showCustomBar();
+        save();
+      });
+
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (!t.dataset || !t.dataset.cc) return;
+        renderThemebar();
+      });
+
+      window.addEventListener("focus", () => {
+        document.querySelectorAll("[data-slot]").forEach((n) => {
+          if (n._slotRefresh) n._slotRefresh();
+        });
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden)
+          document.querySelectorAll("[data-slot]").forEach((n) => {
+            if (n._slotRefresh) n._slotRefresh();
+          });
+      });
+      window.addEventListener("storage", (e) => {
+        if (e.key !== SHIFT_KEY) return;
+        document.querySelectorAll("[data-slot]").forEach((n) => {
+          if (n._slotRefresh) n._slotRefresh();
+        });
+      });
+
+      /* ---------- boot ---------- */
+      applyTheme();
+      buildCustomBar();
+      renderThemebar();
+      render();
+    </script>
+  </body>
 </html>
