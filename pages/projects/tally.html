@@ -549,7 +549,7 @@
       <div class="toolbar-end">
         <div class="themebar" id="themebar"></div>
         <div class="tlinks">
-          <a href="#" data-data title="export / import data">data</a>
+          <a href="#" data-data title="backup / restore">data</a>
           <a href="shift.html">shift.mk →</a>
           <a href="index.html">← projects</a>
         </div>
@@ -604,6 +604,7 @@
       let S = load(),
         route = null;
       function save() {
+        if (window.__mkSkip) return;
         try {
           localStorage.setItem(KEY, JSON.stringify(S));
         } catch (_) {}
@@ -1248,7 +1249,7 @@
         if (item.history.length > HIST_CAP) item.history.shift();
       }
 
-      /* ---------- export / import ---------- */
+      /* ---------- export / import (full JSON view) ---------- */
       function exportBundle() {
         const sh = readShift();
         const bundle = {
@@ -2444,7 +2445,7 @@
         );
       }
 
-      /* ---------- data view (export / import) ---------- */
+      /* ---------- advanced data view (full JSON export / import) ---------- */
       function dataView() {
         const bundle = exportBundle();
         const expBytes = new Blob([JSON.stringify(bundle, null, 2)]).size;
@@ -2556,11 +2557,11 @@
             },
             "← back",
           ),
-          h("h2", { class: "data_h" }, "export / import"),
+          h("h2", { class: "data_h" }, "export / import (full JSON)"),
           h(
             "p",
             { class: "hint" },
-            "Move tally.mk between PCs with plain text. Copy the JSON below on one machine, paste it into the other — or download it as a .json file. No cloud, no account.",
+            "Advanced view. For everyday backups use the compact “data” button in the toolbar. This one shows the full uncompressed JSON, including history.",
           ),
 
           h(
@@ -2627,7 +2628,7 @@
           h(
             "p",
             { class: "hint" },
-            "Paste a backup below and press import. This will replace the tally.mk data in this browser. If the backup was made by this version, it also carries shift.mk tags, breaks and interval tickets — so slot cards work immediately.",
+            "Paste a full JSON backup below and press import. This will replace the tally.mk data in this browser. If the backup was made by this version, it also carries shift.mk tags, breaks and interval tickets — so slot cards work immediately.",
           ),
           imp,
           h("div", { class: "row2" }, doImport, clearImp, impStatus),
@@ -2680,12 +2681,6 @@
           renderThemebar();
           return;
         }
-        const dd = e.target.closest("[data-data]");
-        if (dd) {
-          e.preventDefault();
-          go("_data");
-          return;
-        }
       });
 
       document.addEventListener("input", (e) => {
@@ -2722,6 +2717,115 @@
           if (n._slotRefresh) n._slotRefresh();
         });
       });
+
+      /* ---------- shared backup: identical in tally + shift ---------- */
+      window.mkBackupAdvanced = () => go("_data");
+      (function(){
+        const KEYS = {t:'tally.v1', s:'shift.v1'};
+        const HAS = typeof CompressionStream !== 'undefined';
+        const toB64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+          return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+        const fromB64 = b => { b=b.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b+='='; const s=atob(b), u=new Uint8Array(s.length);
+          for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+        const pipe = async (u8, st) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(st)).arrayBuffer());
+
+        async function pack(withHist){
+          const o = {};
+          for(const k in KEYS){
+            const raw = localStorage.getItem(KEYS[k]); if(!raw) continue;
+            let v; try{ v = JSON.parse(raw); }catch(_){ continue; }
+            if(!withHist && k==='t' && Array.isArray(v.items)) v.items.forEach(i=>{ if(i.history) i.history = []; });
+            o[k] = v;
+          }
+          const u8 = new TextEncoder().encode(JSON.stringify(o));
+          return HAS ? 'MK1.'+toB64(await pipe(u8, new CompressionStream('deflate-raw'))) : 'MK0.'+toB64(u8);
+        }
+
+        async function unpack(txt){
+          txt = txt.trim();
+          let o;
+          if(/^MK[01]\./.test(txt)){
+            let u8 = fromB64(txt.slice(4).replace(/\s+/g,''));
+            if(txt[2]==='1') u8 = await pipe(u8, new DecompressionStream('deflate-raw'));
+            o = JSON.parse(new TextDecoder().decode(u8));
+          } else {
+            o = JSON.parse(txt);                                   // legacy formats
+            if(o && o.v===1 && o.tally) o = {t:o.tally, s:o.shift};  // old tally bundle
+            else if(o && Array.isArray(o.items)) o = {t:o};          // old tally-only
+            else if(o && o.days && o.tags) o = {s:o};                // old shift backup
+          }
+          if(!o || (!o.t && !o.s)) throw new Error('unrecognized backup');
+          if(o.t && !Array.isArray(o.t.items)) throw new Error('bad tally data');
+          if(o.s && (!o.s.days || !o.s.tags)) throw new Error('bad shift data');
+          return o;
+        }
+
+        const css = '#mkdlg{background:var(--panel);color:var(--txt);border:2px solid var(--line);padding:18px;width:min(560px,94vw);font-family:var(--mono);font-size:12px}'+
+          '#mkdlg::backdrop{background:rgba(0,0,0,.65)}'+
+          '#mkdlg h2{font-family:var(--display);font-size:15px;margin:0 0 4px;letter-spacing:1px}'+
+          '#mkdlg textarea{width:100%;height:84px;resize:vertical;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px;word-break:break-all}'+
+          '#mkdlg textarea:focus{outline:none;border-color:var(--blood)}'+
+          '#mkdlg .r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}'+
+          '#mkdlg .h{color:var(--dim);font-size:11px}'+
+          '#mkdlg .st{min-height:1.2em;font-size:11px;color:var(--dim)}'+
+          '#mkdlg .st.ok{color:#34d399}#mkdlg .st.err{color:#f87171}'+
+          '#mkdlg .t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-top:12px}';
+        const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+
+        const dlg = document.createElement('dialog'); dlg.id = 'mkdlg';
+        dlg.innerHTML =
+          '<h2>data backup</h2><div class="h">Backs up tally + shift together. Copy on one side, paste on the other. Works from either page.</div>'+
+          '<div class="t">export</div>'+
+          '<textarea id="mkx" readonly spellcheck="false"></textarea>'+
+          '<div class="r"><button class="btn sm" id="mkcp">copy</button>'+
+          '<label class="h"><input type="checkbox" id="mkh"> include history (longer)</label>'+
+          '<span class="h" id="mkn"></span></div>'+
+          '<div class="t">import</div>'+
+          '<textarea id="mki" spellcheck="false" placeholder="paste backup here…"></textarea>'+
+          '<div class="r"><button class="btn sm" id="mkgo">import &amp; reload</button>'+
+          '<button class="btn sm ghost" id="mkadv" style="display:none">advanced</button>'+
+          '<button class="btn sm ghost" id="mkclose" style="margin-left:auto">close</button></div>'+
+          '<div class="st" id="mkst"></div>';
+        document.body.append(dlg);
+        const $$ = id => dlg.querySelector('#'+id);
+        const say = (m, c) => { const s=$$('mkst'); s.textContent = m; s.className = 'st '+(c||''); };
+
+        async function fill(){
+          const t = await pack($$('mkh').checked);
+          $$('mkx').value = t; $$('mkn').textContent = t.length.toLocaleString()+' chars';
+        }
+        $$('mkh').onchange = fill;
+        $$('mkcp').onclick = async () => {
+          const t = $$('mkx').value; let ok = false;
+          try{ await navigator.clipboard.writeText(t); ok = true; }
+          catch(_){ $$('mkx').select(); try{ ok = document.execCommand('copy'); }catch(_2){} }
+          say(ok ? 'copied' : 'copy blocked, text is selected, use ctrl/cmd+c', ok ? 'ok' : 'err');
+        };
+        $$('mkgo').onclick = async () => {
+          const t = $$('mki').value.trim(); if(!t) return say('paste something first','err');
+          let o; try{ o = await unpack(t); }catch(e){ return say('import failed: '+e.message,'err'); }
+          const what = [o.t&&'tally', o.s&&'shift'].filter(Boolean).join(' + ');
+          if(!confirm('Replace current '+what+' data in this browser?')) return;
+          try{
+            if(o.t) localStorage.setItem(KEYS.t, JSON.stringify(o.t));
+            if(o.s) localStorage.setItem(KEYS.s, JSON.stringify(o.s));
+          }catch(e){ return say('write failed: '+e.message,'err'); }
+          window.__mkSkip = true;           // stop pagehide save() from overwriting the import
+          say('imported '+what+', reloading…','ok');
+          setTimeout(()=>location.reload(), 300);
+        };
+        $$('mkclose').onclick = () => dlg.close();
+        if(window.mkBackupAdvanced){ const a=$$('mkadv'); a.style.display=''; a.onclick=()=>{ dlg.close(); window.mkBackupAdvanced(); }; }
+        dlg.addEventListener('click', e => { if(e.target===dlg) dlg.close(); });
+
+        document.addEventListener('click', async e => {
+          if(!e.target.closest('[data-data]')) return;
+          e.preventDefault();
+          if(dlg.open) return;
+          $$('mki').value = ''; say('');
+          await fill(); dlg.showModal();
+        });
+      })();
 
       /* ---------- boot ---------- */
       applyTheme();
