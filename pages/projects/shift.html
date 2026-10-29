@@ -454,7 +454,7 @@ const loadEx = () => EXJ ? Promise.resolve(EXJ) : new Promise((ok,no)=>{
 function buildWb(E, ds, empty){
   const P = thm(S.theme), A = x => 'FF'+x.toUpperCase(), dark = lum(P.bg) < .5;
   const GOOD = dark ? 'FF34D399' : 'FF15803D', BAD = dark ? 'FFF87171' : 'FFB91C1C';
-  const wb = new E.Workbook(); wb.calcProperties.fullCalcOnLoad = true; wb.creator = 'shift.mk';
+  const wb = new E.Workbook();wb.calcProperties = {calcMode: 'auto',fullCalcOnLoad: true,forceFullCalc: true};wb.creator = 'shift.mk';
   const wsU = wb.addWorksheet('Summary'), wsD = wb.addWorksheet('Daily'), wsP = wb.addWorksheet('Setup');
   const FONT = 'Consolas';
   const fnt = o => Object.assign({name:FONT, size:10, color:{argb:A(P.txt)}}, o);
@@ -462,7 +462,7 @@ function buildWb(E, ds, empty){
   const cfill = x => ({type:'pattern', pattern:'solid', bgColor:{argb:A(x)}});
   const ln = {style:'thin', color:{argb:A(P.line)}}, accB = {style:'medium', color:{argb:A(P.acc)}};
   const serial = s => { const [a,b,c] = s.split('-').map(Number); return Math.round((Date.UTC(a,b-1,c) - Date.UTC(1899,11,30))/864e5); };
-  const fx = (formula, result) => ({formula, result});
+  const fx = formula => ({  formula: formula.replace(/^=/, ''),result: 0});
   const cl = n => { let s = ''; while(n > 0){ const m = (n-1) % 26; s = String.fromCharCode(65+m) + s; n = (n-m-1) / 26; } return s; };
   const G = S.tags, Pr = G.filter(t=>t.prod), nG = G.length, nP = Pr.length;
   const gi = t => G.indexOf(t) + 2;
