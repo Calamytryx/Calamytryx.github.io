@@ -57,6 +57,8 @@ tr.ot td:first-child::after{content:' OT';font-size:9px;color:var(--blood);margi
 <span class="tbsub">tickets per hour · quotas · sheets export — saved in this browser</span>
 <div class="toolbar-end">
   <div class="themebar" id="themebar"></div>
+  <a href="#" data-data title="backup / restore">data</a>
+  <a href="tally.html">tally.mk →</a>
   <a href="index.html">← projects</a>
 </div>
 </header>
@@ -161,7 +163,7 @@ function load(){
 }
 let S = load();
 const ui = {tab:'track', view:'day', date:ymd(new Date()), xmode:'logged'};
-const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} };
+const save = () => { if(window.__mkSkip) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} };
 window.addEventListener('pagehide', save);
 
 /* ---------- computation ---------- */
@@ -395,7 +397,7 @@ function vExport(){
     '<div class="row2"><button class="btn sm ghost" data-x="dcsv">daily summary .csv</button><button class="btn sm ghost" data-x="scsv">intervals .csv</button><button class="btn sm ghost" data-x="dtsv">copy daily</button><button class="btn sm ghost" data-x="stsv">copy intervals</button></div>'+
     '<p class="hint">CSV and copied text are static values. Daily CSV now includes <code>pre_ot_hours</code> and <code>post_ot_hours</code> columns. Dates are yyyy-mm-dd and hours are plain decimals.</p>'+
     '<div class="sub_t">backup — data lives in this browser only</div>'+
-    '<div class="row2"><button class="btn sm ghost" data-x="bak">download backup .json</button><label class="btn sm ghost">restore<input type="file" id="xr" accept=".json" hidden></label></div>'+
+    '<div class="row2"><button class="btn sm" data-data>compact backup (copy / paste)</button><button class="btn sm ghost" data-x="bak">download backup .json</button><label class="btn sm ghost">restore<input type="file" id="xr" accept=".json" hidden></label></div>'+
     '<span class="hint" id="xs"></span></div>';
 }
 
@@ -785,6 +787,115 @@ window.addEventListener('storage', e=>{
   if(!document.hidden && !(a && a.matches && a.matches('input,select,textarea'))) render();
 });
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) reloadFromStorage(); });
+
+/* ---------- shared backup: identical in tally + shift ---------- */
+window.mkBackupAdvanced = () => { ui.tab = 'export'; render(); window.scrollTo(0,0); };
+(function(){
+  const KEYS = {t:'tally.v1', s:'shift.v1'};
+  const HAS = typeof CompressionStream !== 'undefined';
+  const toB64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+  const fromB64 = b => { b=b.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b+='='; const s=atob(b), u=new Uint8Array(s.length);
+    for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+  const pipe = async (u8, st) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(st)).arrayBuffer());
+
+  async function pack(withHist){
+    const o = {};
+    for(const k in KEYS){
+      const raw = localStorage.getItem(KEYS[k]); if(!raw) continue;
+      let v; try{ v = JSON.parse(raw); }catch(_){ continue; }
+      if(!withHist && k==='t' && Array.isArray(v.items)) v.items.forEach(i=>{ if(i.history) i.history = []; });
+      o[k] = v;
+    }
+    const u8 = new TextEncoder().encode(JSON.stringify(o));
+    return HAS ? 'MK1.'+toB64(await pipe(u8, new CompressionStream('deflate-raw'))) : 'MK0.'+toB64(u8);
+  }
+
+  async function unpack(txt){
+    txt = txt.trim();
+    let o;
+    if(/^MK[01]\./.test(txt)){
+      let u8 = fromB64(txt.slice(4).replace(/\s+/g,''));
+      if(txt[2]==='1') u8 = await pipe(u8, new DecompressionStream('deflate-raw'));
+      o = JSON.parse(new TextDecoder().decode(u8));
+    } else {
+      o = JSON.parse(txt);                                   // legacy formats
+      if(o && o.v===1 && o.tally) o = {t:o.tally, s:o.shift};  // old tally bundle
+      else if(o && Array.isArray(o.items)) o = {t:o};          // old tally-only
+      else if(o && o.days && o.tags) o = {s:o};                // old shift backup
+    }
+    if(!o || (!o.t && !o.s)) throw new Error('unrecognized backup');
+    if(o.t && !Array.isArray(o.t.items)) throw new Error('bad tally data');
+    if(o.s && (!o.s.days || !o.s.tags)) throw new Error('bad shift data');
+    return o;
+  }
+
+  const css = '#mkdlg{background:var(--panel);color:var(--txt);border:2px solid var(--line);padding:18px;width:min(560px,94vw);font-family:var(--mono);font-size:12px}'+
+    '#mkdlg::backdrop{background:rgba(0,0,0,.65)}'+
+    '#mkdlg h2{font-family:var(--display);font-size:15px;margin:0 0 4px;letter-spacing:1px}'+
+    '#mkdlg textarea{width:100%;height:84px;resize:vertical;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px;word-break:break-all}'+
+    '#mkdlg textarea:focus{outline:none;border-color:var(--blood)}'+
+    '#mkdlg .r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}'+
+    '#mkdlg .h{color:var(--dim);font-size:11px}'+
+    '#mkdlg .st{min-height:1.2em;font-size:11px;color:var(--dim)}'+
+    '#mkdlg .st.ok{color:#34d399}#mkdlg .st.err{color:#f87171}'+
+    '#mkdlg .t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-top:12px}';
+  const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+
+  const dlg = document.createElement('dialog'); dlg.id = 'mkdlg';
+  dlg.innerHTML =
+    '<h2>data backup</h2><div class="h">Backs up tally + shift together. Copy on one side, paste on the other. Works from either page.</div>'+
+    '<div class="t">export</div>'+
+    '<textarea id="mkx" readonly spellcheck="false"></textarea>'+
+    '<div class="r"><button class="btn sm" id="mkcp">copy</button>'+
+    '<label class="h"><input type="checkbox" id="mkh"> include history (longer)</label>'+
+    '<span class="h" id="mkn"></span></div>'+
+    '<div class="t">import</div>'+
+    '<textarea id="mki" spellcheck="false" placeholder="paste backup here…"></textarea>'+
+    '<div class="r"><button class="btn sm" id="mkgo">import &amp; reload</button>'+
+    '<button class="btn sm ghost" id="mkadv" style="display:none">advanced</button>'+
+    '<button class="btn sm ghost" id="mkclose" style="margin-left:auto">close</button></div>'+
+    '<div class="st" id="mkst"></div>';
+  document.body.append(dlg);
+  const $$ = id => dlg.querySelector('#'+id);
+  const say = (m, c) => { const s=$$('mkst'); s.textContent = m; s.className = 'st '+(c||''); };
+
+  async function fill(){
+    const t = await pack($$('mkh').checked);
+    $$('mkx').value = t; $$('mkn').textContent = t.length.toLocaleString()+' chars';
+  }
+  $$('mkh').onchange = fill;
+  $$('mkcp').onclick = async () => {
+    const t = $$('mkx').value; let ok = false;
+    try{ await navigator.clipboard.writeText(t); ok = true; }
+    catch(_){ $$('mkx').select(); try{ ok = document.execCommand('copy'); }catch(_2){} }
+    say(ok ? 'copied' : 'copy blocked, text is selected, use ctrl/cmd+c', ok ? 'ok' : 'err');
+  };
+  $$('mkgo').onclick = async () => {
+    const t = $$('mki').value.trim(); if(!t) return say('paste something first','err');
+    let o; try{ o = await unpack(t); }catch(e){ return say('import failed: '+e.message,'err'); }
+    const what = [o.t&&'tally', o.s&&'shift'].filter(Boolean).join(' + ');
+    if(!confirm('Replace current '+what+' data in this browser?')) return;
+    try{
+      if(o.t) localStorage.setItem(KEYS.t, JSON.stringify(o.t));
+      if(o.s) localStorage.setItem(KEYS.s, JSON.stringify(o.s));
+    }catch(e){ return say('write failed: '+e.message,'err'); }
+    window.__mkSkip = true;           // stop pagehide save() from overwriting the import
+    say('imported '+what+', reloading…','ok');
+    setTimeout(()=>location.reload(), 300);
+  };
+  $$('mkclose').onclick = () => dlg.close();
+  if(window.mkBackupAdvanced){ const a=$$('mkadv'); a.style.display=''; a.onclick=()=>{ dlg.close(); window.mkBackupAdvanced(); }; }
+  dlg.addEventListener('click', e => { if(e.target===dlg) dlg.close(); });
+
+  document.addEventListener('click', async e => {
+    if(!e.target.closest('[data-data]')) return;
+    e.preventDefault();
+    if(dlg.open) return;
+    $$('mki').value = ''; say('');
+    await fill(); dlg.showModal();
+  });
+})();
 
 /* ---------- boot ---------- */
 applyTheme();
