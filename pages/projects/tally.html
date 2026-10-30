@@ -904,13 +904,14 @@
           end: (ov && ov.end) || sh.cfg.end,
           slots: (ov && ov.slots) || {},
           preOT: (ov && ov.preOT) || 0,
+          iv: (ov && +ov.iv) || 0,
           postOT: (ov && ov.postOT) || 0,
         };
       }
 
       function shiftGrid(sh, date) {
         const d = shiftDay(sh, date),
-          iv = Math.max(1, +sh.cfg.interval || 30);
+          iv = Math.max(1, +d.iv || +sh.cfg.interval || 30);
         let bs = sToMins(d.start),
           be = sToMins(d.end);
         if (be <= bs) be += 1440;
@@ -1395,9 +1396,9 @@
 
       MOD.counter = (c) => {
         const val = h("div", { class: "val" });
-        const plus = h("button", { class: "btn big_b" }),
-          minus = h("button", { class: "btn big_b ghost" }),
-          undoB = h("button", { class: "btn sm ghost" }, "undo");
+        const plus = h("button", { class: "btn big_b", "data-act": "plus" }),
+          minus = h("button", { class: "btn big_b ghost", "data-act": "minus" }),
+          undoB = h("button", { class: "btn sm ghost", "data-act": "undo" }, "undo");
         const amt = h("input", {
           type: "number",
           class: "amt",
@@ -1476,6 +1477,7 @@
           { class: "mod" },
           val,
           h("div", { class: "row2 c" }, minus, plus),
+          h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add · − subtract · u undo"),
           h("div", { class: "sub_t" }, "one-off amount (interval untouched)"),
           h(
             "div",
@@ -1703,9 +1705,9 @@
         const minHint = h("span", { class: "hint" }, "");
 
         const valEl = h("div", { class: "val" });
-        const minusB = h("button", { class: "btn big_b ghost" });
-        const plusB = h("button", { class: "btn big_b" });
-        const undoB = h("button", { class: "btn sm ghost" }, "undo");
+        const minusB = h("button", { class: "btn big_b ghost", "data-act": "minus" });
+        const plusB = h("button", { class: "btn big_b", "data-act": "plus" });
+        const undoB = h("button", { class: "btn sm ghost", "data-act": "undo" }, "undo");
         const resetB = h("button", { class: "btn sm ghost" }, "reset");
         const amtEl = h("input", {
           type: "number",
@@ -1967,8 +1969,7 @@
             d.end +
             (otlbl ? " · " + otlbl : "") +
             " · " +
-            sh.cfg.interval +
-            " min slots";
+            (d.iv || sh.cfg.interval) + " min slots";
           liveTag.style.display = isActiveSlot() ? "" : "none";
 
           const cd = countdownState(date, g);
@@ -2184,6 +2185,7 @@
           h("div", { class: "sub_t" }, "tickets"),
           valEl,
           h("div", { class: "row2 c" }, minusB, plusB),
+          h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add · − subtract · u undo"),
           h("div", { class: "row2 c", style: "margin-top:6px" }, resetB, undoB),
 
           h("div", { class: "sub_t" }, "quick"),
@@ -2827,7 +2829,32 @@
         });
       })();
 
-      /* ---------- boot ---------- */
+      /* ---------- keyboard: space / + add, - subtract, u undo (counter + slot pages) ---------- */
+/* A web page only sees keys while its tab is focused, so true global hotkeys are not possible.
+   These work the moment you alt-tab back, without needing a button to be focused first. */
+(function () {
+  const typing = (t) =>
+    t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+  const map = { " ": "plus", "+": "plus", "=": "plus", "-": "minus", "_": "minus", u: "undo", U: "undo", z: "undo", Z: "undo" };
+  const live = () => route && route !== "_data";
+  document.addEventListener("keydown", (e) => {
+    if (!live() || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
+    const a = map[e.key];
+    if (!a) return;
+    const b = document.querySelector('[data-act="' + a + '"]');
+    if (!b) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    b.click();
+  });
+  /* stop a focused button from also firing its own click on Space release */
+  document.addEventListener("keyup", (e) => {
+    if (e.key === " " && live() && !typing(e.target) && document.querySelector('[data-act="plus"]'))
+      e.preventDefault();
+  });
+})();
+
+/* ---------- boot ---------- */
       applyTheme();
       buildCustomBar();
       renderThemebar();
