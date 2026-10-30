@@ -68,6 +68,14 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:12px;width:max-c
 .sheet tr.empty .cv{color:var(--dim)}
 .sheet td.lnk{cursor:pointer;color:var(--blood);text-decoration:underline}
 .sheet td.n{text-align:right}
+
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0 16px}
+.ovbig{font-family:var(--display);font-size:clamp(2.6rem,10vw,4.6rem);line-height:1;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.ovbig2{font-family:var(--display);font-size:clamp(2rem,6vw,3rem);line-height:1;font-variant-numeric:tabular-nums}
+.ovmid{font-family:var(--display);font-size:1.15rem}
+.ovbar{height:8px;border:1px solid var(--line);background:var(--panel2)}
+.ovbar i{display:block;height:100%;width:0;background:var(--blood)}
+#ov b{color:var(--txt);font-weight:700}
 </style>
 </head>
 <body data-page="projects">
@@ -182,7 +190,7 @@ function load(){
   return structuredClone(DEF);
 }
 let S = load();
-const ui = {tab:'track', view:'day', date:ymd(new Date()), xmode:'logged'};
+const ui = {tab:'overview', view:'day', date:ymd(new Date()), xmode:'logged'};
 const save = () => { if(window.__mkSkip) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} };
 window.addEventListener('pagehide', save);
 
@@ -282,9 +290,9 @@ function tagOpt(sel){
 }
 
 function render(){
-  const body = {track:vTrack, sheet:vSheet, setup:vSetup, export:vExport}[ui.tab]();
-  $('main').innerHTML = '<div class="bar"><div class="seg">'+['track','sheet','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
-  if(ui.tab==='track') calc(); else if(ui.tab==='sheet') sheetCalc();
+  const body = {overview:vOverview, track:vTrack, sheet:vSheet, setup:vSetup, export:vExport}[ui.tab]();
+  $('main').innerHTML = '<div class="bar"><div class="seg">'+['overview','track','sheet','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
+  if(ui.tab==='track') calc(); else if(ui.tab==='sheet') sheetCalc(); else if(ui.tab==='overview') ovCalc();
 }
 
 function vTrack(){
@@ -421,6 +429,91 @@ function vExport(){
     '<div class="row2"><button class="btn sm" data-data>compact backup (copy / paste)</button><button class="btn sm ghost" data-x="bak">download backup .json</button><label class="btn sm ghost">restore<input type="file" id="xr" accept=".json" hidden></label></div>'+
     '<span class="hint" id="xs"></span></div>';
 }
+
+/* ---------- overview (live dashboard) ---------- */
+const hms = min => { let t = Math.max(0, Math.floor(min*60)); const h = Math.floor(t/3600); t %= 3600; return h+':'+p2(Math.floor(t/60))+':'+p2(t%60); };
+/* the shift that is running right now (a 23:00 -> 08:00 shift is still "yesterday's" at 02:00) */
+function activeDay(){
+  const n = new Date(), min = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60, t = ymd(n), y = addD(t,-1), sp = shiftSpan(y);
+  if(sp.b > 1440 && min+1440 >= sp.a && min+1440 < sp.b) return {d:y, rel:min+1440, now:n};
+  return {d:t, rel:min, now:n};
+}
+function ovModel(){
+  const {d, rel, now} = activeDay(), sp = shiftSpan(d), gr = grid(d), St = stats(d);
+  const cur = gr.find(g => rel >= g.s && rel < g.e) || null;
+  /* open time = not-yet-tagged time from now to the end, minus scheduled breaks */
+  let hRem = 0, openSlots = 0;
+  for(const g of gr){
+    if(g.e <= rel || slot(d,g.k).tag) continue;
+    const lo = Math.max(g.s, rel);
+    const br = breaksInInterval(d, {s:lo, e:g.e}).reduce((a,b) => a + b.overlap, 0);
+    hRem += Math.max(0, (g.e - lo) - br) / 60; openSlots++;
+  }
+  const Tq = prodTags().filter(t => +t.quota > 0);
+  let done = 0, soFar = 0;
+  for(const t of Tq){ const o = St.task[t.id] || {tk:0,h:0}; done += o.tk; soFar += t.quota * o.h; }
+  const ctag = cur && S.tags.find(t => t.id === slot(d,cur.k).tag);
+  let prim = ctag && ctag.prod && +ctag.quota > 0 ? ctag : null;
+  if(!prim) prim = Tq.slice().sort((a,b) => ((St.task[b.id]||{}).h||0) - ((St.task[a.id]||{}).h||0))[0] || null;
+  const target = soFar + (prim ? prim.quota * hRem : 0);
+  const remaining = Tq.length ? Math.max(0, Math.ceil(target - done - 1e-9)) : null;
+  return {d, rel, now, sp, cur, St, hRem, openSlots, Tq, done, soFar, prim, target, remaining};
+}
+function vOverview(){
+  const c = (title, inner) => '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">'+title+'</div>'+inner+'</div>';
+  return '<div id="ov">'+
+    '<div class="panel mod"><div class="ovbig" id="ov-clock">--:--:--</div><div class="hint" id="ov-date"></div></div>'+
+    '<div class="ovgrid">'+
+    c('shift','<div class="hint" id="ov-shift-day"></div><div class="ovmid" id="ov-shift-range"></div><div class="hint" id="ov-shift-lab"></div><div class="ovbig2" id="ov-shift-left">-</div><div class="ovbar"><i id="ov-shift-bar"></i></div>')+
+    c('current slot','<div class="ovmid" id="ov-slot-range">\u2014</div><div class="hint">time left</div><div class="ovbig2" id="ov-slot-left">\u2014</div><div class="hint" id="ov-slot-tag"></div><div class="hint">tickets this slot: <b id="ov-slot-tk">0</b></div>')+
+    c('quota \u2014 tickets still needed','<div class="ovbig2" id="ov-q-remaining">\u2014</div><div class="hint" id="ov-q-prog"></div><div class="hint" id="ov-q-need"></div><div class="hint" id="ov-q-slot"></div><div class="hint" id="ov-q-diff"></div><div class="hint" id="ov-q-note"></div>')+
+    c('today so far','<div class="ovmid"><b id="ov-day-tk">0</b> tickets</div><div class="hint">productive hours <b id="ov-day-ph">0.00</b></div><div class="hint">tickets / hr <b id="ov-day-tp">\u2014</b></div>')+
+    '</div></div>';
+}
+function ovCalc(){
+  if(!$('ov')) return;
+  const M = ovModel(), n = M.now, sp = M.sp, d = M.d;
+  const set = (id, v) => { const e = $('ov-'+id); if(e && e.textContent !== String(v)) e.textContent = v; };
+  set('clock', p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds()));
+  set('date', n.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'}));
+  /* shift */
+  const total = sp.b - sp.a, left = sp.b - M.rel;
+  set('shift-day', d === ymd(n) ? 'today' : 'started '+pd(d).toLocaleDateString(undefined,{weekday:'long'}));
+  set('shift-range', ft(sp.a)+' \u2013 '+ft(sp.b)+((sp.preOT||sp.postOT) ? '  \u00b7  OT '+(sp.preOT?'\u2212'+f2(sp.preOT/60)+'h pre':'')+(sp.preOT&&sp.postOT?' ':'')+(sp.postOT?'+'+f2(sp.postOT/60)+'h post':'') : ''));
+  if(M.rel < sp.a){ set('shift-lab','starts in'); set('shift-left', hms(sp.a - M.rel)); }
+  else if(left > 0){ set('shift-lab','remaining'); set('shift-left', hms(left)); }
+  else { set('shift-lab','shift over'); set('shift-left','0:00:00'); }
+  const bar = $('ov-shift-bar'); if(bar) bar.style.width = Math.max(0, Math.min(100, (M.rel - sp.a) / total * 100)).toFixed(1)+'%';
+  /* current slot */
+  if(M.cur){
+    const x = slot(d, M.cur.k), tag = S.tags.find(t => t.id === x.tag);
+    set('slot-range', ft(M.cur.s)+' \u2013 '+ft(M.cur.e)+(M.cur.zone ? '  \u00b7  '+M.cur.zone.toUpperCase()+'-OT' : ''));
+    set('slot-left', hms(M.cur.e - M.rel));
+    set('slot-tag', tag ? 'tag: '+tag.name+(tag.prod ? '' : ' (not productive)') : 'no tag yet');
+    set('slot-tk', +x.tickets || 0);
+  } else {
+    set('slot-range','\u2014'); set('slot-left','\u2014'); set('slot-tag','outside the shift'); set('slot-tk', 0);
+  }
+  /* quota */
+  if(M.remaining === null){
+    set('q-remaining','\u2014'); set('q-prog',''); set('q-need',''); set('q-slot',''); set('q-diff','');
+    set('q-note','No quota set. Give a productive tag a quota/h in setup.');
+  } else {
+    set('q-remaining', M.remaining);
+    set('q-prog', Math.round(M.done)+' done of '+Math.ceil(M.target - 1e-9)+' expected by end of shift');
+    if(M.remaining === 0){ set('q-need','quota met'); set('q-slot',''); }
+    else if(M.hRem > 0){
+      set('q-need', (M.remaining / M.hRem).toFixed(1)+' tickets / hr for the open '+f2(M.hRem)+' h');
+      set('q-slot', 'about '+Math.ceil(M.remaining / Math.max(1, M.openSlots))+' per open slot ('+M.openSlots+' left)');
+    } else { set('q-need','no open time left'); set('q-slot',''); }
+    const diff = M.done - M.soFar;
+    set('q-diff', (diff >= 0 ? '+' : '\u2212')+Math.abs(Math.round(diff))+' vs quota for the hours logged so far');
+    set('q-note', M.prim ? 'assumes '+M.prim.name+' ('+M.prim.quota+'/h) for the open time' : '');
+  }
+  /* today */
+  set('day-tk', M.St.tk); set('day-ph', f2(M.St.ph)); set('day-tp', M.St.ph ? f2(M.St.tk / M.St.ph) : '\u2014');
+}
+setInterval(() => { if(ui.tab === 'overview') ovCalc(); }, 1000);
 
 /* ---------- sheet view (excel-like) ---------- */
 /* Freeze start / end / interval into any day that already has logs, so editing the
