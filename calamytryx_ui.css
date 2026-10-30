@@ -5,6 +5,8 @@
    ------------------------------------------------------------
    USAGE
      <link rel="stylesheet" href="calamytryx_ui.css">
+   REQUIRED
+     keep theme.css next to this stylesheet
    ASSETS (optional — everything degrades without them)
      keep an  assets/  folder NEXT TO this file:
        assets/fonts/                  (the .otf/.ttf below)
@@ -28,6 +30,8 @@
      forms  : .field_row + input[type=email]
      util   : .text_center .mt_1..3 .mb_1..2 .flex_col .gap_1 .gap_2
    ============================================================ */
+
+@import url("theme.css");
 
 /* ---------- fonts (all mono / pixel) ---------- */
 /* the font of old computers and receipts */
@@ -57,16 +61,6 @@
 
 /* ---------- design tokens ---------- */
 :root{
-  --bg:#0a0a0c;
-  --panel:#141418;
-  --panel2:#1b1b21;
-  --line:#2a2a30;
-  --txt:#cdcdd2;
-  --dim:#6b6b73;
-  --blood:#d11c1c;
-  --rust:#7a0f12;
-  --ash:#3a3a40;
-
   /* strong system fallbacks so it still reads as a terminal without the bundled fonts */
   --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas',ui-monospace,monospace;
   --display:'Monocraft','Departure Mono',ui-monospace,monospace;

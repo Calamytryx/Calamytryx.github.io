@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>dev.kit — local encoders and security tools</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/theme.js" defer></script>
+  <style>
+.toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+.toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+.toolbar h1 .dot{color:var(--blood)}
+.toolbar .tbsub{color:var(--dim);font-size:11px}
+.toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+.toolbar a:hover{color:#fff}
+.dk_main{padding-bottom:80px}
+.dk_intro{max-width:72ch;margin:16px 0 32px}
+.dk_tabs{display:flex;flex-wrap:wrap;gap:8px;border-bottom:2px solid var(--line);margin-bottom:24px}
+.dk_tab{font:inherit;text-transform:uppercase;letter-spacing:1px;color:var(--dim);background:var(--panel);border:2px solid var(--line);border-bottom:0;padding:10px 14px;cursor:pointer}
+.dk_tab:hover,.dk_tab.active{color:var(--blood);border-color:var(--blood)}
+.dk_tab:focus-visible,.dk_form :focus-visible{outline:2px solid var(--blood);outline-offset:2px}
+.dk_panel{background:var(--panel);border:2px solid var(--line);box-shadow:var(--shadow);padding:24px}
+.dk_panel>h2{margin-bottom:12px}
+.dk_panel>p{margin:8px 0 18px}
+.dk_form{display:flex;flex-direction:column;align-items:stretch;gap:9px;margin-top:18px}
+.dk_form h3,.dk_json h3{font-family:var(--display);color:#fff;font-size:1.15rem}
+.dk_form label{color:var(--dim);font-size:.85rem}
+.dk_form textarea,.dk_form input,.dk_form select{width:100%;background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;padding:10px}
+.dk_form textarea{resize:vertical;min-height:84px}
+.dk_form input[type=file]{padding:7px}
+.dk_form .btn{align-self:flex-start;margin:5px 0}
+.dk_crypto_grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.dk_crypto_grid>.dk_form{border:1px solid var(--line);padding:18px;min-width:0}
+.dk_status{min-height:1.5em;color:var(--dim);overflow-wrap:anywhere}
+.dk_status.error{color:#ff7373}
+.dk_status.success{color:#72db91}
+.dk_warning{border-left:3px solid var(--blood);background:var(--bg);padding:12px 16px}
+.dk_warning strong{color:var(--blood)}
+.dk_json pre{background:var(--bg);border:1px solid var(--line);padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;min-height:80px}
+.dk_results{list-style:none;padding:0;margin:16px 0}
+.dk_results li{padding:10px 12px;border-left:3px solid var(--blood);background:var(--bg);margin:8px 0}
+@media(max-width:760px){.dk_crypto_grid{grid-template-columns:1fr}.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}}
+
+</style>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+      console.error('[pwa] service worker registration failed:', error);
+    });
+  });
+}
+</script>
+  
+</head>
+<body data-page="projects">
+  <header class="toolbar">
+    <h1>dev.kit<span class="dot">.</span></h1>
+    <span class="tbsub">// local-only browser tools</span>
+    <a href="/pages/projects/index.html">← projects</a>
+  </header>
+  <main class="wrap dk_main">
+    <p class="lead dk_intro">Hash, encrypt, inspect tokens, and scan text without sending it anywhere. Use a secure browser context (HTTPS or localhost) for Web Crypto.</p>
+
+    <div class="dk_tabs" role="tablist" aria-label="Developer tools">
+      <button class="dk_tab active" type="button" role="tab" id="tab-hash" aria-controls="panel-hash" aria-selected="true">hash / hmac</button>
+      <button class="dk_tab" type="button" role="tab" id="tab-crypto" aria-controls="panel-crypto" aria-selected="false" tabindex="-1">encrypt / decrypt</button>
+      <button class="dk_tab" type="button" role="tab" id="tab-jwt" aria-controls="panel-jwt" aria-selected="false" tabindex="-1">jwt decoder</button>
+      <button class="dk_tab" type="button" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="false" tabindex="-1">secret scanner</button>
+    </div>
+
+    <section class="dk_panel" id="panel-hash" role="tabpanel" aria-labelledby="tab-hash">
+      <h2 class="display h_md">hash / hmac</h2>
+      <p class="muted">SHA-1 is included for legacy compatibility only. Use SHA-256 or stronger for security-sensitive checks.</p>
+      <form id="hashForm" class="dk_form">
+        <label for="hashAlgorithm">algorithm</label>
+        <select id="hashAlgorithm">
+          <option value="SHA-256">SHA-256</option>
+          <option value="SHA-384">SHA-384</option>
+          <option value="SHA-512">SHA-512</option>
+          <option value="SHA-1">SHA-1 (legacy)</option>
+          <option value="HMAC-SHA-256">HMAC-SHA-256</option>
+          <option value="HMAC-SHA-384">HMAC-SHA-384</option>
+          <option value="HMAC-SHA-512">HMAC-SHA-512</option>
+        </select>
+        <label for="hashInput">text</label>
+        <textarea id="hashInput" rows="5" spellcheck="false" placeholder="Text to hash or authenticate"></textarea>
+        <label for="hashFile">or choose a file to hash (HMAC works on text only)</label>
+        <input id="hashFile" type="file">
+        <label for="hmacKey">HMAC key (required for HMAC)</label>
+        <input id="hmacKey" type="password" autocomplete="off">
+        <button class="btn" type="submit">compute</button>
+        <label for="hashOutput">result (hex)</label>
+        <input id="hashOutput" type="text" readonly spellcheck="false">
+        <label for="expectedHash">expected hash (optional comparison)</label>
+        <input id="expectedHash" type="text" autocomplete="off" spellcheck="false">
+        <p id="hashStatus" class="dk_status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="dk_panel" id="panel-crypto" role="tabpanel" aria-labelledby="tab-crypto" hidden>
+      <h2 class="display h_md">encrypt / decrypt</h2>
+      <p class="muted">AES-256-GCM with a random salt and nonce, and PBKDF2-SHA-256 (310,000 iterations). Keep your password safe: it cannot be recovered. The password is never stored.</p>
+      <div class="dk_crypto_grid">
+        <form id="encryptForm" class="dk_form">
+          <h3>encrypt</h3>
+          <label for="encryptText">text (or choose a file)</label>
+          <textarea id="encryptText" rows="5" spellcheck="false"></textarea>
+          <input id="encryptFile" type="file">
+          <label for="encryptPassword">password</label>
+          <input id="encryptPassword" type="password" autocomplete="new-password" required>
+          <button class="btn" type="submit">encrypt</button>
+          <label for="encryptedOutput">encrypted bundle (JSON)</label>
+          <textarea id="encryptedOutput" rows="8" readonly spellcheck="false"></textarea>
+          <button class="btn ghost" id="downloadEncrypted" type="button" disabled>download bundle</button>
+          <p id="encryptStatus" class="dk_status" role="status" aria-live="polite"></p>
+        </form>
+        <form id="decryptForm" class="dk_form">
+          <h3>decrypt</h3>
+          <label for="encryptedInput">encrypted bundle JSON (or choose a bundle file)</label>
+          <textarea id="encryptedInput" rows="5" spellcheck="false"></textarea>
+          <input id="encryptedFile" type="file" accept=".json,.enc">
+          <label for="decryptPassword">password</label>
+          <input id="decryptPassword" type="password" autocomplete="current-password" required>
+          <button class="btn" type="submit">decrypt</button>
+          <label for="decryptedOutput">decrypted text</label>
+          <textarea id="decryptedOutput" rows="8" readonly spellcheck="false"></textarea>
+          <button class="btn ghost" id="downloadDecrypted" type="button" disabled>download decrypted file</button>
+          <p id="decryptStatus" class="dk_status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <section class="dk_panel" id="panel-jwt" role="tabpanel" aria-labelledby="tab-jwt" hidden>
+      <h2 class="display h_md">jwt decoder</h2>
+      <p class="dk_warning"><strong>Decoding is not verification.</strong> Claims and signatures are untrusted until validated by the issuing service with the correct key and algorithm.</p>
+      <form id="jwtForm" class="dk_form">
+        <label for="jwtInput">token</label>
+        <textarea id="jwtInput" rows="4" spellcheck="false" placeholder="Paste a JWT"></textarea>
+        <button class="btn" type="submit">decode</button>
+      </form>
+      <p id="jwtExpiry" class="dk_status" role="status" aria-live="polite"></p>
+      <div class="dk_crypto_grid dk_json">
+        <div><h3>header</h3><pre id="jwtHeader">—</pre></div>
+        <div><h3>payload</h3><pre id="jwtPayload">—</pre></div>
+      </div>
+    </section>
+
+    <section class="dk_panel" id="panel-scan" role="tabpanel" aria-labelledby="tab-scan" hidden>
+      <h2 class="display h_md">secret scanner</h2>
+      <p class="muted">Scan a pasted diff or config for common key and token formats. Detection is heuristic and can miss secrets or flag harmless examples. Matching values are never displayed.</p>
+      <form id="scanForm" class="dk_form">
+        <label for="scanInput">text to scan</label>
+        <textarea id="scanInput" rows="10" spellcheck="false" placeholder="Paste text to inspect locally"></textarea>
+        <button class="btn" type="submit">scan locally</button>
+      </form>
+      <p id="scanSummary" class="dk_status" role="status" aria-live="polite"></p>
+      <ul id="scanResults" class="dk_results" aria-live="polite"></ul>
+    </section>
+  </main>
+  <script>
+(function () {
+  'use strict';
+
+  var encoder = new TextEncoder();
+  var decoder = new TextDecoder();
+  var bundleFormat = 'calamytryx-encrypted';
+  var pbkdf2Iterations = 310000;
+  var encryptedBundle = '';
+  var decryptedFile = null;
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function setStatus(id, message, kind) {
+    var status = byId(id);
+    status.textContent = message;
+    status.className = 'dk_status' + (kind ? ' ' + kind : '');
+  }
+
+  function bytesToHex(bytes) {
+    return Array.from(bytes, function (byte) {
+      return byte.toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  function bytesToBase64(bytes) {
+    var binary = '';
+    for (var start = 0; start < bytes.length; start += 0x8000) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(start, start + 0x8000));
+    }
+    return btoa(binary);
+  }
+
+  function base64ToBytes(value) {
+    var binary = atob(value);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function randomBytes(length) {
+    var bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    return bytes;
+  }
+
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function setFileInputExclusive(fileInput, textInput) {
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files.length) textInput.value = '';
+    });
+    textInput.addEventListener('input', function () {
+      if (textInput.value) fileInput.value = '';
+    });
+  }
+
+  document.querySelectorAll('[role="tab"]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('[role="tab"]').forEach(function (item) {
+        var selected = item === tab;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-selected', String(selected));
+        item.tabIndex = selected ? 0 : -1;
+        byId(item.getAttribute('aria-controls')).hidden = !selected;
+      });
+    });
+    tab.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      var tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+      var index = tabs.indexOf(tab);
+      var next = tabs[(index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      next.focus();
+      next.click();
+    });
+  });
+
+  byId('hashForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    var algorithm = byId('hashAlgorithm').value;
+    var file = byId('hashFile').files[0];
+    var data;
+    try {
+      if (file && algorithm.indexOf('HMAC-') === 0) {
+        throw new Error('Choose a text input for HMAC.');
+      }
+      if (file) {
+        data = await file.arrayBuffer();
+      } else {
+        data = encoder.encode(byId('hashInput').value);
+      }
+
+      var result;
+      if (algorithm.indexOf('HMAC-') === 0) {
+        var hash = algorithm.slice(5);
+        var keyText = byId('hmacKey').value;
+        if (!keyText) throw new Error('Enter an HMAC key.');
+        var key = await crypto.subtle.importKey(
+          'raw',
+          encoder.encode(keyText),
+          { name: 'HMAC', hash: hash },
+          false,
+          ['sign']
+        );
+        result = await crypto.subtle.sign('HMAC', key, data);
+      } else {
+        result = await crypto.subtle.digest(algorithm, data);
+      }
+
+      var hex = bytesToHex(new Uint8Array(result));
+      byId('hashOutput').value = hex;
+      var expected = byId('expectedHash').value.trim().toLowerCase();
+      if (!expected) {
+        setStatus('hashStatus', 'Computed ' + algorithm + (file ? ' for ' + file.name : '') + '.', 'success');
+      } else if (!/^[0-9a-f]+$/.test(expected)) {
+        setStatus('hashStatus', 'Expected value must be hexadecimal.', 'error');
+      } else {
+        var matches = expected === hex;
+        setStatus('hashStatus', matches ? 'MATCH — values are equal.' : 'NO MATCH — values differ.', matches ? 'success' : 'error');
+      }
+    } catch (error) {
+      byId('hashOutput').value = '';
+      setStatus('hashStatus', error.message || 'Hash operation failed.', 'error');
+    }
+  });
+
+  setFileInputExclusive(byId('encryptFile'), byId('encryptText'));
+  byId('encryptForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    var password = byId('encryptPassword').value;
+    if (!password) return;
+    setStatus('encryptStatus', 'Encrypting locally…');
+    byId('downloadEncrypted').disabled = true;
+
+    try {
+      var file = byId('encryptFile').files[0];
+      var plaintext = file ? new Uint8Array(await file.arrayBuffer()) : encoder.encode(byId('encryptText').value);
+      var filename = file ? file.name : null;
+      var mediaType = file ? (file.type || 'application/octet-stream') : 'text/plain;charset=utf-8';
+      var additionalData = encoder.encode(JSON.stringify({ filename: filename, mediaType: mediaType }));
+      var salt = randomBytes(16);
+      var iv = randomBytes(12);
+      var material = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(password),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+      var key = await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: salt, iterations: pbkdf2Iterations, hash: 'SHA-256' },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt']
+      );
+      var ciphertext = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv, additionalData: additionalData },
+        key,
+        plaintext
+      );
+      encryptedBundle = JSON.stringify({
+        format: bundleFormat,
+        version: 1,
+        cipher: 'AES-256-GCM',
+        kdf: { name: 'PBKDF2', hash: 'SHA-256', iterations: pbkdf2Iterations },
+        salt: bytesToBase64(salt),
+        iv: bytesToBase64(iv),
+        filename: filename,
+        mediaType: mediaType,
+        ciphertext: bytesToBase64(new Uint8Array(ciphertext))
+      }, null, 2);
+      byId('encryptedOutput').value = encryptedBundle;
+      byId('downloadEncrypted').disabled = false;
+      setStatus('encryptStatus', 'Encrypted. Save the bundle and remember the password.', 'success');
+    } catch (error) {
+      encryptedBundle = '';
+      byId('encryptedOutput').value = '';
+      setStatus('encryptStatus', error.message || 'Encryption failed.', 'error');
+    }
+  });
+
+  byId('downloadEncrypted').addEventListener('click', function () {
+    if (encryptedBundle) {
+      downloadBlob(new Blob([encryptedBundle], { type: 'application/json' }), 'encrypted-bundle.json');
+    }
+  });
+
+  setFileInputExclusive(byId('encryptedFile'), byId('encryptedInput'));
+  byId('decryptForm').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    var password = byId('decryptPassword').value;
+    if (!password) return;
+    setStatus('decryptStatus', 'Decrypting locally…');
+    byId('downloadDecrypted').disabled = true;
+    byId('decryptedOutput').value = '';
+    decryptedFile = null;
+
+    try {
+      var file = byId('encryptedFile').files[0];
+      var source = file ? await file.text() : byId('encryptedInput').value;
+      var bundle = JSON.parse(source);
+      if (!bundle || bundle.format !== bundleFormat || bundle.version !== 1 ||
+          bundle.cipher !== 'AES-256-GCM' || !bundle.kdf ||
+          bundle.kdf.name !== 'PBKDF2' || bundle.kdf.hash !== 'SHA-256' ||
+          bundle.kdf.iterations !== pbkdf2Iterations ||
+          (bundle.filename !== null && typeof bundle.filename !== 'string') ||
+          typeof bundle.mediaType !== 'string') {
+        throw new Error('Unsupported or invalid encrypted bundle.');
+      }
+      var salt = base64ToBytes(bundle.salt);
+      var iv = base64ToBytes(bundle.iv);
+      var ciphertext = base64ToBytes(bundle.ciphertext);
+      var additionalData = encoder.encode(JSON.stringify({
+        filename: bundle.filename,
+        mediaType: bundle.mediaType
+      }));
+      if (salt.length !== 16 || iv.length !== 12 || ciphertext.length < 16) {
+        throw new Error('Encrypted bundle has invalid cryptographic parameters.');
+      }
+
+      var material = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(password),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+      var key = await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: salt, iterations: pbkdf2Iterations, hash: 'SHA-256' },
+        material,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      );
+      var plaintext = new Uint8Array(await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv, additionalData: additionalData },
+        key,
+        ciphertext
+      ));
+      if (typeof bundle.filename === 'string' && bundle.filename) {
+        var filename = bundle.filename.split(/[\\/]/).pop().replace(/[\u0000-\u001f\u007f]/g, '') || 'decrypted-file';
+        var mediaType = typeof bundle.mediaType === 'string' ? bundle.mediaType : 'application/octet-stream';
+        decryptedFile = { blob: new Blob([plaintext], { type: mediaType }), filename: filename };
+        byId('downloadDecrypted').disabled = false;
+        byId('decryptedOutput').value = 'Decrypted file: ' + filename + ' (' + plaintext.length + ' bytes).';
+      } else {
+        byId('decryptedOutput').value = decoder.decode(plaintext);
+      }
+      setStatus('decryptStatus', 'Decrypted and authenticated successfully.', 'success');
+    } catch (error) {
+      setStatus('decryptStatus', error.name === 'OperationError'
+        ? 'Decryption failed: wrong password or modified bundle.'
+        : (error.message || 'Decryption failed.'), 'error');
+    }
+  });
+
+  byId('downloadDecrypted').addEventListener('click', function () {
+    if (decryptedFile) downloadBlob(decryptedFile.blob, decryptedFile.filename);
+  });
+
+  byId('jwtForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    byId('jwtHeader').textContent = '—';
+    byId('jwtPayload').textContent = '—';
+    setStatus('jwtExpiry', '', '');
+    try {
+      var parts = byId('jwtInput').value.trim().split('.');
+      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+        throw new Error('A compact JWT must contain three non-empty segments.');
+      }
+      function parseSegment(segment) {
+        var base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+        base64 += '='.repeat((4 - base64.length % 4) % 4);
+        var parsed = JSON.parse(decoder.decode(base64ToBytes(base64)));
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('JWT header and payload must be JSON objects.');
+        }
+        return parsed;
+      }
+      var header = parseSegment(parts[0]);
+      var payload = parseSegment(parts[1]);
+      byId('jwtHeader').textContent = JSON.stringify(header, null, 2);
+      byId('jwtPayload').textContent = JSON.stringify(payload, null, 2);
+      if (typeof payload.exp !== 'number') {
+        setStatus('jwtExpiry', 'No numeric exp claim; expiry cannot be determined.', '');
+      } else {
+        var remaining = payload.exp * 1000 - Date.now();
+        setStatus('jwtExpiry', remaining > 0
+          ? 'Expiry claim is in the future (' + new Date(payload.exp * 1000).toISOString() + '). Not signature-verified.'
+          : 'Expiry claim has passed (' + new Date(payload.exp * 1000).toISOString() + '). Not signature-verified.',
+        remaining > 0 ? 'success' : 'error');
+      }
+    } catch (error) {
+      setStatus('jwtExpiry', error.message || 'Could not decode token.', 'error');
+    }
+  });
+
+  var secretPatterns = [
+    { name: 'private key header', pattern: /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/ },
+    { name: 'AWS access key ID', pattern: /\bAKIA[0-9A-Z]{16}\b/ },
+    { name: 'GitHub token', pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/ },
+    { name: 'Slack token', pattern: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/ },
+    { name: 'OpenAI-style API key', pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b/ },
+    { name: 'bearer token', pattern: /\bBearer\s+[A-Za-z0-9._~+/-]{16,}={0,2}/i },
+    { name: 'credential assignment', pattern: /\b(?:api[_-]?key|client[_-]?secret|password|token)\s*[:=]\s*["']?[^"'\s,;]{12,}/i }
+  ];
+
+  byId('scanForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var matches = [];
+    byId('scanResults').replaceChildren();
+    byId('scanInput').value.split(/\r?\n/).forEach(function (line, index) {
+      secretPatterns.forEach(function (entry) {
+        if (entry.pattern.test(line)) matches.push({ line: index + 1, name: entry.name });
+      });
+    });
+
+    if (!matches.length) {
+      setStatus('scanSummary', 'No supported patterns found. This is not proof the text is secret-free.', '');
+      return;
+    }
+
+    matches.forEach(function (match) {
+      var item = document.createElement('li');
+      item.textContent = 'Line ' + match.line + ' — possible ' + match.name + ' (value redacted)';
+      byId('scanResults').appendChild(item);
+    });
+    setStatus('scanSummary', matches.length + ' possible match(es). Review the source locally; values are not shown.', 'error');
+  });
+})();
+
+</script>
+</body>
+</html>

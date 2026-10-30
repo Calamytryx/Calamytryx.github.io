@@ -3,6 +3,8 @@
    pixel-art / terminal aesthetic, dark grunge + blood-red
    ============================================================ */
 
+@import url("theme.css");
+
 /* ---------- fonts (all mono / pixel) ---------- */
 /*  the font of old computers and in reciepts */
 @font-face{
@@ -37,17 +39,6 @@
 
 /* ---------- design tokens ---------- */
 :root{
-  --bg:#0a0a0c;
-  --panel:#141418;
-  --panel2:#1b1b21;
-  --line:#2a2a30;
-  --txt:#cdcdd2;
-  --dim:#6b6b73;
-  --blood:#d11c1c;
-  --rust:#7a0f12;
-  --ash:#3a3a40;
-  --glitch-alt:#2ee3e3;   /* glitch 2nd layer — complement of --blood; override to retheme */
-
   --mono:'Departure Mono','Cascadia Mono','JetBrains Mono','Consolas','Serenity Emoji',monospace;
   --display:'Monocraft','Departure Mono','Serenity Emoji',monospace;
 
@@ -101,12 +92,14 @@ body::before{
   );
   opacity:.5;
 }
+html[data-theme-mode="light"] body::before{opacity:.12}
 /* film grain (fractal noise) */
 body::after{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity:.04;
   mix-blend-mode:screen;
 }
+html[data-theme-mode="light"] body::after{opacity:.015}
 
 /* ---------- layout helpers ---------- */
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;width:100%}
@@ -126,7 +119,7 @@ body::after{
 .divider.flip{transform:scaleY(-1)}
 
 /* ---------- typography ---------- */
-.display{font-family:var(--display);letter-spacing:1px;line-height:1.05;color:#fff}
+.display{font-family:var(--display);letter-spacing:1px;line-height:1.05;color:var(--txt)}
 .h_xl{font-size:clamp(2.6rem,7vw,5rem)}
 .h_lg{font-size:clamp(2rem,5vw,3.2rem)}
 .h_md{font-size:clamp(1.5rem,3.5vw,2.2rem)}
@@ -146,7 +139,7 @@ body::after{
 /* hero glitch wordmark — 3 layers stacked: red (back) / blue (mid) / white (top).
    layers sit exactly behind the white text and only split apart during glitch bursts:
    red offsets to top-left (-3,-3), blue to bottom-right (+3,+3). */
-.glitch{position:relative;z-index:0;color:#fff}
+.glitch{position:relative;z-index:0;color:var(--txt)}
 .glitch::before,.glitch::after{
   content:attr(data-text);position:absolute;top:0;left:0;width:100%;
   pointer-events:none;
@@ -182,7 +175,7 @@ body::after{
   box-shadow:var(--shadow);
   transition:transform .05s,box-shadow .05s,background .1s,color .1s;
 }
-.btn:hover{background:var(--blood);color:#000;transform:translate(3px,3px);box-shadow:3px 3px 0 #000}
+.btn:hover{background:var(--blood);color:var(--blood-text,#000);transform:translate(3px,3px);box-shadow:3px 3px 0 #000}
 .btn:active{transform:translate(6px,6px);box-shadow:0 0 0 #000}
 .btn.ghost{border-color:var(--line);color:var(--txt)}
 .btn.ghost:hover{background:var(--txt);color:#000;border-color:var(--txt)}
@@ -206,7 +199,7 @@ body::after{
 /* ---------- navbar ---------- */
 .nav{
   position:fixed;top:0;left:0;width:100%;z-index:50;
-  background:rgba(10,10,12,.92);
+  background:color-mix(in srgb,var(--bg) 92%,transparent);
   border-bottom:2px solid var(--line);
   backdrop-filter:blur(2px);
 }
@@ -278,6 +271,45 @@ body::after{
   .grid_2,.grid_3{grid-template-columns:1fr}
 }
 
+/* ---------- global theme selector ---------- */
+.global_theme{
+  position:fixed;right:20px;bottom:20px;z-index:10001;
+  display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+  font-family:var(--mono);
+}
+.global_theme_toggle,.global_theme_panel{
+  background:var(--panel);color:var(--txt);border:2px solid var(--line);
+  box-shadow:6px 6px 0 #000;
+}
+.global_theme_toggle{
+  display:flex;align-items:center;gap:9px;padding:8px 12px;
+  font:inherit;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+}
+.global_theme_toggle:hover,.global_theme_toggle[aria-expanded="true"]{border-color:var(--blood)}
+.global_theme_sample{width:16px;height:16px;border:1px solid var(--line)}
+.global_theme_panel{
+  width:min(300px,calc(100vw - 28px));padding:14px;
+}
+.global_theme_panel[hidden]{display:none}
+.global_theme_title{font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.global_theme_group_title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:12px 0 8px}
+.global_theme_group_title:first-of-type{margin-top:0}
+.global_theme_group_title span{color:var(--blood)}
+.global_theme_swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.global_theme_single{grid-template-columns:repeat(4,minmax(0,1fr))}
+.global_theme_swatch{
+  width:100%;aspect-ratio:1;border:2px solid var(--line);cursor:pointer;
+}
+.global_theme_swatch[aria-pressed="true"]{outline:2px solid var(--blood);outline-offset:2px}
+.global_theme_custom{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.global_theme_custom[hidden]{display:none}
+.global_theme_custom label{display:flex;flex-direction:column;gap:4px;color:var(--dim);font-size:10px;text-transform:uppercase}
+.global_theme_custom input{width:100%;height:30px;background:var(--panel2);border:1px solid var(--line);padding:2px;cursor:pointer}
+.global_theme_status{min-height:1.4em;margin-top:10px;color:var(--dim);font-size:10px}
+@media(max-width:600px){
+  .global_theme{right:12px;bottom:12px}
+}
+
 /* ---------- media / iframe ---------- */
 .embed{position:relative;width:100%;aspect-ratio:16/9;border:2px solid var(--line);box-shadow:var(--shadow);background:#000}
 .embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -302,7 +334,7 @@ body::after{
   margin-top:0;
 }
 .footer_grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
-.footer h4{color:#fff;font-family:var(--display);font-size:1.1rem;margin-bottom:14px;letter-spacing:1px}
+.footer h4{color:var(--txt);font-family:var(--display);font-size:1.1rem;margin-bottom:14px;letter-spacing:1px}
 .footer_links{list-style:none;margin:0;padding:0}
 .footer a{display:block;color:var(--dim);padding:5px 0;font-size:.92rem}
 .footer a:hover{color:var(--blood)}
@@ -311,7 +343,7 @@ body::after{
 /* footer collapsibles (mobile, native <details>) */
 .footer details{border-top:1px solid var(--line)}
 .footer details summary{
-  list-style:none;cursor:pointer;color:#fff;font-family:var(--display);
+  list-style:none;cursor:pointer;color:var(--txt);font-family:var(--display);
   padding:14px 0;letter-spacing:1px;display:flex;justify-content:space-between;
 }
 .footer details summary::-webkit-details-marker{display:none}
@@ -328,7 +360,7 @@ body::after{
 
 /* ---------- lore terminal log ---------- */
 .logbox{
-  background:#0c0c0f;border:2px solid var(--line);box-shadow:var(--shadow);
+  background:var(--panel);border:2px solid var(--line);box-shadow:var(--shadow);
   padding:28px;font-size:1rem;line-height:1.8;color:var(--txt);
 }
 .logbox p{margin-bottom:1em}
@@ -337,7 +369,7 @@ body::after{
 .proj_grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
 .proj_card{display:flex;flex-direction:column;gap:10px;min-height:180px;justify-content:space-between}
 .proj_card .tag{color:var(--blood);font-size:.78rem;letter-spacing:2px;text-transform:uppercase}
-.proj_card h3{font-family:var(--display);color:#fff;font-size:1.4rem}
+.proj_card h3{font-family:var(--display);color:var(--txt);font-size:1.4rem}
 .proj_card p{color:var(--dim);font-size:.92rem}
 .proj_card .go{color:var(--blood);font-size:.85rem;letter-spacing:1px}
 
@@ -403,7 +435,7 @@ hr.divider{border:0;margin:0}
 
 /* "live now" badge */
 .badge{
-  display:inline-block;background:var(--blood);color:#000;
+  display:inline-block;background:var(--blood);color:var(--blood-text,#000);
   font-size:.62rem;letter-spacing:1px;padding:2px 6px;margin-left:6px;
   vertical-align:middle;animation:blink 1.2s steps(1) infinite;
 }
@@ -494,8 +526,11 @@ html[data-snap] .section::before{
 html[data-snap] .section::after{
   content:""; position:absolute; inset:0; z-index:1;
   background:
-    linear-gradient(180deg, rgba(10,10,12,.72), rgba(10,10,12,.5) 42%, rgba(10,10,12,.88)),
-    radial-gradient(120% 75% at 50% 0%, rgba(209,28,28,.12), transparent 60%);
+    linear-gradient(180deg,
+      color-mix(in srgb,var(--bg) 72%,transparent),
+      color-mix(in srgb,var(--bg) 50%,transparent) 42%,
+      color-mix(in srgb,var(--bg) 88%,transparent)),
+    radial-gradient(120% 75% at 50% 0%,color-mix(in srgb,var(--blood) 12%,transparent),transparent 60%);
 }
 
 /* art panels: image sits beside the text (two-column), not as a full-bleed backdrop.

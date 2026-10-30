@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>dice.mk — probability calculator</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/theme.js" defer></script>
+  <style>
+.toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+.toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+.toolbar h1 .dot{color:var(--blood)}
+.toolbar .tbsub{color:var(--dim);font-size:11px}
+.toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+.toolbar a:hover{color:#fff}
+.dm_main{max-width:980px;padding-bottom:80px}
+.dm_intro{margin:16px 0 30px}
+.dm_panel{background:var(--panel);border:2px solid var(--line);box-shadow:var(--shadow);padding:24px;margin:24px 0}
+.dm_panel>h2{margin-bottom:14px}
+.dm_form{display:flex;flex-direction:column;gap:9px}
+.dm_form label{color:var(--dim);font-size:.85rem}
+.dm_form input{background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;padding:10px}
+.dm_form input:focus-visible,.dm_form button:focus-visible{outline:2px solid var(--blood);outline-offset:2px}
+.dm_form code{background:var(--bg);padding:2px 5px}
+.dm_actions{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0}
+.dm_status{min-height:1.6em;margin-top:12px;color:var(--dim);overflow-wrap:anywhere}
+.dm_status.error{color:#ff7373}
+.dm_rolls{display:flex;flex-direction:column;gap:16px;margin:18px 0}
+.dm_term_roll{border:2px solid var(--line);background:var(--panel2);padding:14px}
+.dm_term_label{color:var(--dim);font-size:.8rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.dm_dice_faces{display:flex;flex-wrap:wrap;gap:14px}
+.dm_die{width:88px;display:grid;justify-items:center;gap:9px}
+.dm_die_face{display:block;width:76px;height:76px;overflow:visible;filter:drop-shadow(0 3px 4px #0003);user-select:none;image-rendering:auto;shape-rendering:crispEdges}
+.dm_die_shape{fill:color-mix(in srgb,var(--blood) 78%,var(--panel));stroke:var(--blood);stroke-width:2.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.dm_die_face.d2 .dm_die_shape{fill:color-mix(in srgb,var(--blood) 12%,var(--panel))}
+.dm_die_value{fill:var(--blood-text,#fff);font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:color-mix(in srgb,var(--panel) 70%,transparent);stroke-width:1.5px}
+.dm_die_value.wide{font-size:23px}
+.dm_pixel-shadow{fill:color-mix(in srgb,var(--blood) 62%,var(--bg))}
+.dm_pixel-dark{fill:color-mix(in srgb,var(--blood) 78%,var(--bg))}
+.dm_pixel-base{fill:color-mix(in srgb,var(--blood) 86%,var(--panel))}
+.dm_pixel-light{fill:color-mix(in srgb,var(--blood) 58%,var(--blood-text,#fff))}
+.dm_die_name{color:var(--dim);font-size:.68rem;letter-spacing:.5px}
+.dm_die.rolling .dm_die_face{animation:dm_tumble .62s cubic-bezier(.2,.8,.25,1) both}
+@keyframes dm_tumble{0%{transform:translateY(-14px) rotate(-22deg) scale(.86)}55%{transform:translateY(2px) rotate(12deg) scale(1.06)}100%{transform:translateY(0) rotate(0) scale(1)}}
+.dm_total{align-self:flex-start;border:2px solid var(--blood);background:var(--panel);padding:10px 16px;color:var(--txt)}
+.dm_total strong{color:var(--blood);font-size:1.5rem;margin-left:8px}
+.dm_subhead{font-family:var(--display);color:var(--txt);font-size:1.15rem;margin:20px 0 8px}
+.dm_table_wrap{max-height:420px;overflow:auto;border:1px solid var(--line);margin-top:12px}
+.dm_table_wrap table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.dm_table_wrap th,.dm_table_wrap td{text-align:right;border-bottom:1px solid var(--line);padding:7px 10px}
+.dm_table_wrap th:first-child,.dm_table_wrap td:first-child{text-align:left}
+.dm_table_wrap th{position:sticky;top:0;background:var(--panel2);color:var(--blood)}
+@media(max-width:600px){.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}.dm_panel{padding:18px}.dm_table_wrap{font-size:.8rem}.dm_dice_faces{gap:10px}.dm_die{width:72px}.dm_die_face{width:62px;height:62px}}
+@media(prefers-reduced-motion:reduce){.dm_die.rolling .dm_die_face{animation:none}}
+
+</style>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+      console.error('[pwa] service worker registration failed:', error);
+    });
+  });
+}
+</script>
+  
+</head>
+<body data-page="projects">
+<svg id="dm_sprite_library" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+<defs>
+<symbol id="dm_sprite_d2" viewBox="0 0 320 320">
+<g transform="translate(-20,-20)"><g id="d2" transform="translate(20,20)">
+<rect x="120" y="30" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="40" width="120" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="50" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="50" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="50" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="60" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="60" width="120" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="220" y="60" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="70" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="70" width="140" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="70" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="80" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="80" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="80" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="80" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="80" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="90" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="90" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="90" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="90" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="250" y="90" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="100" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="100" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="100" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="100" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="100" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="110" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="110" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="110" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="110" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="110" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="120" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="120" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="120" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="120" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="120" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="130" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="130" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="130" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="130" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="130" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="140" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="140" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="140" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="140" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="140" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="150" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="150" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="150" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="150" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="150" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="160" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="160" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="160" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="160" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="160" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="170" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="170" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="170" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="170" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="170" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="180" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="180" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="180" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="180" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="180" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="190" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="190" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="190" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="190" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="190" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="200" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="200" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="200" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="200" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="200" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="210" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="210" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="210" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="210" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="210" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="220" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="220" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="220" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="220" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="250" y="220" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="230" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="230" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="230" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="230" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="230" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="240" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="240" width="140" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="240" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="250" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="250" width="120" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="220" y="250" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="260" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="260" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="260" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="270" width="120" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="280" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d4" viewBox="0 0 320 320">
+<g transform="translate(-360,-20)"><g id="d4" transform="translate(360,20)">
+<rect x="150" y="40" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="40" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="50" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="50" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="60" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="60" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="70" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="70" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="80" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="80" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="90" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="90" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="100" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="100" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="110" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="110" width="10" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="110" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="120" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="120" width="10" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="120" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="130" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="130" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="130" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="140" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="140" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="140" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="150" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="150" width="30" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="150" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="160" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="160" width="30" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="160" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="170" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="170" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="170" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="180" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="180" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="180" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="190" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="190" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="190" width="90" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="200" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="200" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="200" width="90" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="210" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="210" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="210" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="220" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="220" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="220" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="230" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="230" width="70" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="230" width="110" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="240" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="240" width="110" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="250" width="120" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="250" width="120" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="260" width="120" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="260" width="120" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="270" width="130" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="160" y="270" width="130" height="10" class="dm_pixel dm_pixel-dark"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d6" viewBox="0 0 320 320">
+<g transform="translate(-700,-20)"><g id="d6" transform="translate(700,20)">
+<rect x="40" y="40" width="240" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="40" y="50" width="240" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="40" y="60" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="60" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="70" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="70" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="80" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="80" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="90" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="90" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="100" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="100" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="110" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="110" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="120" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="120" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="130" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="130" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="140" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="140" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="150" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="150" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="160" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="160" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="170" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="170" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="180" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="180" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="190" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="190" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="200" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="200" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="210" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="210" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="220" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="220" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="230" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="230" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="240" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="240" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="250" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="250" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="260" width="240" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="270" width="240" height="10" class="dm_pixel dm_pixel-dark"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d8" viewBox="0 0 320 320">
+<g transform="translate(-1040,-20)"><g id="d8" transform="translate(1040,20)">
+<rect x="150" y="20" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="30" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="30" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="30" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="40" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="40" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="40" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="50" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="50" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="50" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="60" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="60" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="60" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="70" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="70" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="70" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="70" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="70" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="80" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="80" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="80" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="90" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="90" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="90" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="100" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="100" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="100" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="100" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="100" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="110" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="110" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="110" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="120" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="120" width="70" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="120" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="200" y="120" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="130" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="130" width="80" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="130" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="140" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="140" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="140" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="150" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="150" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="150" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="160" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="160" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="160" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="170" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="170" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="170" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="180" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="180" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="180" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="190" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="190" width="140" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="190" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="200" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="200" width="170" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="200" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="210" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="210" width="200" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="210" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="220" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="70" y="220" width="180" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="250" y="220" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="70" y="230" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="100" y="230" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="230" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="80" y="240" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="240" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="240" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="100" y="250" width="120" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="110" y="260" width="100" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="130" y="270" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="280" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="150" y="290" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d10" viewBox="0 0 320 320">
+<g transform="translate(-20,-360)"><g id="d10" transform="translate(20,360)">
+<rect x="150" y="20" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="30" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="30" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="30" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="40" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="40" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="40" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="50" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="50" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="50" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="60" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="60" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="60" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="70" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="70" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="70" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="80" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="80" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="80" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="90" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="90" width="30" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="90" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="90" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="100" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="100" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="100" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="100" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="100" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="110" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="110" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="110" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="110" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="200" y="110" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="120" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="120" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="120" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="120" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="200" y="120" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="130" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="130" width="80" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="130" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="140" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="140" width="90" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="140" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="140" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="150" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="150" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="150" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="160" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="160" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="160" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="170" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="170" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="170" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="170" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="220" y="170" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="180" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="180" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="180" width="80" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="180" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="180" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="190" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="190" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="190" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="190" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="250" y="190" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="200" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="200" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="200" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="200" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="200" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="210" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="210" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="210" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="210" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="280" y="210" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="220" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="50" y="220" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="220" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="50" y="230" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="80" y="230" width="160" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="230" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="70" y="240" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="110" y="240" width="100" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="240" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="90" y="250" width="50" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="250" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="250" width="50" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="100" y="260" width="120" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="120" y="270" width="80" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="280" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="150" y="290" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d12" viewBox="0 0 320 320">
+<g transform="translate(-360,-360)"><g id="d12" transform="translate(360,360)">
+<rect x="150" y="20" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="30" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="100" y="40" width="120" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="50" width="180" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="60" width="200" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="70" width="220" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="80" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="80" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="170" y="80" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="90" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="90" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="90" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="100" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="120" y="100" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="100" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="100" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="200" y="100" width="80" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="110" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="110" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="110" width="70" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="110" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="110" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="120" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="120" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="120" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="120" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="120" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="130" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="130" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="130" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="130" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="260" y="130" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="20" y="140" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="140" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="140" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="140" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="290" y="140" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="20" y="150" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="150" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="150" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="20" y="160" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="160" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="160" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="170" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="170" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="170" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="180" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="180" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="180" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="190" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="190" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="190" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="200" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="200" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="200" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="210" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="210" width="80" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="210" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="220" width="240" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="50" y="230" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="50" y="240" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="60" y="250" width="200" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="260" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="260" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="170" y="260" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="270" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="270" width="80" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="200" y="270" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="280" width="80" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="150" y="290" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d20" viewBox="0 0 320 320">
+<g transform="translate(-700,-360)"><g id="d20" transform="translate(700,360)">
+<rect x="150" y="10" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="20" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="110" y="30" width="100" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="40" width="130" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="50" width="160" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="60" width="200" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="70" width="240" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="30" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="80" width="240" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="280" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="90" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="60" y="90" width="190" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="250" y="90" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="100" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="100" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="100" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="100" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="230" y="100" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="110" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="110" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="110" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="120" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="120" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="120" width="110" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="130" width="100" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="130" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="130" width="100" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="140" width="100" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="140" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="140" width="100" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="150" width="90" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="150" width="80" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="150" width="90" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="160" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="160" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="160" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="170" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="110" y="170" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="210" y="170" width="80" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="180" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="180" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="180" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="190" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="100" y="190" width="120" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="220" y="190" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="200" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="200" width="140" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="230" y="200" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="210" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="210" width="160" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="240" y="210" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="30" y="220" width="260" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="230" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="50" y="230" width="220" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="270" y="230" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="60" y="240" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="90" y="240" width="130" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="220" y="240" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="80" y="250" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="250" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="250" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="90" y="260" width="130" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="110" y="270" width="100" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="130" y="280" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="150" y="290" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+</g></g>
+</symbol>
+<symbol id="dm_sprite_d100" viewBox="0 0 320 320">
+<g transform="translate(-1040,-360)"><g id="d100" transform="translate(1040,360)">
+<rect x="110" y="30" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="30" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="200" y="30" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="90" y="40" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="140" y="40" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="40" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="40" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="220" y="40" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="50" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="120" y="50" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="140" y="50" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="150" y="50" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="50" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="230" y="50" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="60" y="60" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="70" y="60" width="130" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="60" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="60" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="240" y="60" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="60" y="70" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="80" y="70" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="90" y="70" width="110" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="70" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="210" y="70" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="70" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="50" y="80" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="70" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="80" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="80" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="80" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="80" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="210" y="80" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="80" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="260" y="80" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="40" y="90" width="30" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="70" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="90" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="90" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="90" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="90" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="90" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="260" y="90" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="40" y="100" width="90" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="100" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="100" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="200" y="100" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="240" y="100" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="260" y="100" width="20" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="110" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="50" y="110" width="10" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="60" y="110" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="70" y="110" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="110" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="110" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="110" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="110" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="220" y="110" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="110" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="260" y="110" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="120" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="50" y="120" width="10" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="60" y="120" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="70" y="120" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="120" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="120" width="50" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="190" y="120" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="120" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="220" y="120" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="120" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="260" y="120" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="130" width="30" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="60" y="130" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="70" y="130" width="60" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="130" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="130" width="40" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="180" y="130" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="130" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="220" y="130" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="230" y="130" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="260" y="130" width="30" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="140" width="100" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="140" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="140" width="30" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="170" y="140" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="140" width="40" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="250" y="140" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="150" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="150" width="90" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="150" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="150" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="160" y="150" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="150" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="220" y="150" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="250" y="150" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="160" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="40" y="160" width="90" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="160" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="140" y="160" width="10" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="150" y="160" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="210" y="160" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="220" y="160" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="250" y="160" width="40" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="170" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="50" y="170" width="80" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="130" y="170" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="170" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="200" y="170" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="210" y="170" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="220" y="170" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="240" y="170" width="50" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="180" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="60" y="180" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="180" width="10" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="80" y="180" width="20" height="10" class="dm_pixel dm_pixel-light"/>
+<rect x="100" y="180" width="30" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="180" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="180" width="50" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="190" y="180" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="210" y="180" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="220" y="180" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="230" y="180" width="60" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="190" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="40" y="190" width="20" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="60" y="190" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="190" width="60" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="190" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="140" y="190" width="40" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="180" y="190" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="210" y="190" width="80" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="30" y="200" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="40" y="200" width="120" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="160" y="200" width="130" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="40" y="210" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="60" y="210" width="70" height="10" class="dm_pixel dm_pixel-base"/>
+<rect x="130" y="210" width="70" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="200" y="210" width="80" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="40" y="220" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="220" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="80" y="220" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="220" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="220" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="190" y="220" width="90" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="50" y="230" width="20" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="70" y="230" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="80" y="230" width="50" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="130" y="230" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="140" y="230" width="30" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="170" y="230" width="100" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="60" y="240" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="70" y="240" width="10" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="80" y="240" width="10" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="90" y="240" width="60" height="10" class="dm_pixel dm_pixel-dark"/>
+<rect x="150" y="240" width="110" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="60" y="250" width="200" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="80" y="260" width="160" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="90" y="270" width="140" height="10" class="dm_pixel dm_pixel-shadow"/>
+<rect x="110" y="280" width="100" height="10" class="dm_pixel dm_pixel-shadow"/>
+</g></g>
+</symbol>
+</defs>
+</svg>
+  <header class="toolbar">
+    <h1>dice<span class="dot">.</span>mk</h1>
+    <span class="tbsub">// cryptographically fair rolls</span>
+    <a href="/pages/projects/index.html">← projects</a>
+  </header>
+  <main class="wrap dm_main">
+    <p class="lead dm_intro">Roll common dice expressions and inspect exact odds. Random rolls use the browser's cryptographic random-number generator.</p>
+
+    <section class="dm_panel" aria-labelledby="rollTitle">
+      <h2 class="display h_md" id="rollTitle">roll + odds</h2>
+      <form id="rollForm" class="dm_form">
+        <label for="expression">expression</label>
+        <input id="expression" type="text" value="2d6 + 1d8 + 3" spellcheck="false" aria-describedby="expressionHelp">
+        <p id="expressionHelp" class="muted">Add dice and modifiers, e.g. <code>4d6+2</code>, <code>d20</code>, or <code>2d6+1d8-3</code>. Up to 100 dice per roll; each die has 2–1,000,000 sides.</p>
+        <div class="dm_actions">
+          <button class="btn" type="submit">roll</button>
+          <button class="btn ghost" id="showOdds" type="button">calculate odds</button>
+        </div>
+      </form>
+      <p id="rollStatus" class="dm_status" role="status" aria-live="polite"></p>
+      <div id="rollResults" class="dm_rolls"></div>
+      <div id="oddsWrap" hidden>
+        <h3 class="dm_subhead">exact probability distribution</h3>
+        <p id="oddsNotice" class="muted"></p>
+        <div class="dm_table_wrap">
+          <table>
+            <thead><tr><th scope="col">total</th><th scope="col">exact chance</th><th scope="col">chance of this or higher</th></tr></thead>
+            <tbody id="oddsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <script>
+(function () {
+  'use strict';
+
+  var MAX_DICE = 100;
+  var MAX_SIDES = 1000000;
+  var MAX_ODDS_RANGE = 500;
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function setStatus(message, isError) {
+    var status = byId('rollStatus');
+    status.textContent = message;
+    status.className = 'dm_status' + (isError ? ' error' : '');
+  }
+
+  function randomInteger(max) {
+    if (!Number.isSafeInteger(max) || max < 1 || max > 0x100000000) {
+      throw new Error('Random range is outside the supported bounds.');
+    }
+    var range = 0x100000000;
+    var limit = Math.floor(range / max) * max;
+    var sample = new Uint32Array(1);
+    do {
+      crypto.getRandomValues(sample);
+    } while (sample[0] >= limit);
+    return sample[0] % max;
+  }
+
+  function parseExpression(expression) {
+    var source = expression.replace(/\s+/g, '');
+    if (!source || source.length > 200) throw new Error('Enter a dice expression under 200 characters.');
+
+    var terms = [];
+    var index = 0;
+    var diceCount = 0;
+    var modifier = 0;
+    var token = /([+-]?)(?:(\d*)d(\d+)|(\d+))/iy;
+    while (index < source.length) {
+      token.lastIndex = index;
+      var match = token.exec(source);
+      if (!match || (index > 0 && !match[1])) {
+        throw new Error('Use dice and signed integer terms, such as 2d6+1d8-3.');
+      }
+      var sign = match[1] === '-' ? -1 : 1;
+      if (match[3]) {
+        var count = match[2] ? Number(match[2]) : 1;
+        var sides = Number(match[3]);
+        if (!Number.isSafeInteger(count) || count < 1 || !Number.isSafeInteger(sides) ||
+            sides < 2 || sides > MAX_SIDES) {
+          throw new Error('Each dice term needs 1–100 dice and 2–1,000,000 sides.');
+        }
+        diceCount += count;
+        if (diceCount > MAX_DICE) throw new Error('Use no more than 100 dice per expression.');
+        terms.push({ count: count, sides: sides, sign: sign });
+      } else {
+        var value = Number(match[4]) * sign;
+        if (!Number.isSafeInteger(value)) throw new Error('Modifier is too large.');
+        modifier += value;
+      }
+      index = token.lastIndex;
+    }
+    if (!diceCount) throw new Error('Include at least one die in the expression.');
+    return { terms: terms, modifier: modifier, diceCount: diceCount };
+  }
+
+  function calculateRoll(parsed) {
+    var total = parsed.modifier;
+    var detail = [];
+    parsed.terms.forEach(function (term) {
+      var results = [];
+      for (var i = 0; i < term.count; i++) {
+        var value = randomInteger(term.sides) + 1;
+        results.push(value);
+        total += value * term.sign;
+      }
+      detail.push({
+        label: (term.sign < 0 ? '-' : '') + term.count + 'd' + term.sides,
+        sides: term.sides,
+        sign: term.sign,
+        results: results
+      });
+    });
+    return { total: total, detail: detail };
+  }
+
+  function createDie(sides, value, sign) {
+    var die = document.createElement('div');
+    die.className = 'dm_die rolling';
+    var face = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    var spriteNames = { 2: 'd2', 4: 'd4', 6: 'd6', 8: 'd8', 10: 'd10', 12: 'd12', 20: 'd20', 100: 'd100' };
+    var spriteName = spriteNames[sides];
+    var shape = spriteName || (sides <= 20 ? 'generic' : 'd2');
+    face.setAttribute('viewBox', '0 0 100 100');
+    face.setAttribute('class', 'dm_die_face ' + shape);
+    face.setAttribute('role', 'img');
+    face.setAttribute('aria-label', 'd' + sides + ' rolled ' + value);
+    if (spriteName) {
+      var sprite = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      sprite.setAttribute('href', '#dm_sprite_' + spriteName);
+      sprite.setAttribute('x', '0');
+      sprite.setAttribute('y', '0');
+      sprite.setAttribute('width', '100');
+      sprite.setAttribute('height', '100');
+      face.appendChild(sprite);
+    } else if (sides <= 20) {
+      var genericPoints = [];
+      for (var vertex = 0; vertex < sides; vertex++) {
+        var angle = (-90 + vertex * 360 / sides) * Math.PI / 180;
+        genericPoints.push([
+          Number((50 + 43 * Math.cos(angle)).toFixed(2)),
+          Number((50 + 43 * Math.sin(angle)).toFixed(2))
+        ]);
+      }
+      var polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      polygon.setAttribute('class', 'dm_die_shape');
+      polygon.setAttribute('points', genericPoints.map(function (point) {
+        return point.join(',');
+      }).join(' '));
+      face.appendChild(polygon);
+    } else {
+      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('class', 'dm_die_shape');
+      circle.setAttribute('cx', '50');
+      circle.setAttribute('cy', '50');
+      circle.setAttribute('r', '44');
+      face.appendChild(circle);
+    }
+    var number = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    number.setAttribute('class', 'dm_die_value' + (value >= 10 ? ' wide' : ''));
+    number.setAttribute('x', '50');
+    number.setAttribute('y', '51');
+    number.textContent = String(value);
+    face.appendChild(number);
+    var caption = document.createElement('span');
+    caption.className = 'dm_die_name';
+    caption.textContent = (sign < 0 ? '−' : '') + 'd' + sides;
+    die.append(face, caption);
+    face.addEventListener('animationend', function () {
+      die.classList.remove('rolling');
+    }, { once: true });
+    window.setTimeout(function () { die.classList.remove('rolling'); }, 700);
+    return die;
+  }
+
+  function distribution(parsed) {
+    var probabilities = [1];
+    var minimum = 0;
+    parsed.terms.forEach(function (term) {
+      for (var die = 0; die < term.count; die++) {
+        var sides = term.sides;
+        var next = new Array(probabilities.length + sides - 1);
+        var prefix = new Float64Array(probabilities.length + 1);
+        for (var i = 0; i < probabilities.length; i++) {
+          prefix[i + 1] = prefix[i] + probabilities[i];
+        }
+        for (var sum = 0; sum < next.length; sum++) {
+          var start = Math.max(0, sum - sides + 1);
+          var end = Math.min(sum, probabilities.length - 1);
+          next[sum] = (prefix[end + 1] - prefix[start]) / sides;
+        }
+        probabilities = next;
+        minimum += term.sign > 0 ? 1 : -sides;
+      }
+    });
+
+    return {
+      minimum: minimum + parsed.modifier,
+      probabilities: probabilities
+    };
+  }
+
+  function renderOdds(parsed) {
+    var range = parsed.terms.reduce(function (sum, term) {
+      return sum + term.count * term.sides;
+    }, 0);
+    byId('oddsWrap').hidden = false;
+    byId('oddsTable').replaceChildren();
+    if (range > MAX_ODDS_RANGE) {
+      byId('oddsNotice').textContent = 'Odds table is limited to 500 possible totals to keep calculations responsive. Rolling this expression still works.';
+      return;
+    }
+
+    var result = distribution(parsed);
+    var cumulative = 0;
+    var fragment = document.createDocumentFragment();
+    for (var i = result.probabilities.length - 1; i >= 0; i--) {
+      cumulative += result.probabilities[i];
+      var row = document.createElement('tr');
+      var totalCell = document.createElement('td');
+      var exactCell = document.createElement('td');
+      var higherCell = document.createElement('td');
+      totalCell.textContent = String(result.minimum + i);
+      exactCell.textContent = (result.probabilities[i] * 100).toFixed(6).replace(/0+$/, '').replace(/\.$/, '') + '%';
+      higherCell.textContent = (cumulative * 100).toFixed(6).replace(/0+$/, '').replace(/\.$/, '') + '%';
+      row.append(totalCell, exactCell, higherCell);
+      fragment.prepend(row);
+    }
+    byId('oddsNotice').textContent = 'The distribution is calculated from independent fair dice. Values are theoretical, not a prediction.';
+    byId('oddsTable').appendChild(fragment);
+  }
+
+  byId('rollForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    byId('oddsWrap').hidden = true;
+    byId('rollResults').replaceChildren();
+    try {
+      var parsed = parseExpression(byId('expression').value);
+      var rolled = calculateRoll(parsed);
+      rolled.detail.forEach(function (term) {
+        var item = document.createElement('div');
+        item.className = 'dm_term_roll';
+        var label = document.createElement('p');
+        label.className = 'dm_term_label';
+        label.textContent = term.label + ' · ' + term.results.length + (term.results.length === 1 ? ' die' : ' dice');
+        var dice = document.createElement('div');
+        dice.className = 'dm_dice_faces';
+        term.results.forEach(function (value) {
+          dice.appendChild(createDie(term.sides, value, term.sign));
+        });
+        item.append(label, dice);
+        byId('rollResults').appendChild(item);
+      });
+      var total = document.createElement('div');
+      total.className = 'dm_total';
+      total.appendChild(document.createTextNode('Total'));
+      var value = document.createElement('strong');
+      value.textContent = String(rolled.total);
+      total.appendChild(value);
+      byId('rollResults').appendChild(total);
+      setStatus('Rolled using crypto.getRandomValues.', false);
+    } catch (error) {
+      setStatus(error.message || 'Could not roll this expression.', true);
+    }
+  });
+
+  byId('showOdds').addEventListener('click', function () {
+    try {
+      var parsed = parseExpression(byId('expression').value);
+      renderOdds(parsed);
+      setStatus('Odds calculated locally.', false);
+    } catch (error) {
+      byId('oddsWrap').hidden = true;
+      setStatus(error.message || 'Could not calculate odds.', true);
+    }
+  });
+
+})();
+
+</script>
+</body>
+</html>

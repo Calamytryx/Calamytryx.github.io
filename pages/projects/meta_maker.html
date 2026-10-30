@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>meta.mk — view and strip image metadata</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/theme.js" defer></script>
+  <style>
+.toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+.toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+.toolbar h1 .dot{color:var(--blood)}
+.toolbar .tbsub{color:var(--dim);font-size:11px}
+.toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+.toolbar a:hover{color:#fff}
+.mm_main{max-width:980px;padding-bottom:80px}
+.mm_intro{margin:16px 0 30px}
+.mm_panel{background:var(--panel);border:2px solid var(--line);box-shadow:var(--shadow);padding:24px}
+.mm_panel>h2{margin-bottom:18px}
+.mm_label,.mm_subhead{display:block;color:var(--dim);font-size:.9rem;margin:14px 0 8px}
+.mm_subhead{font-family:var(--display);color:#fff;font-size:1.15rem}
+.mm_file{width:100%;background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;padding:10px}
+.mm_note{color:var(--dim);font-size:.85rem;margin:10px 0 18px}
+.mm_preview_wrap{display:flex;align-items:center;justify-content:center;max-height:420px;overflow:auto;background:var(--bg);border:1px solid var(--line);padding:12px}
+.mm_preview_wrap img{max-height:390px;width:auto;object-fit:contain;image-rendering:auto}
+.mm_status{min-height:1.5em;color:var(--dim);margin:10px 0;overflow-wrap:anywhere}
+.mm_status.error{color:#ff7373}
+.mm_status.success{color:#72db91}
+.mm_metadata{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);margin:12px 0 20px}
+.mm_metadata dt,.mm_metadata dd{padding:7px 10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.mm_metadata dt{color:var(--dim)}
+.mm_metadata dd{margin:0;color:var(--txt);white-space:pre-wrap}
+.mm_panel button:focus-visible,.mm_file:focus-visible{outline:2px solid var(--blood);outline-offset:2px}
+@media(max-width:600px){.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}.mm_panel{padding:18px}.mm_metadata{grid-template-columns:1fr}.mm_metadata dt{border-bottom:0;padding-bottom:0}}
+
+</style>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+      console.error('[pwa] service worker registration failed:', error);
+    });
+  });
+}
+</script>
+  
+</head>
+<body data-page="projects">
+  <header class="toolbar">
+    <h1>meta<span class="dot">.</span>mk</h1>
+    <span class="tbsub">// metadata stays on this device</span>
+    <a href="/pages/projects/index.html">← projects</a>
+  </header>
+  <main class="wrap mm_main">
+    <p class="lead mm_intro">Inspect common JPEG EXIF/GPS fields and PNG text metadata. Re-encode supported images locally to remove metadata before sharing.</p>
+
+    <section class="mm_panel" aria-labelledby="metaTitle">
+      <h2 class="display h_md" id="metaTitle">image metadata</h2>
+      <label class="mm_label" for="imageFile">choose a JPEG, PNG, or WebP image</label>
+      <input id="imageFile" class="mm_file" type="file" accept="image/jpeg,image/png,image/webp">
+      <p class="mm_note">Images are read and processed in this browser only. Animated GIFs, SVGs, files over 100 MB, and images over 20 megapixels are not supported. Re-encoding JPEGs may slightly reduce image quality.</p>
+      <div class="mm_preview_wrap">
+        <img id="imagePreview" alt="Selected image preview" hidden>
+      </div>
+      <p id="fileStatus" class="mm_status" role="status" aria-live="polite"></p>
+      <h3 class="mm_subhead">detected metadata</h3>
+      <dl id="metadataList" class="mm_metadata"></dl>
+      <button id="stripButton" class="btn" type="button" disabled>strip metadata + download</button>
+      <p id="stripStatus" class="mm_status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script>
+(function () {
+  'use strict';
+
+  var MAX_PIXELS = 20000000;
+  var MAX_FILE_BYTES = 100 * 1024 * 1024;
+  var fileInput = document.getElementById('imageFile');
+  var preview = document.getElementById('imagePreview');
+  var objectUrl = '';
+  var selectedFile = null;
+
+  function setStatus(id, message, kind) {
+    var status = document.getElementById(id);
+    status.textContent = message;
+    status.className = 'mm_status' + (kind ? ' ' + kind : '');
+  }
+
+  function addMetadata(label, value) {
+    var list = document.getElementById('metadataList');
+    var term = document.createElement('dt');
+    var detail = document.createElement('dd');
+    term.textContent = label;
+    detail.textContent = String(value);
+    list.append(term, detail);
+  }
+
+  function uint16(view, offset, littleEndian) {
+    if (offset < 0 || offset + 2 > view.byteLength) throw new Error('Malformed EXIF data.');
+    return view.getUint16(offset, littleEndian);
+  }
+
+  function uint32(view, offset, littleEndian) {
+    if (offset < 0 || offset + 4 > view.byteLength) throw new Error('Malformed EXIF data.');
+    return view.getUint32(offset, littleEndian);
+  }
+
+  function readAscii(bytes, start, length) {
+    var end = Math.min(start + length, bytes.length);
+    var value = '';
+    for (var i = start; i < end && bytes[i] !== 0; i++) value += String.fromCharCode(bytes[i]);
+    return value.trim();
+  }
+
+  function parseTiff(bytes, start, end) {
+    var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    if (start + 8 > end || end > bytes.length) throw new Error('Malformed TIFF metadata.');
+    var byteOrder = readAscii(bytes, start, 2);
+    if (byteOrder !== 'II' && byteOrder !== 'MM') throw new Error('Unknown TIFF byte order.');
+    var littleEndian = byteOrder === 'II';
+    if (uint16(view, start + 2, littleEndian) !== 42) throw new Error('Invalid TIFF header.');
+    var tiffOffset = start;
+    var ifdOffset = tiffOffset + uint32(view, tiffOffset + 4, littleEndian);
+    var visited = Object.create(null);
+
+    function readIfd(offset) {
+      if (visited[offset]) return [];
+      visited[offset] = true;
+      if (offset + 2 > end) throw new Error('Malformed EXIF directory.');
+      var count = uint16(view, offset, littleEndian);
+      var entries = [];
+      for (var i = 0; i < count; i++) {
+        var entryOffset = offset + 2 + i * 12;
+        if (entryOffset + 12 > end) throw new Error('Malformed EXIF entry.');
+        var tag = uint16(view, entryOffset, littleEndian);
+        var type = uint16(view, entryOffset + 2, littleEndian);
+        var itemCount = uint32(view, entryOffset + 4, littleEndian);
+        var typeSizes = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 };
+        var typeSize = typeSizes[type];
+        if (!typeSize || itemCount > 1000000) continue;
+        var totalSize = typeSize * itemCount;
+        var valueStart = totalSize <= 4
+          ? entryOffset + 8
+          : tiffOffset + uint32(view, entryOffset + 8, littleEndian);
+        if (valueStart < start || valueStart + totalSize > end) continue;
+
+        var value;
+        if (type === 2 || type === 7) {
+          value = readAscii(bytes, valueStart, totalSize);
+        } else if (type === 5 || type === 10) {
+          value = [];
+          for (var r = 0; r < itemCount; r++) {
+            var numerator = type === 5
+              ? uint32(view, valueStart + r * 8, littleEndian)
+              : view.getInt32(valueStart + r * 8, littleEndian);
+            var denominator = type === 5
+              ? uint32(view, valueStart + r * 8 + 4, littleEndian)
+              : view.getInt32(valueStart + r * 8 + 4, littleEndian);
+            value.push(denominator ? numerator / denominator : null);
+          }
+          if (value.length === 1) value = value[0];
+        } else {
+          value = [];
+          for (var n = 0; n < itemCount; n++) {
+            var itemOffset = valueStart + n * typeSize;
+            value.push(type === 3
+              ? uint16(view, itemOffset, littleEndian)
+              : (type === 9 ? view.getInt32(itemOffset, littleEndian) : uint32(view, itemOffset, littleEndian)));
+          }
+          if (value.length === 1) value = value[0];
+        }
+        entries.push({ tag: tag, value: value });
+      }
+      return entries;
+    }
+
+    function get(entries, tag) {
+      var entry = entries.find(function (item) { return item.tag === tag; });
+      return entry && entry.value;
+    }
+
+    var ifd0 = readIfd(ifdOffset);
+    var fields = [];
+    var exifOffset = get(ifd0, 0x8769);
+    var exif = typeof exifOffset === 'number' ? readIfd(tiffOffset + exifOffset) : [];
+    [
+      [0x010f, 'Camera make'],
+      [0x0110, 'Camera model'],
+      [0x0112, 'Orientation'],
+      [0x0132, 'Date/time']
+    ].forEach(function (item) {
+      var value = get(ifd0, item[0]);
+      if (value !== undefined && value !== '') fields.push([item[1], value]);
+    });
+    var originalDate = get(exif, 0x9003);
+    if (originalDate) fields.push(['Original date/time', originalDate]);
+
+    var gpsOffset = get(ifd0, 0x8825);
+    if (typeof gpsOffset === 'number') {
+      var gps = readIfd(tiffOffset + gpsOffset);
+      var lat = get(gps, 2);
+      var lon = get(gps, 4);
+      var latRef = get(gps, 1);
+      var lonRef = get(gps, 3);
+      function degrees(values, reference) {
+        if (!Array.isArray(values) || values.length < 3 || values.some(function (value) { return value === null; })) return '';
+        var decimal = values[0] + values[1] / 60 + values[2] / 3600;
+        if (reference === 'S' || reference === 'W') decimal *= -1;
+        return decimal.toFixed(6);
+      }
+      var latitude = degrees(lat, latRef);
+      var longitude = degrees(lon, lonRef);
+      if (latitude && longitude) fields.push(['GPS coordinates', latitude + ', ' + longitude]);
+      var altitude = get(gps, 6);
+      var altitudeRef = get(gps, 5);
+      if (typeof altitude === 'number') {
+        fields.push(['GPS altitude (m)', (altitudeRef === 1 ? -altitude : altitude).toFixed(1)]);
+      }
+    }
+    return fields;
+  }
+
+  function parseJpeg(bytes) {
+    if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+      throw new Error('Invalid JPEG file.');
+    }
+    var metadata = [];
+    var offset = 2;
+    while (offset + 4 <= bytes.length) {
+      if (bytes[offset] !== 0xff) {
+        offset++;
+        continue;
+      }
+      while (offset < bytes.length && bytes[offset] === 0xff) offset++;
+      var marker = bytes[offset++];
+      if (marker === 0xda || marker === 0xd9) break;
+      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+      if (offset + 2 > bytes.length) throw new Error('Malformed JPEG segment.');
+      var length = (bytes[offset] << 8) | bytes[offset + 1];
+      var dataStart = offset + 2;
+      var dataEnd = offset + length;
+      if (length < 2 || dataEnd > bytes.length) throw new Error('Malformed JPEG segment length.');
+      if (marker === 0xe1 && readAscii(bytes, dataStart, 6) === 'Exif') {
+        metadata = metadata.concat(parseTiff(bytes, dataStart + 6, dataEnd));
+      }
+      offset = dataEnd;
+    }
+    return metadata;
+  }
+
+  function parsePng(bytes) {
+    var signature = [137, 80, 78, 71, 13, 10, 26, 10];
+    if (bytes.length < 8 || signature.some(function (byte, index) { return bytes[index] !== byte; })) {
+      throw new Error('Invalid PNG file.');
+    }
+    var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var metadata = [];
+    var offset = 8;
+    while (offset + 12 <= bytes.length) {
+      var length = uint32(view, offset, false);
+      var type = readAscii(bytes, offset + 4, 4);
+      var dataStart = offset + 8;
+      var dataEnd = dataStart + length;
+      if (length > bytes.length || dataEnd + 4 > bytes.length) throw new Error('Malformed PNG chunk.');
+      if (type === 'tEXt' || type === 'zTXt' || type === 'iTXt') {
+        var keyEnd = dataStart;
+        while (keyEnd < dataEnd && bytes[keyEnd] !== 0) keyEnd++;
+        var key = readAscii(bytes, dataStart, keyEnd - dataStart) || '(unnamed text)';
+        var text = '';
+        if (type === 'tEXt') {
+          text = readAscii(bytes, keyEnd + 1, dataEnd - keyEnd - 1);
+        } else if (type === 'zTXt') {
+          text = '[compressed text chunk; contents not expanded]';
+        } else {
+          var cursor = keyEnd + 1;
+          if (cursor + 2 <= dataEnd) {
+            cursor += 2;
+            while (cursor < dataEnd && bytes[cursor] !== 0) cursor++;
+            cursor++;
+            while (cursor < dataEnd && bytes[cursor] !== 0) cursor++;
+            cursor++;
+            text = new TextDecoder().decode(bytes.subarray(cursor, dataEnd));
+          }
+        }
+        metadata.push(['PNG text: ' + key, text || '(empty)']);
+      } else if (type === 'eXIf') {
+        metadata = metadata.concat(parseTiff(bytes, dataStart, dataEnd));
+      }
+      offset = dataEnd + 4;
+      if (type === 'IEND') break;
+    }
+    return metadata;
+  }
+
+  function parseWebp(bytes) {
+    if (bytes.length < 12 || readAscii(bytes, 0, 4) !== 'RIFF' || readAscii(bytes, 8, 4) !== 'WEBP') {
+      throw new Error('Invalid WebP file.');
+    }
+    var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var metadata = [];
+    var offset = 12;
+    while (offset + 8 <= bytes.length) {
+      var type = readAscii(bytes, offset, 4);
+      var length = uint32(view, offset + 4, true);
+      var dataStart = offset + 8;
+      var dataEnd = dataStart + length;
+      if (dataEnd > bytes.length) throw new Error('Malformed WebP chunk.');
+      if (type === 'EXIF') {
+        var start = readAscii(bytes, dataStart, 6) === 'Exif' ? dataStart + 6 : dataStart;
+        metadata = metadata.concat(parseTiff(bytes, start, dataEnd));
+      }
+      offset = dataEnd + (length % 2);
+    }
+    return metadata;
+  }
+
+  function parseMetadata(file, bytes) {
+    if (file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name)) return parseJpeg(bytes);
+    if (file.type === 'image/png' || /\.png$/i.test(file.name)) return parsePng(bytes);
+    if (file.type === 'image/webp' || /\.webp$/i.test(file.name)) return parseWebp(bytes);
+    return [];
+  }
+
+  function showMetadata(fields) {
+    var list = document.getElementById('metadataList');
+    list.replaceChildren();
+    if (!fields.length) {
+      addMetadata('Result', 'No supported EXIF, GPS, or PNG text metadata detected.');
+      return;
+    }
+    fields.forEach(function (field) { addMetadata(field[0], field[1]); });
+  }
+
+  function clearPreview() {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = '';
+    preview.removeAttribute('src');
+    preview.hidden = true;
+  }
+
+  fileInput.addEventListener('change', async function () {
+    var file = fileInput.files[0];
+    selectedFile = null;
+    document.getElementById('stripButton').disabled = true;
+    document.getElementById('metadataList').replaceChildren();
+    document.getElementById('stripStatus').textContent = '';
+    clearPreview();
+    if (!file) return;
+    var supported = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!supported.includes(file.type)) {
+      setStatus('fileStatus', 'Choose a JPEG, PNG, or WebP image.', 'error');
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setStatus('fileStatus', 'Choose an image smaller than 100 MB.', 'error');
+      return;
+    }
+    setStatus('fileStatus', 'Reading image locally…');
+    try {
+      var bytes = new Uint8Array(await file.arrayBuffer());
+      var fields = parseMetadata(file, bytes);
+      var bitmap = await createImageBitmap(file);
+      if (!bitmap.width || !bitmap.height || bitmap.width * bitmap.height > MAX_PIXELS) {
+        bitmap.close();
+        throw new Error('Image exceeds the 20-megapixel processing limit.');
+      }
+      bitmap.close();
+      selectedFile = file;
+      objectUrl = URL.createObjectURL(file);
+      preview.src = objectUrl;
+      preview.hidden = false;
+      showMetadata(fields);
+      setStatus('fileStatus', 'Image loaded locally: ' + file.name + ' (' + file.size.toLocaleString() + ' bytes).', 'success');
+      document.getElementById('stripButton').disabled = false;
+    } catch (error) {
+      showMetadata([]);
+      setStatus('fileStatus', 'Could not inspect image: ' + (error.message || 'unknown error'), 'error');
+    }
+  });
+
+  document.getElementById('stripButton').addEventListener('click', async function () {
+    if (!selectedFile) return;
+    var button = this;
+    button.disabled = true;
+    setStatus('stripStatus', 'Re-encoding image locally…');
+    try {
+      var bitmap = await createImageBitmap(selectedFile);
+      if (bitmap.width * bitmap.height > MAX_PIXELS) {
+        bitmap.close();
+        throw new Error('Image exceeds the 20-megapixel processing limit.');
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      var context = canvas.getContext('2d', { alpha: true });
+      if (!context) {
+        bitmap.close();
+        throw new Error('Canvas is unavailable in this browser.');
+      }
+      context.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      var outputType = selectedFile.type;
+      var blob = await new Promise(function (resolve, reject) {
+        canvas.toBlob(function (value) {
+          if (value) resolve(value);
+          else reject(new Error('Browser could not encode the stripped image.'));
+        }, outputType, 0.92);
+      });
+      if (blob.type !== outputType && outputType !== 'image/png') {
+        outputType = blob.type;
+      }
+      var extension = outputType === 'image/jpeg' ? '.jpg' : (outputType === 'image/webp' ? '.webp' : '.png');
+      var basename = selectedFile.name.replace(/\.[^.]+$/, '');
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = basename + '-stripped' + extension;
+      link.hidden = true;
+      document.body.appendChild(link);
+      var downloadUrl = link.href;
+      link.click();
+      link.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 1000);
+      canvas.width = 0;
+      canvas.height = 0;
+      setStatus('stripStatus', 'Metadata-free copy downloaded as ' + link.download + '.', 'success');
+    } catch (error) {
+      setStatus('stripStatus', error.message || 'Could not strip image metadata.', 'error');
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

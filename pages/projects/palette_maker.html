@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>palette.mk — color contrast checker</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/theme.js" defer></script>
+  <style>
+    .toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+    .toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+    .toolbar h1 .dot{color:var(--blood)}
+    .toolbar .tbsub{color:var(--dim);font-size:11px}
+    .toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+    .toolbar a:hover{color:#fff}
+    .pl_main{max-width:900px;padding-bottom:80px}
+    .pl_intro{margin:16px 0 30px}
+    .pl_panel{background:var(--panel);border:2px solid var(--line);box-shadow:var(--shadow);padding:24px}
+    .pl_form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .pl_field{display:flex;flex-direction:column;gap:7px}.pl_field label{color:var(--dim);font-size:.85rem}
+    .pl_field input[type=color]{width:100%;height:48px;border:2px solid var(--line);background:var(--bg);padding:5px}
+    .pl_field select{background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;padding:10px}
+    .pl_actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+    .pl_result{margin-top:24px;padding:24px;border:2px solid var(--line);text-align:center}
+    .pl_ratio{font-family:var(--display);font-size:clamp(2rem,7vw,3.8rem);color:var(--blood)}
+    .pl_sample{font-size:1.2rem;margin-top:8px;overflow-wrap:anywhere}
+    .pl_badges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+    .pl_badge{padding:10px;background:var(--bg);border:1px solid var(--line)}
+    .pl_badge.pass{color:#72db91}.pl_badge.fail{color:#ff7373}
+    .pl_note{color:var(--dim);font-size:.85rem;margin-top:18px}
+    .pl_panel :focus-visible{outline:2px solid var(--blood);outline-offset:2px}
+    @media(max-width:600px){.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}.pl_panel{padding:18px}.pl_form,.pl_badges{grid-template-columns:1fr}}
+  </style>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+          console.error('[pwa] service worker registration failed:', error);
+        });
+      });
+    }
+  </script>
+</head>
+<body data-page="projects">
+  <header class="toolbar">
+    <h1>palette<span class="dot">.</span>mk</h1>
+    <span class="tbsub">// WCAG 2.2 contrast</span>
+    <a href="/pages/projects/index.html">← projects</a>
+  </header>
+  <main class="wrap pl_main">
+    <p class="lead pl_intro">Check foreground and background contrast against WCAG thresholds. Shared theme tokens are available as presets.</p>
+    <section class="pl_panel" aria-labelledby="contrastTitle">
+      <h2 class="display h_md" id="contrastTitle">contrast checker</h2>
+      <div class="pl_form">
+        <div class="pl_field">
+          <label for="foreground">foreground color</label>
+          <input id="foreground" type="color" value="#cdcdd2">
+        </div>
+        <div class="pl_field">
+          <label for="background">background color</label>
+          <input id="background" type="color" value="#0a0a0c">
+        </div>
+        <div class="pl_field">
+          <label for="themePreset">shared theme pair</label>
+          <select id="themePreset"><option value="">choose theme token pair</option></select>
+        </div>
+        <div class="pl_field">
+          <label for="textSize">text size</label>
+          <select id="textSize"><option value="normal">normal text</option><option value="large">large text (18pt / 14pt bold)</option></select>
+        </div>
+        <div class="pl_actions">
+          <button id="swapColors" class="btn ghost" type="button">swap colors</button>
+        </div>
+      </div>
+      <div id="preview" class="pl_result">
+        <div id="ratio" class="pl_ratio" aria-live="polite">—:1</div>
+        <p id="sample" class="pl_sample">The quick brown fox jumps over the lazy dog.</p>
+      </div>
+      <div class="pl_badges">
+        <p id="aaNormal" class="pl_badge">AA normal text (4.5:1): —</p>
+        <p id="aaLarge" class="pl_badge">AA large text (3:1): —</p>
+        <p id="aaaNormal" class="pl_badge">AAA normal text (7:1): —</p>
+        <p id="aaaLarge" class="pl_badge">AAA large text (4.5:1): —</p>
+      </div>
+      <p class="pl_note">Uses the WCAG relative luminance formula for opaque sRGB hex colors. Passing a ratio does not guarantee overall accessibility; also check focus, font weight, and non-text UI contrast.</p>
+    </section>
+  </main>
+  <script>
+  (function () {
+    'use strict';
+    var foreground = document.getElementById('foreground');
+    var background = document.getElementById('background');
+    var size = document.getElementById('textSize');
+    var presets = [
+      ['--txt', '--bg', 'text on page background'],
+      ['--txt', '--panel', 'text on panel'],
+      ['--txt', '--panel2', 'text on raised panel'],
+      ['--blood', '--bg', 'blood accent on page background'],
+      ['--dim', '--bg', 'muted text on page background'],
+      ['--glitch-alt', '--bg', 'glitch accent on page background']
+    ];
+
+    function color(token) {
+      return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+    }
+
+    function normalizeHex(value) {
+      var hex = value.replace(/^#/, '');
+      if (/^[0-9a-f]{3}$/i.test(hex)) hex = hex.split('').map(function (char) { return char + char; }).join('');
+      if (!/^[0-9a-f]{6}$/i.test(hex)) throw new Error('Use an opaque 3- or 6-digit hex color.');
+      return hex.match(/../g).map(function (pair) { return parseInt(pair, 16) / 255; });
+    }
+
+    function luminance(value) {
+      var channels = normalizeHex(value).map(function (channel) {
+        return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+      });
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    }
+
+    function setResult(id, label, passed) {
+      var item = document.getElementById(id);
+      item.textContent = label + ': ' + (passed ? 'PASS' : 'FAIL');
+      item.className = 'pl_badge ' + (passed ? 'pass' : 'fail');
+    }
+
+    function update() {
+      var ratio = (Math.max(luminance(foreground.value), luminance(background.value)) + 0.05) /
+        (Math.min(luminance(foreground.value), luminance(background.value)) + 0.05);
+      document.getElementById('ratio').textContent = ratio.toFixed(2) + ':1';
+      var preview = document.getElementById('preview');
+      preview.style.color = foreground.value;
+      preview.style.backgroundColor = background.value;
+      document.getElementById('sample').style.fontSize = size.value === 'large' ? '1.5rem' : '1rem';
+      document.getElementById('sample').style.fontWeight = size.value === 'large' ? '700' : '400';
+      setResult('aaNormal', 'AA normal text (4.5:1)', ratio >= 4.5);
+      setResult('aaLarge', 'AA large text (3:1)', ratio >= 3);
+      setResult('aaaNormal', 'AAA normal text (7:1)', ratio >= 7);
+      setResult('aaaLarge', 'AAA large text (4.5:1)', ratio >= 4.5);
+    }
+
+    presets.forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = item[0] + '|' + item[1];
+      option.textContent = item[2];
+      document.getElementById('themePreset').appendChild(option);
+    });
+
+    document.getElementById('themePreset').addEventListener('change', function () {
+      if (!this.value) return;
+      var pair = this.value.split('|');
+      foreground.value = color(pair[0]);
+      background.value = color(pair[1]);
+      update();
+    });
+    [foreground, background, size].forEach(function (input) { input.addEventListener('input', update); });
+    size.addEventListener('change', update);
+    document.getElementById('swapColors').addEventListener('click', function () {
+      var current = foreground.value;
+      foreground.value = background.value;
+      background.value = current;
+      document.getElementById('themePreset').value = '';
+      update();
+    });
+    update();
+  })();
+  </script>
+</body>
+</html>

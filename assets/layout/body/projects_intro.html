@@ -22,7 +22,7 @@
   }
   .pi_titleL h1 {
     font-family: var(--display);
-    color: #fff;
+    color: var(--txt);
     font-size: clamp(3rem, 12vw, 8rem);
     line-height: 0.95;
     letter-spacing: 3px;
@@ -86,7 +86,7 @@
     opacity: 1;
   }
   .guide_card .gc_prev b {
-    color: #fff;
+    color: var(--txt);
   }
   .guide_card .gc_prev .c {
     color: var(--blood);
@@ -100,7 +100,7 @@
   /* ---- 02 featured gallery ---- */
   .pi_h2 {
     font-family: var(--display);
-    color: #fff;
+    color: var(--txt);
     font-size: 1.5rem;
     letter-spacing: 2px;
     margin: 0 0 4px;
@@ -141,7 +141,7 @@
     color: var(--blood);
   }
   .pi_h3 .gl {
-    color: #fff;
+    color: var(--txt);
   }
   .pi_h3::after {
     content: "";
@@ -289,7 +289,7 @@
   }
   .gc_body h3 {
     font-family: var(--display);
-    color: #fff;
+    color: var(--txt);
     font-size: clamp(2.2rem, 5vw, 3.6rem);
     letter-spacing: 1px;
     line-height: 1;
@@ -391,7 +391,7 @@
     font-weight: 700;
     margin-right: 6px;
   }
-  .mk_boot {
+  .mk_boot, .mk_devkit, .mk_dice, .mk_codes, .mk_meta, .mk_pass, .mk_palette {
     width: 100%;
     font-size: 11px;
     line-height: 1.6;
@@ -470,7 +470,7 @@
     padding: 11px 8px;
   }
   .mk_alert .t {
-    color: #fff;
+    color: var(--txt);
     font-size: 13px;
     font-weight: 700;
   }
@@ -528,7 +528,7 @@
   .mk_sting span {
     position: relative;
     font-family: var(--display);
-    color: #fff;
+    color: var(--blood-text, #000);
     letter-spacing: 2px;
     font-size: 22px;
   }
@@ -706,7 +706,7 @@
   }
   .rc_face h3 {
     font-family: var(--display);
-    color: #fff;
+    color: var(--txt);
     font-size: 1.3rem;
     letter-spacing: 1px;
     word-break: break-word;
@@ -760,6 +760,57 @@
   }
   .rc_readme .rd .ld {
     color: var(--dim);
+  }
+  html[data-theme-mode="light"] .guide_card .gc_prev,
+  html[data-theme-mode="light"] .gc_screen,
+  html[data-theme-mode="light"] .repo_card .rc_readme {
+    background: var(--panel2);
+  }
+  html[data-theme-mode="light"] .gc_tag,
+  html[data-theme-mode="light"] .mk_chat .m,
+  html[data-theme-mode="light"] .mk_timer,
+  html[data-theme-mode="light"] .mk_bar,
+  html[data-theme-mode="light"] .rc_readme .cap {
+    background: color-mix(in srgb, var(--panel) 88%, var(--txt));
+  }
+  html[data-theme-mode="light"] .mk_boot,
+  html[data-theme-mode="light"] .mk_devkit,
+  html[data-theme-mode="light"] .mk_dice,
+  html[data-theme-mode="light"] .mk_codes,
+  html[data-theme-mode="light"] .mk_meta,
+  html[data-theme-mode="light"] .mk_pass,
+  html[data-theme-mode="light"] .mk_palette,
+  html[data-theme-mode="light"] .mk_timer,
+  html[data-theme-mode="light"] .mk_alert .t,
+  html[data-theme-mode="light"] .mk_video::after {
+    color: var(--txt);
+  }
+  html[data-theme-mode="light"] .mk_scene .win,
+  html[data-theme-mode="light"] .mk_alert,
+  html[data-theme-mode="light"] .mk_fmt i {
+    background: var(--panel);
+  }
+  html[data-theme-mode="light"] .mk_alert .b,
+  html[data-theme-mode="light"] .mk_bar .start {
+    color: var(--blood-text);
+  }
+  html[data-theme-mode="light"] .mk_sched .r {
+    border-bottom-color: color-mix(in srgb, var(--blood) 25%, transparent);
+  }
+  html[data-theme-mode="light"] .mk_video {
+    background: linear-gradient(135deg, var(--panel2), var(--bg));
+  }
+  html[data-theme-mode="light"] .mk_key .chk {
+    background-color: var(--panel);
+    background-image:
+      linear-gradient(45deg, var(--line) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--line) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--line) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--line) 75%);
+  }
+  html[data-theme-mode="light"] .mk_emote .e {
+    filter: drop-shadow(2px 0 var(--blood-text)) drop-shadow(-2px 0 var(--blood-text))
+      drop-shadow(0 2px var(--blood-text)) drop-shadow(0 -2px var(--blood-text));
   }
   .rc_meta {
     flex: 0 0 auto;
@@ -1151,6 +1202,108 @@
         <div class="gallery">
           <article class="gcard">
             <div class="gc_screen">
+              <div class="slide on"><div class="mk_devkit mk_boot">
+                <div><span class="ok">[SHA-256]</span> local digest</div>
+                <div><span class="ok">[AES-GCM]</span> encrypt + decrypt</div>
+                <div><span class="warn">[JWT]</span> decode, not verify</div>
+                <div><span class="fail">[SCAN]</span> redact secrets<span class="cur">█</span></div>
+              </div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">developer kit</span></div><div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>dev<span class="dot">.</span>kit</h3>
+              <p class="gd">Local encoders, encryption, token inspection, and secret scanning.</p>
+              <ul class="gc_feats"><li>hash + HMAC</li><li>AES-GCM</li><li>JWT</li><li>secret scan</li></ul>
+              <a class="gc_open" href="/pages/projects/dev_kit.html">open dev.kit →</a>
+            </div>
+          </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_dice mk_boot">
+                <div><span class="ok">[ROLL]</span> 4d6 + 2</div>
+                <div>06 · 11 · 14 · 20</div>
+                <div><span class="warn">[ODDS]</span> exact distribution</div>
+                <div><span class="fail">[CRYPTO]</span> unbiased rolls<span class="cur">█</span></div>
+              </div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">dice calculator</span></div><div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>dice<span class="dot">.</span>mk</h3>
+              <p class="gd">Roll dice expressions with cryptographic randomness and inspect theoretical odds.</p>
+              <ul class="gc_feats"><li>dice expressions</li><li>exact odds</li><li>crypto random</li></ul>
+              <a class="gc_open" href="/pages/projects/dice_maker.html">open dice.mk →</a>
+            </div>
+          </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_codes mk_boot">
+                <div><span class="ok">[QR]</span> wifi · contact · map</div>
+                <div><span class="ok">[OTP]</span> 6 digits · 30 seconds</div>
+                <div><span class="warn">[EAN-13]</span> check digit</div>
+                <div><span class="fail">[CODE 39]</span> SVG export<span class="cur">█</span></div>
+              </div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">codes + barcodes</span></div><div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>codes<span class="dot">.</span>mk</h3>
+              <p class="gd">Create QR codes for common uses, TOTP authenticators, and printable barcodes.</p>
+              <ul class="gc_feats"><li>QR + Wi-Fi</li><li>TOTP</li><li>EAN-13</li><li>UPC-A</li></ul>
+              <a class="gc_open" href="/pages/projects/codes_maker.html">open codes.mk →</a>
+            </div>
+          </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_meta mk_boot">
+                <div><span class="ok">[IMAGE]</span> local inspection</div>
+                <div><span class="warn">[EXIF]</span> GPS coordinates</div>
+                <div><span class="warn">[PNG]</span> text chunks</div>
+                <div><span class="fail">[STRIP]</span> clean export<span class="cur">█</span></div>
+              </div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">image metadata</span></div><div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>meta<span class="dot">.</span>mk</h3>
+              <p class="gd">Inspect common image metadata and strip it locally before sharing.</p>
+              <ul class="gc_feats"><li>JPEG EXIF</li><li>GPS</li><li>PNG text</li><li>local export</li></ul>
+              <a class="gc_open" href="/pages/projects/meta_maker.html">open meta.mk →</a>
+            </div>
+          </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_pass mk_boot">
+                <div><span class="ok">[RANDOM]</span> crypto.getRandomValues</div>
+                <div><span class="ok">[PASSWORD]</span> strong by design</div>
+                <div><span class="warn">[PASSPHRASE]</span> 12 words</div>
+                <div><span class="fail">[ENTROPY]</span> estimate shown<span class="cur">█</span></div>
+              </div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">passwords</span></div><div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>pass<span class="dot">.</span>mk</h3>
+              <p class="gd">Generate passwords and passphrases securely, then estimate password strength locally.</p>
+              <ul class="gc_feats"><li>passwords</li><li>passphrases</li><li>entropy</li><li>strength check</li></ul>
+              <a class="gc_open" href="/pages/projects/pass_maker.html">open pass.mk →</a>
+            </div>
+          </article>
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on"><div class="mk_palette mk_boot">
+                <div><span class="ok">[FG]</span> #ffffff</div>
+                <div><span class="ok">[BG]</span> #000000</div>
+                <div><span class="warn">[RATIO]</span> 21.00 : 1</div>
+                <div><span class="fail">[WCAG]</span> AA + AAA pass<span class="cur">█</span></div>
+              </div></div>
+              <div class="gc_tag"><b>//</b> <span class="cap">contrast checker</span></div><div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>palette<span class="dot">.</span>mk</h3>
+              <p class="gd">Check color contrast against WCAG thresholds and explore shared theme tokens.</p>
+              <ul class="gc_feats"><li>WCAG AA</li><li>WCAG AAA</li><li>theme presets</li></ul>
+              <a class="gc_open" href="/pages/projects/palette_maker.html">open palette.mk →</a>
+            </div>
+          </article>
+          <article class="gcard">
+            <div class="gc_screen">
               <div class="slide on">
                 <div class="mk_boot">
                   <div><span class="ok">[OK]</span> Mounted /system</div>
@@ -1276,6 +1429,38 @@
               </ul>
               <a class="gc_open" href="/pages/projects/shift.html"
                 >open shift.mk →</a
+              >
+            </div>
+          </article>
+
+          <article class="gcard">
+            <div class="gc_screen">
+              <div class="slide on">
+                <div class="mk_sched">
+                  <div class="t">// LAST 7 DAYS</div>
+                  <div class="r"><b>MOOD</b><span>3.8 / 5</span><span>average</span></div>
+                  <div class="r"><b>SLEEP</b><span>7.5 hours</span><span>average</span></div>
+                  <div class="r"><b>MOVE</b><span>95 minutes</span><span>total</span></div>
+                </div>
+              </div>
+              <div class="gc_tag">
+                <b>//</b> <span class="cap">wellness</span>
+              </div>
+              <div class="gc_dots"></div>
+            </div>
+            <div class="gc_body">
+              <h3>wellness<span class="dot">.</span>mk</h3>
+              <p class="gd">
+                Quick mood, water, sleep, and habit check-ins with a seven-day
+                mood chart. Private and local-first.
+              </p>
+              <ul class="gc_feats">
+                <li>one-tap daily logging</li>
+                <li>streak + mood chart</li>
+                <li>compact + JSON backup</li>
+              </ul>
+              <a class="gc_open" href="/pages/projects/wellness.html"
+                >open wellness.mk →</a
               >
             </div>
           </article>

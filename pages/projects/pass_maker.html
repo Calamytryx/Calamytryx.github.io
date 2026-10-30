@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0c">
+  <title>pass.mk — password and passphrase generator</title>
+  <link rel="icon" href="/assets/media/logo.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/theme.js" defer></script>
+  <style>
+    .toolbar{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+    .toolbar h1{font-family:var(--display);font-size:15px;color:#fff;letter-spacing:1px}
+    .toolbar h1 .dot{color:var(--blood)}
+    .toolbar .tbsub{color:var(--dim);font-size:11px}
+    .toolbar a{margin-left:auto;color:var(--blood);text-decoration:none;font-size:12px}
+    .toolbar a:hover{color:#fff}
+    .pm_main{max-width:900px;padding-bottom:80px}
+    .pm_intro{margin:16px 0 30px}
+    .pm_panel{background:var(--panel);border:2px solid var(--line);box-shadow:var(--shadow);padding:24px}
+    .pm_form{display:flex;flex-direction:column;gap:12px}
+    .pm_form label{color:var(--dim);font-size:.85rem}
+    .pm_form input[type=number],.pm_form input[type=password],.pm_form input[type=text]{width:100%;background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;padding:10px}
+    .pm_options{display:flex;flex-wrap:wrap;gap:14px}.pm_options label{display:flex;align-items:center;gap:7px}
+    .pm_options input{accent-color:var(--blood);width:18px;height:18px}
+    .pm_output{display:flex;gap:10px;align-items:center}
+    .pm_output input{flex:1;min-width:0}
+    .pm_passphrase{display:block;min-height:48px;margin-top:12px;padding:12px;background:var(--bg);border:1px solid var(--line);color:#fff;overflow-wrap:anywhere}
+    .pm_meter{height:12px;background:var(--bg);border:1px solid var(--line);margin-top:8px}
+    .pm_meter span{display:block;height:100%;width:0;background:#ff7373;transition:width .15s,background .15s}
+    .pm_status{min-height:1.6em;color:var(--dim);margin-top:10px;overflow-wrap:anywhere}
+    .pm_status.error{color:#ff7373}.pm_status.success{color:#72db91}
+    .pm_note{color:var(--dim);font-size:.85rem;margin-top:18px}
+    .pm_panel :focus-visible{outline:2px solid var(--blood);outline-offset:2px}
+    @media(max-width:600px){.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}.pm_panel{padding:18px}.pm_output{align-items:stretch;flex-direction:column}.pm_output .btn{align-self:flex-start}}
+  </style>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+          console.error('[pwa] service worker registration failed:', error);
+        });
+      });
+    }
+  </script>
+</head>
+<body data-page="projects">
+  <header class="toolbar">
+    <h1>pass<span class="dot">.</span>mk</h1>
+    <span class="tbsub">// local password + passphrase generator</span>
+    <a href="/pages/projects/index.html">← projects</a>
+  </header>
+  <main class="wrap pm_main">
+    <p class="lead pm_intro">Generate passwords and passphrases with browser cryptography, or estimate a pasted password locally. Nothing is saved or sent.</p>
+    <section class="pm_panel" aria-labelledby="passwordTitle">
+      <h2 class="display h_md" id="passwordTitle">password generator</h2>
+      <form id="passwordForm" class="pm_form">
+        <label for="passwordLength">length (8–128 characters)</label>
+        <input id="passwordLength" type="number" min="8" max="128" value="20" required>
+        <div class="pm_options" aria-label="Character groups">
+          <label><input id="useUpper" type="checkbox" checked> uppercase</label>
+          <label><input id="useLower" type="checkbox" checked> lowercase</label>
+          <label><input id="useDigits" type="checkbox" checked> digits</label>
+          <label><input id="useSymbols" type="checkbox" checked> symbols</label>
+          <label><input id="avoidAmbiguous" type="checkbox"> exclude ambiguous</label>
+        </div>
+        <button class="btn" type="submit">generate securely</button>
+      </form>
+      <div class="pm_output">
+        <input id="passwordOutput" type="text" readonly aria-label="Generated password" autocomplete="off" spellcheck="false">
+        <button id="copyPassword" class="btn ghost" type="button" disabled>copy</button>
+      </div>
+      <p id="generatorStatus" class="pm_status" role="status" aria-live="polite"></p>
+
+      <h2 class="display h_md mt_3">passphrase generator</h2>
+      <p class="pm_note">Uses unbiased crypto.getRandomValues sampling. This is Diceware-style, not the standardized 7,776-word Diceware list: the bundled word pool has 64 words (6 bits per word).</p>
+      <form id="passForm" class="pm_form">
+        <label for="wordCount">number of words (4–24)</label>
+        <input id="wordCount" type="number" min="4" max="24" value="12" required>
+        <label for="separator">separator</label>
+        <input id="separator" type="text" maxlength="3" value="-">
+        <button class="btn" type="submit">generate passphrase</button>
+      </form>
+      <output id="passOutput" class="pm_passphrase" aria-live="polite"></output>
+      <p id="passEntropy" class="pm_status" role="status" aria-live="polite"></p>
+
+      <h2 class="display h_md mt_3">strength estimate</h2>
+      <label class="pm_form" for="estimateInput">password to estimate</label>
+      <input id="estimateInput" type="password" autocomplete="new-password" spellcheck="false">
+      <div class="pm_meter" role="meter" aria-label="Estimated password strength" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="strengthBar"></span></div>
+      <p id="strengthStatus" class="pm_status" role="status" aria-live="polite">Type a password to estimate its strength.</p>
+      <p class="pm_note">The offline estimator recognizes several common words, repeated characters, keyboard sequences, and predictable season/year patterns such as <code>Winter2026!</code>. Estimates are heuristic—not a proof that a password is safe or unique. Never reuse passwords across accounts.</p>
+    </section>
+  </main>
+  <script>
+  (function () {
+    'use strict';
+
+    var groups = {
+      upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      lower: 'abcdefghijklmnopqrstuvwxyz',
+      digits: '0123456789',
+      symbols: '!@#$%^&*()-_=+[]{}:,.?'
+    };
+    var ambiguous = /[Il1O0]/g;
+    var commonWords = [
+      'password', 'welcome', 'letmein', 'admin', 'qwerty', 'dragon', 'monkey',
+      'secret', 'iloveyou', 'changeme', 'summer', 'winter', 'spring', 'autumn',
+      'football', 'sunshine', 'master', 'login', 'princess', 'trustnoone'
+    ];
+    var passphraseWords = [
+      'amber', 'anchor', 'apricot', 'artist', 'autumn', 'bamboo', 'beacon', 'berry',
+      'bison', 'blanket', 'bloom', 'breeze', 'cactus', 'canyon', 'castle', 'cedar',
+      'cherry', 'cinder', 'cobalt', 'comet', 'coral', 'cricket', 'daisy', 'delta',
+      'denim', 'desert', 'dolphin', 'dragon', 'drizzle', 'ember', 'falcon', 'fern',
+      'figment', 'flannel', 'forest', 'fossil', 'frost', 'galaxy', 'garden', 'ginger',
+      'glacier', 'granite', 'harbor', 'hazel', 'island', 'jasmine', 'lantern', 'lemon',
+      'lotus', 'maple', 'marble', 'meadow', 'meteor', 'moss', 'nectar', 'olive',
+      'orbit', 'otter', 'pebble', 'pepper', 'pioneer', 'pluto', 'puzzle', 'raven'
+    ];
+
+    function byId(id) { return document.getElementById(id); }
+
+    function randomInteger(max) {
+      if (!Number.isSafeInteger(max) || max < 1 || max > 0x100000000) {
+        throw new Error('Random range is outside the supported bounds.');
+      }
+      var range = 0x100000000;
+      var limit = Math.floor(range / max) * max;
+      var value = new Uint32Array(1);
+      do { crypto.getRandomValues(value); } while (value[0] >= limit);
+      return value[0] % max;
+    }
+
+    byId('passForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var count = Number(byId('wordCount').value);
+      if (!Number.isInteger(count) || count < 4 || count > 24) {
+        byId('passOutput').textContent = '';
+        byId('passEntropy').textContent = 'Choose between 4 and 24 words.';
+        return;
+      }
+      try {
+        var words = [];
+        for (var i = 0; i < count; i++) words.push(passphraseWords[randomInteger(passphraseWords.length)]);
+        byId('passOutput').textContent = words.join(byId('separator').value);
+        byId('passEntropy').textContent = count + ' words × ' +
+          Math.log2(passphraseWords.length).toFixed(0) + ' bits per word = ' +
+          (count * Math.log2(passphraseWords.length)).toFixed(0) + ' bits of selection entropy.';
+      } catch (error) {
+        byId('passOutput').textContent = '';
+        byId('passEntropy').textContent = error.message || 'Passphrase generation failed.';
+      }
+    });
+
+    function selectedGroups() {
+      var chosen = [];
+      [['useUpper', 'upper'], ['useLower', 'lower'], ['useDigits', 'digits'], ['useSymbols', 'symbols']]
+        .forEach(function (item) {
+          if (byId(item[0]).checked) {
+            var chars = groups[item[1]];
+            if (byId('avoidAmbiguous').checked) chars = chars.replace(ambiguous, '');
+            if (chars) chosen.push(chars);
+          }
+        });
+      return chosen;
+    }
+
+    function estimate(password) {
+      if (!password) return { label: 'Type a password to estimate its strength.', bits: 0, tier: '' };
+      var lower = password.toLowerCase();
+      var charset = 0;
+      if (/[a-z]/.test(password)) charset += 26;
+      if (/[A-Z]/.test(password)) charset += 26;
+      if (/\d/.test(password)) charset += 10;
+      if (/[^A-Za-z0-9]/.test(password)) charset += 33;
+      var bits = password.length * Math.log2(Math.max(charset, 1));
+      var notes = [];
+      if (/(.)\1{2,}/.test(password)) {
+        bits = Math.min(bits, 16 + Math.log2(password.length));
+        notes.push('repeated characters');
+      }
+      if (/^(?:1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|qwerty|asdf|zxcv)/i.test(password)) {
+        bits = Math.min(bits, 18 + Math.log2(password.length));
+        notes.push('sequence or keyboard pattern');
+      }
+      var predictableSeason = /^(?:winter|summer|spring|autumn|fall)(?:19|20)\d{2}[!@#$%^&*._-]*$/i;
+      if (predictableSeason.test(password)) {
+        bits = Math.min(bits, 22);
+        notes.push('predictable season/year pattern');
+      }
+      if (/^(?:[a-z]+)(?:19|20)\d{2}[!@#$%^&*._-]*$/i.test(password) &&
+          /(19|20)\d{2}/.test(password)) {
+        bits = Math.min(bits, 28);
+        if (!notes.includes('word + year pattern')) notes.push('word + year pattern');
+      }
+      if (commonWords.some(function (word) { return lower === word || lower.startsWith(word); })) {
+        bits = Math.min(bits, 20 + Math.log2(password.length + 1));
+        notes.push('common password or word');
+      }
+      var tier = bits < 28 ? 'very weak' : bits < 36 ? 'weak' : bits < 60 ? 'fair' : bits < 80 ? 'strong' : 'very strong';
+      return {
+        bits: bits,
+        tier: tier,
+        label: tier + ' — roughly ' + Math.floor(bits) + ' bits by this heuristic' +
+          (notes.length ? '; detected: ' + Array.from(new Set(notes)).join(', ') : '')
+      };
+    }
+
+    function renderEstimate() {
+      var result = estimate(byId('estimateInput').value);
+      var bar = byId('strengthBar');
+      var meter = bar.parentElement;
+      var percent = Math.max(0, Math.min(100, result.bits / 100 * 100));
+      var color = result.bits < 36 ? '#ff7373' : (result.bits < 60 ? '#ffae00' : '#72db91');
+      bar.style.width = percent + '%';
+      bar.style.background = color;
+      meter.setAttribute('aria-valuenow', String(Math.round(percent)));
+      byId('strengthStatus').textContent = result.label;
+      byId('strengthStatus').className = 'pm_status' + (result.tier === 'very weak' || result.tier === 'weak' ? ' error' : '');
+    }
+
+    byId('passwordForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var length = Number(byId('passwordLength').value);
+      var sets = selectedGroups();
+      if (!Number.isInteger(length) || length < 8 || length > 128) {
+        byId('generatorStatus').textContent = 'Choose a length from 8 to 128.';
+        byId('generatorStatus').className = 'pm_status error';
+        return;
+      }
+      if (!sets.length) {
+        byId('generatorStatus').textContent = 'Choose at least one character group.';
+        byId('generatorStatus').className = 'pm_status error';
+        return;
+      }
+      try {
+        var alphabet = sets.join('');
+        var password = '';
+        var hasEveryGroup = false;
+        for (var attempt = 0; attempt < 1000 && !hasEveryGroup; attempt++) {
+          password = '';
+          for (var i = 0; i < length; i++) password += alphabet[randomInteger(alphabet.length)];
+          hasEveryGroup = sets.every(function (set) {
+            return Array.from(password).some(function (character) { return set.indexOf(character) !== -1; });
+          });
+        }
+        if (!hasEveryGroup) throw new Error('Could not generate a password from those settings.');
+        byId('passwordOutput').value = password;
+        byId('copyPassword').disabled = false;
+        byId('generatorStatus').textContent = 'Generated with crypto.getRandomValues; no password was stored.';
+        byId('generatorStatus').className = 'pm_status success';
+        byId('estimateInput').value = password;
+        renderEstimate();
+      } catch (error) {
+        byId('generatorStatus').textContent = error.message || 'Password generation failed.';
+        byId('generatorStatus').className = 'pm_status error';
+      }
+    });
+
+    byId('copyPassword').addEventListener('click', async function () {
+      try {
+        await navigator.clipboard.writeText(byId('passwordOutput').value);
+        byId('generatorStatus').textContent = 'Copied. Clear your clipboard when you are done.';
+        byId('generatorStatus').className = 'pm_status success';
+      } catch (error) {
+        byId('generatorStatus').textContent = 'Could not copy: ' + (error.message || 'clipboard access denied.');
+        byId('generatorStatus').className = 'pm_status error';
+      }
+    });
+
+    byId('estimateInput').addEventListener('input', renderEstimate);
+  })();
+  </script>
+</body>
+</html>
