@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>shift.mk — productivity tracker</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="stylesheet" href="/my_css.css">
+<script src="/assets/layout/cursors.js" defer></script>
+<style>
+.toolbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:12px 18px;border-bottom:2px solid var(--line);background:var(--panel)}
+.toolbar h1{font-family:var(--display);font-size:15px;color:var(--txt);letter-spacing:1px}
+.toolbar h1 span{color:var(--blood)}
+.toolbar .tbsub{color:var(--dim);font-size:11px}
+.toolbar a{font-size:12px}
+.toolbar-end{display:flex;gap:10px;align-items:center;margin-left:auto}
+.themebar{display:flex;gap:6px;align-items:center}
+.themebar button{width:18px;height:18px;border:0;padding:0;cursor:pointer;outline:2px solid var(--line);outline-offset:2px;border-radius:0}
+.themebar button.on{outline-color:var(--blood);outline-width:3px}
+main.wrap{padding-top:24px;padding-bottom:60px;max-width:980px}
+input,select{background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:12px;padding:7px 9px;min-width:0}
+input:focus,select:focus{outline:none;border-color:var(--blood)}
+input:disabled,select:disabled{opacity:.35}
+input[type=color]{width:44px;height:32px;padding:2px;cursor:pointer}
+.btn.sm{font-size:.75rem;padding:6px 12px;box-shadow:3px 3px 0 #000}
+.btn.sm:hover{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.hint{color:var(--dim);font-size:11px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:18px}
+.addrow,.row2{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:flex;border:2px solid var(--line)}
+.seg button{background:none;border:0;color:var(--dim);font-family:var(--mono);font-size:.75rem;padding:6px 12px;text-transform:uppercase}
+.seg button.on{background:var(--blood);color:var(--bg)}
+.mod{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.sub_t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;border-top:1px solid var(--line);padding-top:12px}
+.num{width:90px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;font-weight:400}
+.n{text-align:right}
+tr[data-open]:hover td{background:var(--panel2)}
+.th{display:flex;gap:8px;align-items:center}
+.th i{display:inline-block;width:14px;height:14px;outline:1px solid #555}
+.th.on{outline:2px solid var(--blood);outline-offset:1px}
+.cc2{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.ot_row{background:var(--panel2);border:1px solid var(--line);padding:8px 12px;border-radius:0}
+.ot_row .hint{color:var(--dim)}
+.ot_badge{display:inline-block;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;margin-left:6px;border:1px solid var(--blood);color:var(--blood)}
+tr.ot td:first-child::after{content:' OT';font-size:9px;color:var(--blood);margin-left:4px;letter-spacing:1px}
+
+.sheetwrap{overflow:auto;max-height:72vh;border:2px solid var(--line)}
+table.sheet{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%;counter-reset:rn}
+.sheet th,.sheet td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0 8px;height:26px;box-sizing:border-box;white-space:nowrap}
+.sheet td{background:var(--bg)}
+.sheet thead th{position:sticky;background:var(--panel);z-index:2}
+.sheet thead tr:first-child th{top:0;height:20px;color:var(--dim);text-align:center;font-size:10px;letter-spacing:0}
+.sheet thead tr:nth-child(2) th{top:20px}
+.sheet .rn{width:44px;min-width:44px;text-align:center;color:var(--dim);font-size:10px;background:var(--panel);position:sticky;left:0;z-index:1}
+.sheet thead .rn{z-index:3}
+.sheet tbody tr{counter-increment:rn}
+.sheet tbody .rn::before{content:counter(rn)}
+.sheet tbody tr:hover td:not(.rn){background:var(--panel2)}
+.sheet input,.sheet select{border:0;background:transparent;width:100%;min-width:62px;height:24px;padding:0;box-sizing:border-box}
+.sheet td:focus-within{outline:2px solid var(--blood);outline-offset:-2px}
+.sheet tr.tot td{background:var(--panel);font-weight:700;border-top:1px solid var(--blood)}
+.sheet tr.tot td.rn{background:var(--panel)}
+.sheet tr.empty .cv{color:var(--dim)}
+.sheet td.lnk{cursor:pointer;color:var(--blood);text-decoration:underline}
+.sheet td.n{text-align:right}
+
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0 16px}
+.ovbig{font-family:var(--display);font-size:clamp(2.6rem,10vw,4.6rem);line-height:1;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.ovbig2{font-family:var(--display);font-size:clamp(2rem,6vw,3rem);line-height:1;font-variant-numeric:tabular-nums}
+.ovmid{font-family:var(--display);font-size:1.15rem}
+.ovbar{height:8px;border:1px solid var(--line);background:var(--panel2)}
+.ovbar i{display:block;height:100%;width:0;background:var(--blood)}
+#ov b{color:var(--txt);font-weight:700}
+</style>
+</head>
+<body data-page="projects">
+
+<header class="toolbar">
+<h1>shift<span>.</span>mk</h1>
+<span class="tbsub">tickets per hour · quotas · sheets export — saved in this browser</span>
+<div class="toolbar-end">
+  <div class="themebar" id="themebar"></div>
+  <a href="#" data-data title="backup / restore">data</a>
+  <a href="tally.html">tally.mk →</a>
+  <a href="index.html">← projects</a>
+</div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'shift.v1';
+const p2 = n => String(n).padStart(2,'0');
+const uid = () => Math.random().toString(36).slice(2,8);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f2 = n => (Math.round(n*100)/100).toFixed(2);
+const tph = (t,h) => h > 0 ? t/h : 0;
+
+/* ---------- dates / times ---------- */
+const ymd = d => d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+const pd = s => { const [a,b,c] = s.split('-').map(Number); return new Date(a,b-1,c); };
+const addD = (s,n) => { const d = pd(s); d.setDate(d.getDate()+n); return ymd(d); };
+const span = (a,b) => { const o = []; for(let x=a; x<=b; x=addD(x,1)) o.push(x); return o; };
+function range(view, s){
+  if(view==='day') return [s];
+  const d = pd(s); let a, b;
+  if(view==='week'){ a = addD(s, -((d.getDay()+6)%7)); b = addD(a,6); }
+  else { a = ymd(new Date(d.getFullYear(), d.getMonth(), 1)); b = ymd(new Date(d.getFullYear(), d.getMonth()+1, 0)); }
+  return span(a,b);
+}
+const tm = s => { const [a,b] = s.split(':').map(Number); return a*60+b; };
+const ft = m => { m = ((m % 1440) + 1440) % 1440; return p2(Math.floor(m/60))+':'+p2(m%60); };
+
+/* ---------- workbook themes ---------- */
+const rgb = h => [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
+const mix = (a,b,t) => { const x = rgb(a), y = rgb(b); return x.map((v,i)=>Math.round(v*(1-t)+y[i]*t).toString(16).padStart(2,'0')).join(''); };
+const lum = h => { const [r,g,b] = rgb(h).map(v=>v/255); return .2126*r+.7152*g+.0722*b; };
+const hex6 = (v,d) => /^[0-9a-f]{6}$/i.test(v||'') ? v.toLowerCase() : d;
+const PRESETS = [
+  {id:'site',  name:'shift.mk', bg:'0b0b0c', panel:'141416', txt:'e6e6e6', acc:'e11d2e'},
+  {id:'ocean', name:'Ocean',    bg:'0a1620', panel:'0f2230', txt:'dbe9f3', acc:'38bdf8'},
+  {id:'forest',name:'Forest',   bg:'0b140e', panel:'111d15', txt:'dfeee3', acc:'34d399'},
+  {id:'amber', name:'Amber',    bg:'140e06', panel:'1d1409', txt:'f3e8d7', acc:'f59e0b'},
+  {id:'violet',name:'Violet',   bg:'0f0b1a', panel:'171226', txt:'ece8fa', acc:'a78bfa'},
+  {id:'mono',  name:'Mono',     bg:'0e0e0e', panel:'161616', txt:'ededed', acc:'ffffff'},
+  {id:'paper', name:'Paper',    bg:'f1eee7', panel:'ffffff', txt:'1c1c1c', acc:'c21f30'}
+];
+const pal = t => ({id:t.id, name:t.name, bg:t.bg, panel:t.panel, txt:t.txt, acc:t.acc,
+  panel2:mix(t.panel,t.txt,.07), line:mix(t.panel,t.txt,.2), dim:mix(t.txt,t.panel,.5)});
+const thm = id => id==='custom' ? pal(Object.assign({id:'custom', name:'Custom'}, S.custom)) : pal(PRESETS.find(t=>t.id===id) || PRESETS[0]);
+
+function applyTheme(){
+  const p = thm(S.theme);
+  let st = document.getElementById('theme-style');
+  if(!st){ st = document.createElement('style'); st.id = 'theme-style'; document.head.appendChild(st); }
+  st.textContent =
+    ':root{--bg:#'+p.bg+';--panel:#'+p.panel+';--panel2:#'+p.panel2+';--txt:#'+p.txt+';--dim:#'+p.dim+';--line:#'+p.line+';--blood:#'+p.acc+';}'+
+    'body{background:var(--bg)!important;color:var(--txt);}';
+}
+function renderThemebar(){
+  const bar = $('themebar'); if(!bar) return;
+  const cur = S.theme;
+  const mk = (id, bg, acc, name) => '<button data-th="'+id+'" class="'+(id===cur?'on':'')+'" style="background:linear-gradient(135deg,#'+bg+' 0%,#'+bg+' 50%,#'+acc+' 50%,#'+acc+' 100%)" title="'+name+'"></button>';
+  bar.innerHTML = PRESETS.map(t=>mk(t.id, t.bg, t.acc, t.name)).join('') + mk('custom', S.custom.bg, S.custom.acc, 'Custom');
+}
+
+/* ---------- state ---------- */
+const DEF = {
+  cfg:{start:'09:00', end:'18:00', interval:30},
+  theme:'site',
+  custom:{bg:'0b0b0c', panel:'141416', txt:'e6e6e6', acc:'e11d2e'},
+  tags:[{id:'g1',name:'Task 1',prod:true,mins:null,quota:10},{id:'g5',name:'Task 2',prod:true,mins:null,quota:null},
+        {id:'g2',name:'Break (15 min)',prod:false,mins:15,quota:null},
+        {id:'g3',name:'Lunch',prod:false,mins:null,quota:null},{id:'g4',name:'Idle',prod:false,mins:null,quota:null}],
+  breaks:[], days:{}
+};
+function migrate(o){
+  o.tags = o.tags || [];
+  if(!Array.isArray(o.tasks)) return o;
+  const map = {};
+  for(const t of o.tasks){
+    let g = o.tags.find(x=>x.prod && x.name===t.name);
+    if(!g){ g = {id:t.id, name:t.name, prod:true, mins:null, quota:t.quota ?? null}; o.tags.push(g); }
+    else if(g.quota==null) g.quota = t.quota ?? null;
+    map[t.id] = g.id;
+  }
+  for(const d in (o.days||{})) for(const k in ((o.days[d]||{}).slots||{})){
+    const x = o.days[d].slots[k], cur = o.tags.find(q=>q.id===x.tag);
+    if(x.task && map[x.task] && cur && cur.prod) x.tag = map[x.task];
+    delete x.task;
+  }
+  delete o.tasks; return o;
+}
+function hydrate(o){
+  o = migrate(o);
+  const r = Object.assign(structuredClone(DEF), o, {cfg:Object.assign({}, DEF.cfg, o.cfg)});
+  r.custom = {}; for(const k in DEF.custom) r.custom[k] = hex6((o.custom||{})[k], DEF.custom[k]);
+  r.tags.forEach(t=>{ if(t.quota===undefined) t.quota = null; });
+  return r;
+}
+function load(){
+  try{ const o = JSON.parse(localStorage.getItem(KEY)); if(o && o.days) return hydrate(o); }catch(_){}
+  return structuredClone(DEF);
+}
+let S = load();
+const ui = {tab:'overview', view:'day', date:ymd(new Date()), xmode:'logged'};
+const save = () => { if(window.__mkSkip) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} };
+window.addEventListener('pagehide', save);
+
+/* ---------- computation ---------- */
+const shift = d => ({start:(S.days[d] && S.days[d].start) || S.cfg.start, end:(S.days[d] && S.days[d].end) || S.cfg.end});
+const slot = (d,k) => (S.days[d] && S.days[d].slots[k]) || {};
+const prodTags = () => S.tags.filter(t=>t.prod);
+
+const otOf = (d, key) => ((S.days[d] || {})[key] || 0);
+function setOT(d, key, mins){
+  mins = Math.max(0, Math.min(1440, Math.round(mins || 0)));
+  if(key === 'preOT') mins = Math.min(mins, tm(shift(d).start));
+  const day = S.days[d] || (S.days[d] = {slots:{}});
+  if(mins > 0) day[key] = mins;
+  else delete day[key];
+  save();
+}
+
+function shiftSpan(d){
+  const sh = shift(d);
+  const preOT = otOf(d, 'preOT'), postOT = otOf(d, 'postOT');
+  const a = Math.max(0, tm(sh.start) - preOT);
+  let b = tm(sh.end) + postOT;
+  if(b <= a) b += 1440;
+  return { a, b, preOT, postOT, baseStart: sh.start, baseEnd: sh.end };
+}
+
+/* BUG FIX: handle shifts that cross midnight (e.g. 23:00 → 08:00) so 'be' matches
+   the extended-minutes scale used by the grid. Otherwise every slot has s >= be
+   and gets wrongly flagged as post-OT. */
+function slotZone(d, s, e){
+  const sh = shift(d);
+  let bs = tm(sh.start), be = tm(sh.end);
+  if(be <= bs) be += 1440;
+  if(e <= bs) return 'pre';
+  if(s >= be) return 'post';
+  return '';
+}
+
+function ivOf(d){ return Math.max(1, +((S.days[d]||{}).iv) || +S.cfg.interval || 30); }
+function grid(d){
+  const sp = shiftSpan(d), iv = ivOf(d);
+  const a = sp.a, b = sp.b;
+  const o = [];
+  for(let t=a; t<b; t+=iv) o.push({k:ft(t), s:t, e:Math.min(t+iv,b), def:Math.min(iv,b-t), zone:slotZone(d, t, Math.min(t+iv,b))});
+  return o;
+}
+function breaksInInterval(d, g){
+  const sp = shiftSpan(d);
+  const a = sp.a, b = sp.b;
+  const out = [];
+  for(const br of S.breaks){
+    if(!br.start) continue;
+    const bm = +br.mins || 0; if(bm <= 0) continue;
+    let bs = tm(br.start);
+    if(bs < a) bs += 1440;
+    if(bs >= b) continue;
+    const be = bs + bm;
+    const os = Math.max(g.s, bs), oe = Math.min(g.e, be);
+    if(oe > os) out.push({name: br.name, overlap: oe - os, total: bm});
+  }
+  return out;
+}
+function breakOverlap(d, g){ let m = 0; for(const b of breaksInInterval(d, g)) m += b.overlap; return m; }
+function effMin(d, g){ return Math.max(0, g.def - breakOverlap(d, g)); }
+
+function sl(d,g){
+  const x = slot(d,g.k), tag = S.tags.find(t=>t.id===x.tag); if(!tag) return null;
+  const def = effMin(d, g);
+  const m = x.mins==null ? def : Math.min(Math.max(0,x.mins), g.def), pr = !!tag.prod;
+  return {tag, m, h:m/60, ded:(g.def-m)/60, pr, tk:pr?(+x.tickets||0):0};
+}
+function stats(d){
+  const R = {d, tk:0, ph:0, lh:0, dh:0, sh:0, task:{}, tag:{}};
+  for(const g of grid(d)){ const v = sl(d,g); if(!v) continue;
+    R.lh += v.h; R.dh += v.ded; R.tag[v.tag.id] = (R.tag[v.tag.id]||0) + v.h;
+    if(v.pr){ R.ph += v.h; R.tk += v.tk; const o = R.task[v.tag.id] || (R.task[v.tag.id] = {tk:0,h:0}); o.tk += v.tk; o.h += v.h; } }
+  const sp = shiftSpan(d);
+  R.sh = (sp.b - sp.a) / 60;
+  return R;
+}
+function agg(ds){
+  const R = {tk:0, ph:0, lh:0, dh:0, sh:0, task:{}, tag:{}, rows:ds.map(stats)};
+  for(const r of R.rows){
+    for(const k of ['tk','ph','lh','dh','sh']) R[k] += r[k];
+    for(const k in r.task){ const o = R.task[k] || (R.task[k] = {tk:0,h:0}); o.tk += r.task[k].tk; o.h += r.task[k].h; }
+    for(const k in r.tag) R.tag[k] = (R.tag[k]||0) + r.tag[k];
+  }
+  return R;
+}
+
+/* ---------- views ---------- */
+function tagOpt(sel){
+  const o = t => '<option value="'+t.id+'"'+(t.id===sel?' selected':'')+'>'+esc(t.name)+(t.prod&&t.quota?' · '+t.quota+'/h':'')+'</option>';
+  const pr = S.tags.filter(t=>t.prod), ot = S.tags.filter(t=>!t.prod);
+  return '<option value="">—</option>'+(pr.length?'<optgroup label="productive">'+pr.map(o).join('')+'</optgroup>':'')+(ot.length?'<optgroup label="other">'+ot.map(o).join('')+'</optgroup>':'');
+}
+
+function render(){
+  const body = {overview:vOverview, track:vTrack, sheet:vSheet, setup:vSetup, export:vExport}[ui.tab]();
+  $('main').innerHTML = '<div class="bar"><div class="seg">'+['overview','track','sheet','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
+  if(ui.tab==='track') calc(); else if(ui.tab==='sheet') sheetCalc(); else if(ui.tab==='overview') ovCalc();
+}
+
+function vTrack(){
+  const ds = range(ui.view, ui.date);
+  const lab = ui.view==='day' ? pd(ui.date).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'}) : ds[0]+' → '+ds[ds.length-1];
+  return '<div class="bar"><div class="seg">'+['day','week','month'].map(v=>'<button data-view="'+v+'" class="'+(ui.view===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<div class="addrow"><button class="btn sm ghost" data-nav="-1">‹</button><input type="date" id="dt" value="'+ui.date+'"><button class="btn sm ghost" data-nav="1">›</button><button class="btn sm ghost" data-today>today</button></div></div>'+
+    '<p class="hint" style="margin-bottom:12px">'+lab+'</p>'+(ui.view==='day'?dayBody():'')+'<div id="sum"></div>';
+}
+
+function otControls(d){
+  const preOT = otOf(d, 'preOT'), postOT = otOf(d, 'postOT');
+  const parts = ['<span class="hint">overtime</span>'];
+  if(preOT > 0){
+    parts.push('<input type="number" id="preOT" min="0" max="24" step="0.5" value="'+(preOT/60)+'" style="width:70px" title="pre-shift overtime (hours)">');
+    parts.push('<span class="hint">h pre</span>');
+    parts.push('<button class="btn sm ghost" data-ot="pre-rm" title="remove pre-shift overtime">×</button>');
+  } else {
+    const suggest = postOT > 0 ? 2 : 4;
+    parts.push('<button class="btn sm ghost" data-ot="pre-add" data-h="'+suggest+'">+ pre-OT ('+suggest+'h)</button>');
+  }
+  parts.push('<span class="hint">·</span>');
+  if(postOT > 0){
+    parts.push('<input type="number" id="postOT" min="0" max="24" step="0.5" value="'+(postOT/60)+'" style="width:70px" title="post-shift overtime (hours)">');
+    parts.push('<span class="hint">h post</span>');
+    parts.push('<button class="btn sm ghost" data-ot="post-rm" title="remove post-shift overtime">×</button>');
+  } else {
+    const suggest = preOT > 0 ? 2 : 4;
+    parts.push('<button class="btn sm ghost" data-ot="post-add" data-h="'+suggest+'">+ post-OT ('+suggest+'h)</button>');
+  }
+  return '<div class="row2 ot_row">'+parts.join('')+'</div>';
+}
+
+function dayBody(){
+  const d = ui.date, sh = shift(d);
+  const sp = shiftSpan(d);
+  const totalSpan = (sp.b - sp.a)/60;
+  const otInfo = (sp.preOT || sp.postOT) ? '<span class="ot_badge">'+(sp.preOT?'-'+f2(sp.preOT/60)+'h pre':'')+(sp.preOT && sp.postOT?' ':'')+(sp.postOT?'+'+f2(sp.postOT/60)+'h post':'')+'</span>' : '';
+  const rows = grid(d).map(g=>{
+    const x = slot(d,g.k), bo = breaksInInterval(d, g), def = effMin(d, g);
+    const bn = bo.map(b => esc(b.name) + ' −' + b.overlap + 'm').join(', ');
+    const otCls = g.zone ? ' class="ot"' : '';
+    return '<tr'+otCls+' data-k="'+g.k+'"><td>'+g.k+'–'+ft(g.e)+'</td>'+
+      '<td><select data-f="tag">'+tagOpt(x.tag)+'</select></td>'+
+      '<td><input type="number" data-f="tickets" min="0" step="1" style="width:70px" value="'+(x.tickets??'')+'"></td>'+
+      '<td><input type="number" data-f="mins" min="0" max="'+g.def+'" step="1" style="width:64px" placeholder="'+def+'" value="'+(x.mins??'')+'"></td>'+
+      '<td class="cc n"></td><td class="hint">'+(bn?'sched: '+bn:'')+'</td></tr>';
+  }).join('');
+  return '<div class="panel mod"><div class="row2"><span class="hint">shift</span><input type="time" id="ss" value="'+sh.start+'"><span class="hint">to</span><input type="time" id="se" value="'+sh.end+'">'+otInfo+
+    '<span class="hint">· '+ivOf(d)+' min slots · '+f2(totalSpan)+' h span · tickets only count on productive tags</span></div>'+
+    otControls(d)+
+    '<div class="scroll"><table><tr><th>slot</th><th>tag</th><th class="n">tickets</th><th class="n">mins</th><th class="n">hours</th><th></th></tr>'+rows+'</table></div></div>';
+}
+
+function calc(){
+  if(ui.view==='day'){
+    const d = ui.date;
+    for(const g of grid(d)){
+      const tr = document.querySelector('tr[data-k="'+g.k+'"]'); if(!tr) continue;
+      const v = sl(d,g);
+      tr.querySelectorAll('[data-f=tickets]').forEach(i=>i.disabled = !(v && v.pr));
+      tr.querySelector('.cc').textContent = v ? f2(v.h)+'h'+(v.ded>0?' (−'+f2(v.ded)+')':'')+(v.pr&&v.h?' · '+f2(v.tk/v.h)+'/h':'') : '';
+    }
+  }
+  $('sum').innerHTML = sumHtml(agg(range(ui.view, ui.date)));
+}
+
+function sumHtml(R){
+  let h = '<p class="hint">tickets / hr = tickets ÷ productive hours, after deductions. Week and month add up the daily totals, so they are weighted by hours, not an average of averages.</p>';
+  if(ui.view!=='day'){
+    const rs = R.rows.filter(r=>r.lh>0);
+    h += '<div class="sub_t" style="margin-top:18px">by day — click a row to open it</div>'+(rs.length ?
+      '<div class="scroll"><table><tr><th>date</th><th class="n">shift</th><th class="n">logged</th><th class="n">productive</th><th class="n">deducted</th><th class="n">t/hr</th></tr>'+
+      rs.map(r=>'<tr data-open="'+r.d+'" style="cursor:pointer"><td>'+r.d+'</td><td class="n">'+f2(r.sh)+'</td><td class="n">'+f2(r.lh)+'</td><td class="n">'+f2(r.ph)+'</td><td class="n">'+f2(r.dh)+'</td><td class="n">'+f2(tph(r.tk,r.ph))+'</td></tr>').join('')+'</table></div>' :
+      '<p class="hint">Nothing logged in this range.</p>');
+  }
+  h += '<div class="sub_t" style="margin-top:18px">productive tags vs quota</div><div class="scroll"><table><tr><th>tag</th><th class="n">tickets</th><th class="n">hours</th><th class="n">t/hr</th><th class="n">quota/h</th><th class="n">expected</th><th class="n">attainment</th></tr>'+
+    prodTags().map(t=>{ const o = R.task[t.id]||{tk:0,h:0}, q = t.quota, ex = q ? q*o.h : 0;
+      return '<tr><td>'+esc(t.name)+'</td><td class="n">'+o.tk+'</td><td class="n">'+f2(o.h)+'</td><td class="n">'+f2(tph(o.tk,o.h))+'</td><td class="n">'+(q||'—')+'</td><td class="n">'+(q&&o.h?f2(ex):'—')+'</td><td class="n">'+(q&&o.h?Math.round(o.tk/ex*100)+'%':'—')+'</td></tr>'; }).join('')+'</table></div>';
+  const tg = S.tags.filter(t=>R.tag[t.id]>0);
+  h += '<div class="sub_t" style="margin-top:18px">time by tag</div>'+(tg.length ?
+    '<div class="scroll"><table><tr><th>tag</th><th class="n">hours</th><th class="n">% of logged</th></tr>'+tg.map(t=>'<tr><td>'+esc(t.name)+'</td><td class="n">'+f2(R.tag[t.id])+'</td><td class="n">'+Math.round(R.tag[t.id]/R.lh*100)+'%</td></tr>').join('')+'</table></div>' : '<p class="hint">No tagged slots yet.</p>');
+  return h;
+}
+
+function vSetup(){
+  const c = S.cfg, row = (l,o,inner) => '<div class="row2">'+inner+'<button class="btn sm ghost" data-del="'+l+':'+o.id+'">×</button></div>';
+  return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">defaults</div>'+
+    '<div class="row2"><span class="hint">shift</span><input type="time" data-cfg="start" value="'+c.start+'"><span class="hint">to</span><input type="time" data-cfg="end" value="'+c.end+'"><span class="hint">interval (min)</span><input type="number" class="num" min="5" step="5" data-cfg="interval" value="'+c.interval+'"></div>'+
+    '<p class="hint">Each day can override the shift times on the track tab. Overtime (pre-shift and/or post-shift) is set per day on the track tab — it extends the interval grid without touching the base shift, so you can tag OT slots exactly like regular ones. Recommended: 4h on one side, or 2h + 2h if both. Days that already have logged slots keep their own start, end and interval, so changing these defaults only affects days with nothing logged yet.</p>'+
+    '<div class="sub_t">tags — a productive tag is a task: it counts toward tickets/hr and can have a quota per hour. mins = auto-fill the real minutes when picked</div>'+
+    S.tags.map(t=>row('tags',t,'<input data-l="tags" data-id="'+t.id+'" data-f="name" value="'+esc(t.name)+'" placeholder="tag name"><label class="hint"><input type="checkbox" data-l="tags" data-id="'+t.id+'" data-f="prod"'+(t.prod?' checked':'')+'> productive</label>'+
+      '<input type="number" class="num" min="0" step="any" data-l="tags" data-id="'+t.id+'" data-f="quota" value="'+(t.quota??'')+'" placeholder="quota/h"'+(t.prod?'':' disabled')+'>'+
+      '<input type="number" class="num" min="0" step="1" data-l="tags" data-id="'+t.id+'" data-f="mins" value="'+(t.mins??'')+'" placeholder="mins">')).join('')+
+    '<div><button class="btn sm" data-add="tags">+ tag</button></div>'+
+    '<div class="sub_t">scheduled breaks — auto-deducted from any interval they overlap</div>'+
+    S.breaks.map(b=>row('breaks',b,'<input data-l="breaks" data-id="'+b.id+'" data-f="name" value="'+esc(b.name)+'" placeholder="name"><input type="time" data-l="breaks" data-id="'+b.id+'" data-f="start" value="'+b.start+'"><input type="number" class="num" min="0" step="1" data-l="breaks" data-id="'+b.id+'" data-f="mins" value="'+(b.mins??'')+'" placeholder="mins">')).join('')+
+    '<div><button class="btn sm" data-add="breaks">+ break</button></div></div>';
+}
+
+function pvHtml(p){
+  const c = x => '#'+x;
+  const rows = [['2026-10-28','Task 1','14','7.00'],['2026-10-28','Task 2','9','4.50'],['2026-10-29','Task 1','16','8.00']];
+  return '<div style="background:'+c(p.bg)+';border:2px solid '+c(p.line)+';max-width:480px;font-family:Consolas,var(--mono),monospace;font-size:11px;color:'+c(p.txt)+'">'+
+    '<div style="background:'+c(p.panel)+';padding:10px 14px;border-bottom:2px solid '+c(p.acc)+';font-size:16px;font-weight:700">shift<span style="color:'+c(p.acc)+'">.</span>mk <span style="color:'+c(p.dim)+';font-size:10px;font-weight:400">/ productivity</span></div>'+
+    '<div style="display:flex;padding:8px 14px 6px;color:'+c(p.dim)+';font-size:8px;letter-spacing:1.5px"><span style="flex:1">PRODUCTIVE HRS</span><span style="flex:1">TICKETS / HR</span><span style="flex:1">ATTAINMENT</span></div>'+
+    '<div style="display:flex;padding:0 14px 10px;font-size:18px;font-weight:700"><span style="flex:1">6.00</span><span style="flex:1;color:'+c(p.acc)+'">6.50</span><span style="flex:1">108%</span></div>'+
+    '<div style="display:flex;background:'+c(p.bg)+';border-bottom:2px solid '+c(p.acc)+';padding:7px 14px;color:'+c(p.acc)+';font-size:9px;letter-spacing:1.5px;font-weight:700"><span style="flex:1">DATE</span><span style="flex:1">TAG</span><span style="flex:1;text-align:center">TICKETS</span><span style="flex:1;text-align:center;color:'+c(p.dim)+'">TICKETS / HR</span></div>'+
+    rows.map((r,i)=>'<div style="display:flex;background:'+c(i%2?p.panel2:p.panel)+';border-bottom:1px solid '+c(p.line)+';padding:7px 14px"><span style="flex:1">'+r[0]+'</span><span style="flex:1">'+r[1]+'</span><span style="flex:1;text-align:center">'+r[2]+'</span><span style="flex:1;text-align:center;color:'+c(p.acc)+';font-weight:700">'+r[3]+'</span></div>').join('')+'</div>';
+}
+
+function vExport(){
+  const m = range('month', ui.date); ui.xa = ui.xa || m[0]; ui.xb = ui.xb || m[m.length-1];
+  const cur = thm(S.theme);
+  const chip = t => '<span style="display:inline-flex"><i style="background:#'+t.bg+'"></i><i style="background:#'+t.acc+'"></i><i style="background:#'+t.txt+'"></i></span>';
+  const sw = t => '<button class="btn sm ghost th'+(t.id===cur.id?' on':'')+'" data-th="'+t.id+'">'+chip(pal(t))+t.name+'</button>';
+  const cp2 = [['bg','background'],['panel','rows'],['txt','text'],['acc','accent']];
+  return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">range</div>'+
+    '<div class="row2"><input type="date" id="xa" value="'+ui.xa+'"><span class="hint">to</span><input type="date" id="xb" value="'+ui.xb+'">'+
+    ['day','week','month'].map(v=>'<button class="btn sm ghost" data-xr="'+v+'">'+(v==='day'?'selected day':'that '+v)+'</button>').join('')+'</div>'+
+    '<div class="row2"><label class="hint" for="xmode">interval rows</label><select id="xmode">'+[['logged','Only intervals that already have a tag'],['range','Every interval in the selected range'],['months','Full calendar month(s) containing the range']].map(([v,l])=>'<option value="'+v+'"'+(ui.xmode===v?' selected':'')+'>'+l+'</option>').join('')+'</select></div>'+
+    '<div class="sub_t">theme — applies to this site and the export</div>'+
+    '<div class="row2">'+PRESETS.map(sw).join('')+sw({id:'custom',name:'Custom',bg:S.custom.bg,panel:S.custom.panel,txt:S.custom.txt,acc:S.custom.acc})+'</div>'+
+    '<div class="row2"><span class="hint">custom colors</span>'+cp2.map(([k,l])=>'<label class="hint cc2">'+l+'<input type="color" data-cc="'+k+'" value="#'+S.custom[k]+'"></label>').join('')+
+    '<button class="btn sm ghost" data-cr>reset</button></div>'+
+    '<div id="pv">'+pvHtml(cur)+'</div>'+
+    '<div class="sub_t">google sheets — live formulas, real tables</div>'+
+    '<div class="row2"><button class="btn sm" data-x="xlsx">workbook .xlsx</button></div>'+
+    '<p class="hint">Three tabs. <b>Daily</b> is one interval table per day — pick a tag on each row, type tickets and minutes, and hours, deductions, tickets per hour and the day’s totals are formulas you never touch. Overtime intervals appear as normal rows alongside the base shift. Scheduled breaks are auto-deducted at export time (blank minutes uses the available time after break overlap). <b>Summary</b> reads whatever falls between its FROM / TO from Daily. <b>Setup</b> holds the tags, the productive flags and the quotas. Upload to Drive and open with Sheets (or File → Import); everything recalculates there without this page.</p>'+
+    '<div class="sub_t">plain data</div>'+
+    '<div class="row2"><button class="btn sm ghost" data-x="dcsv">daily summary .csv</button><button class="btn sm ghost" data-x="scsv">intervals .csv</button><button class="btn sm ghost" data-x="dtsv">copy daily</button><button class="btn sm ghost" data-x="stsv">copy intervals</button></div>'+
+    '<p class="hint">CSV and copied text are static values. Daily CSV now includes <code>pre_ot_hours</code> and <code>post_ot_hours</code> columns. Dates are yyyy-mm-dd and hours are plain decimals.</p>'+
+    '<div class="sub_t">backup — data lives in this browser only</div>'+
+    '<div class="row2"><button class="btn sm" data-data>compact backup (copy / paste)</button><button class="btn sm ghost" data-x="bak">download backup .json</button><label class="btn sm ghost">restore<input type="file" id="xr" accept=".json" hidden></label></div>'+
+    '<span class="hint" id="xs"></span></div>';
+}
+
+/* ---------- overview (live dashboard) ---------- */
+const hms = min => { let t = Math.max(0, Math.floor(min*60)); const h = Math.floor(t/3600); t %= 3600; return h+':'+p2(Math.floor(t/60))+':'+p2(t%60); };
+/* the shift that is running right now (a 23:00 -> 08:00 shift is still "yesterday's" at 02:00) */
+function activeDay(){
+  const n = new Date(), min = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60, t = ymd(n), y = addD(t,-1), sp = shiftSpan(y);
+  if(sp.b > 1440 && min+1440 >= sp.a && min+1440 < sp.b) return {d:y, rel:min+1440, now:n};
+  return {d:t, rel:min, now:n};
+}
+function ovModel(){
+  const {d, rel, now} = activeDay(), sp = shiftSpan(d), gr = grid(d), St = stats(d);
+  const cur = gr.find(g => rel >= g.s && rel < g.e) || null;
+  /* open time = not-yet-tagged time from now to the end, minus scheduled breaks */
+  let hRem = 0, openSlots = 0;
+  for(const g of gr){
+    if(g.e <= rel || slot(d,g.k).tag) continue;
+    const lo = Math.max(g.s, rel);
+    const br = breaksInInterval(d, {s:lo, e:g.e}).reduce((a,b) => a + b.overlap, 0);
+    hRem += Math.max(0, (g.e - lo) - br) / 60; openSlots++;
+  }
+  const Tq = prodTags().filter(t => +t.quota > 0);
+  let done = 0, soFar = 0;
+  for(const t of Tq){ const o = St.task[t.id] || {tk:0,h:0}; done += o.tk; soFar += t.quota * o.h; }
+  const ctag = cur && S.tags.find(t => t.id === slot(d,cur.k).tag);
+  let prim = ctag && ctag.prod && +ctag.quota > 0 ? ctag : null;
+  if(!prim) prim = Tq.slice().sort((a,b) => ((St.task[b.id]||{}).h||0) - ((St.task[a.id]||{}).h||0))[0] || null;
+  const target = soFar + (prim ? prim.quota * hRem : 0);
+  const remaining = Tq.length ? Math.max(0, Math.ceil(target - done - 1e-9)) : null;
+  return {d, rel, now, sp, cur, St, hRem, openSlots, Tq, done, soFar, prim, target, remaining};
+}
+function vOverview(){
+  const c = (title, inner) => '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">'+title+'</div>'+inner+'</div>';
+  return '<div id="ov">'+
+    '<div class="panel mod"><div class="ovbig" id="ov-clock">--:--:--</div><div class="hint" id="ov-date"></div></div>'+
+    '<div class="ovgrid">'+
+    c('shift','<div class="hint" id="ov-shift-day"></div><div class="ovmid" id="ov-shift-range"></div><div class="hint" id="ov-shift-lab"></div><div class="ovbig2" id="ov-shift-left">-</div><div class="ovbar"><i id="ov-shift-bar"></i></div>')+
+    c('current slot','<div class="ovmid" id="ov-slot-range">\u2014</div><div class="hint">time left</div><div class="ovbig2" id="ov-slot-left">\u2014</div><div class="hint" id="ov-slot-tag"></div><div class="hint">tickets this slot: <b id="ov-slot-tk">0</b></div>')+
+    c('quota \u2014 tickets still needed','<div class="ovbig2" id="ov-q-remaining">\u2014</div><div class="hint" id="ov-q-prog"></div><div class="hint" id="ov-q-need"></div><div class="hint" id="ov-q-slot"></div><div class="hint" id="ov-q-diff"></div><div class="hint" id="ov-q-note"></div>')+
+    c('today so far','<div class="ovmid"><b id="ov-day-tk">0</b> tickets</div><div class="hint">productive hours <b id="ov-day-ph">0.00</b></div><div class="hint">tickets / hr <b id="ov-day-tp">\u2014</b></div>')+
+    '</div></div>';
+}
+function ovCalc(){
+  if(!$('ov')) return;
+  const M = ovModel(), n = M.now, sp = M.sp, d = M.d;
+  const set = (id, v) => { const e = $('ov-'+id); if(e && e.textContent !== String(v)) e.textContent = v; };
+  set('clock', p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds()));
+  set('date', n.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'}));
+  /* shift */
+  const total = sp.b - sp.a, left = sp.b - M.rel;
+  set('shift-day', d === ymd(n) ? 'today' : 'started '+pd(d).toLocaleDateString(undefined,{weekday:'long'}));
+  set('shift-range', ft(sp.a)+' \u2013 '+ft(sp.b)+((sp.preOT||sp.postOT) ? '  \u00b7  OT '+(sp.preOT?'\u2212'+f2(sp.preOT/60)+'h pre':'')+(sp.preOT&&sp.postOT?' ':'')+(sp.postOT?'+'+f2(sp.postOT/60)+'h post':'') : ''));
+  if(M.rel < sp.a){ set('shift-lab','starts in'); set('shift-left', hms(sp.a - M.rel)); }
+  else if(left > 0){ set('shift-lab','remaining'); set('shift-left', hms(left)); }
+  else { set('shift-lab','shift over'); set('shift-left','0:00:00'); }
+  const bar = $('ov-shift-bar'); if(bar) bar.style.width = Math.max(0, Math.min(100, (M.rel - sp.a) / total * 100)).toFixed(1)+'%';
+  /* current slot */
+  if(M.cur){
+    const x = slot(d, M.cur.k), tag = S.tags.find(t => t.id === x.tag);
+    set('slot-range', ft(M.cur.s)+' \u2013 '+ft(M.cur.e)+(M.cur.zone ? '  \u00b7  '+M.cur.zone.toUpperCase()+'-OT' : ''));
+    set('slot-left', hms(M.cur.e - M.rel));
+    set('slot-tag', tag ? 'tag: '+tag.name+(tag.prod ? '' : ' (not productive)') : 'no tag yet');
+    set('slot-tk', +x.tickets || 0);
+  } else {
+    set('slot-range','\u2014'); set('slot-left','\u2014'); set('slot-tag','outside the shift'); set('slot-tk', 0);
+  }
+  /* quota */
+  if(M.remaining === null){
+    set('q-remaining','\u2014'); set('q-prog',''); set('q-need',''); set('q-slot',''); set('q-diff','');
+    set('q-note','No quota set. Give a productive tag a quota/h in setup.');
+  } else {
+    set('q-remaining', M.remaining);
+    set('q-prog', Math.round(M.done)+' done of '+Math.ceil(M.target - 1e-9)+' expected by end of shift');
+    if(M.remaining === 0){ set('q-need','quota met'); set('q-slot',''); }
+    else if(M.hRem > 0){
+      set('q-need', (M.remaining / M.hRem).toFixed(1)+' tickets / hr for the open '+f2(M.hRem)+' h');
+      set('q-slot', 'about '+Math.ceil(M.remaining / Math.max(1, M.openSlots))+' per open slot ('+M.openSlots+' left)');
+    } else { set('q-need','no open time left'); set('q-slot',''); }
+    const diff = M.done - M.soFar;
+    set('q-diff', (diff >= 0 ? '+' : '\u2212')+Math.abs(Math.round(diff))+' vs quota for the hours logged so far');
+    set('q-note', M.prim ? 'assumes '+M.prim.name+' ('+M.prim.quota+'/h) for the open time' : '');
+  }
+  /* today */
+  set('day-tk', M.St.tk); set('day-ph', f2(M.St.ph)); set('day-tp', M.St.ph ? f2(M.St.tk / M.St.ph) : '\u2014');
+}
+setInterval(() => { if(ui.tab === 'overview') ovCalc(); }, 1000);
+
+/* ---------- sheet view (excel-like) ---------- */
+/* Freeze start / end / interval into any day that already has logs, so editing the
+   defaults later never reshapes past days. Called before a default changes. */
+function pinDays(){
+  for(const d in S.days){ const o = S.days[d]; if(!o) continue;
+    const has = Object.values(o.slots || {}).some(x => x && (x.tag || x.tickets != null));
+    if(!has) continue;
+    if(!o.start) o.start = S.cfg.start;
+    if(!o.end) o.end = S.cfg.end;
+    if(!o.iv) o.iv = ivOf(d);
+  }
+}
+const colL = n => { let s = ''; n++; while(n > 0){ const m = (n-1) % 26; s = String.fromCharCode(65+m) + s; n = Math.floor((n-1)/26); } return s; };
+function sheetHead(names){
+  return '<thead><tr class="skip"><th class="rn"></th>'+names.map((_,i)=>'<th>'+colL(i)+'</th>').join('')+'</tr>'+
+    '<tr><th class="rn"></th>'+names.map(n=>'<th>'+esc(n)+'</th>').join('')+'</tr></thead>';
+}
+function valsFrom(R){
+  const T = prodTags();
+  return [f2(R.sh), f2(R.lh), f2(R.ph), f2(R.dh), R.tk, R.ph ? f2(tph(R.tk,R.ph)) : '',
+    ...T.map(t => (R.task[t.id]||{}).tk || 0),
+    ...T.map(t => f2((R.task[t.id]||{}).h || 0)),
+    ...T.map(t => { const o = R.task[t.id]; return t.quota && o && o.h ? Math.round(o.tk/(t.quota*o.h)*100)+'%' : ''; })];
+}
+function vSheet(){
+  const ds = range(ui.view, ui.date), mode = ui.smode || 'days', T = prodTags();
+  ui._sd = ds;
+  const lab = ui.view==='day' ? pd(ui.date).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'}) : ds[0]+' → '+ds[ds.length-1];
+  const bar = '<div class="bar"><div class="seg">'+['day','week','month'].map(v=>'<button data-view="'+v+'" class="'+(ui.view===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<div class="seg">'+['days','intervals'].map(v=>'<button data-smode="'+v+'" class="'+(mode===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<div class="addrow"><button class="btn sm ghost" data-nav="-1">‹</button><input type="date" id="dt" value="'+ui.date+'"><button class="btn sm ghost" data-nav="1">›</button><button class="btn sm ghost" data-today>today</button><span class="hint">paste at</span><input id="sa" value="'+esc(ui.sa||'A1')+'" style="width:56px" title="top-left cell you will paste into"><button class="btn sm" data-sc="f" title="values plus live formulas, for Google Sheets">copy for sheets</button><button class="btn sm ghost" data-sc="v" title="plain values">copy values</button></div></div>'+
+    '<p class="hint" style="margin-bottom:12px">'+lab+' · <span id="xs"></span></p>';
+  let head, body, hint;
+  if(mode === 'days'){
+    head = sheetHead(['DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
+      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %')]);
+    body = ds.map(d=>{ const sh = shift(d), pre = otOf(d,'preOT')/60, post = otOf(d,'postOT')/60;
+      return '<tr data-d="'+d+'"><td class="rn"></td><td class="lnk" data-open="'+d+'" title="open this day\u2019s intervals">'+d+'</td>'+
+        '<td>'+pd(d).toLocaleDateString(undefined,{weekday:'short'})+'</td>'+
+        '<td><input type="time" data-sd="start" data-d="'+d+'" value="'+sh.start+'"></td>'+
+        '<td><input type="time" data-sd="end" data-d="'+d+'" value="'+sh.end+'"></td>'+
+        '<td><input type="number" min="0" max="24" step="0.5" data-sd="preOT" data-d="'+d+'" value="'+(pre||'')+'"></td>'+
+        '<td><input type="number" min="0" max="24" step="0.5" data-sd="postOT" data-d="'+d+'" value="'+(post||'')+'"></td>'+
+        valsFrom(stats(d)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>'; }).join('')+
+      '<tr class="tot"><td class="rn"></td><td>TOTAL</td>'+'<td></td>'.repeat(5)+valsFrom(agg(ds)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>';
+    hint = 'Edit start, end and overtime straight in the cells. Each day keeps its own times and OT, so a Tuesday with OT stays that way in reports. Click a date to open its intervals. \u201ccopy for sheets\u201d pastes values plus live formulas starting at the cell in \u201cpaste at\u201d.';
+  } else {
+    head = sheetHead(['DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD HRS','T / HR','NOTE']);
+    const shown = [], out = [];
+    for(const d of ds){
+      const gr = grid(d);
+      if(ui.view !== 'day' && !gr.some(g => sl(d,g))) continue;
+      shown.push(d);
+      for(const g of gr){
+        const x = slot(d,g.k), bo = breaksInInterval(d,g), def = effMin(d,g);
+        const bn = bo.map(b => esc(b.name)+' \u2212'+b.overlap+'m').join(', ');
+        out.push('<tr data-d="'+d+'" data-k="'+g.k+'"'+(g.zone?' class="ot"':'')+'><td class="rn"></td><td>'+d+'</td><td>'+g.k+'\u2013'+ft(g.e)+'</td>'+
+          '<td><select data-f="tag">'+tagOpt(x.tag)+'</select></td>'+
+          '<td><input type="number" data-f="tickets" min="0" step="1" value="'+(x.tickets??'')+'"></td>'+
+          '<td><input type="number" data-f="mins" min="0" max="'+g.def+'" step="1" placeholder="'+def+'" value="'+(x.mins??'')+'"></td>'+
+          '<td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td>'+
+          '<td class="hint">'+(g.zone?g.zone.toUpperCase():'')+(bn?(g.zone?' \u00b7 ':'')+'sched: '+bn:'')+'</td></tr>');
+      }
+      out.push('<tr class="tot" data-d="'+d+'"><td class="rn"></td><td>'+d+'</td><td>TOTAL</td><td></td><td class="n tk"></td><td></td><td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td><td></td></tr>');
+    }
+    if(shown.length > 1) out.push('<tr class="tot"><td class="rn"></td><td>ALL</td><td>TOTAL</td><td></td><td class="n tk"></td><td></td><td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td><td></td></tr>');
+    ui._sd = shown;
+    body = out.join('') || '<tr><td class="rn"></td><td colspan="10" class="hint">Nothing logged in this range.</td></tr>';
+    hint = 'Enter / \u2191 / \u2193 move between rows. Paste a column of numbers into tickets or mins to fill downward (untagged rows are skipped). Week and month only list days that have logs. \u201ccopy for sheets\u201d pastes tagged rows with live formulas and a TOTAL row at the cell in \u201cpaste at\u201d; \u201ccopy values\u201d gives plain rows.';
+  }
+  return bar+'<div class="sheetwrap"><table class="sheet" id="sheetT">'+head+'<tbody>'+body+'</tbody></table></div>'+
+    '<p class="hint" style="margin-top:10px">'+hint+'</p>';
+}
+function sheetCalc(){
+  const t = $('sheetT'); if(!t) return;
+  const put = (tr, c, v) => { const e = tr.querySelector('.'+c); if(e) e.textContent = v; };
+  if((ui.smode || 'days') === 'days'){
+    t.querySelectorAll('tbody tr[data-d]').forEach(tr => { const R = stats(tr.dataset.d), v = valsFrom(R);
+      tr.querySelectorAll('.cv').forEach((c,i) => c.textContent = v[i]); tr.classList.toggle('empty', !R.lh); });
+    const tot = t.querySelector('tr.tot');
+    if(tot){ const v = valsFrom(agg(ui._sd || [])); tot.querySelectorAll('.cv').forEach((c,i) => c.textContent = v[i]); }
+    return;
+  }
+  const gc = {};
+  t.querySelectorAll('tbody tr[data-k]').forEach(tr => {
+    const d = tr.dataset.d, g = (gc[d] || (gc[d] = grid(d))).find(x => x.k === tr.dataset.k); if(!g) return;
+    const v = sl(d,g);
+    tr.querySelector('[data-f=tickets]').disabled = !(v && v.pr);
+    put(tr,'hr', v ? f2(v.h) : ''); put(tr,'dd', v && v.ded > 0 ? f2(v.ded) : '');
+    put(tr,'ph', v && v.pr ? f2(v.h) : ''); put(tr,'tp', v && v.pr && v.h ? f2(v.tk/v.h) : '');
+  });
+  const fill = (tr, R) => { put(tr,'tk',R.tk); put(tr,'hr',f2(R.lh)); put(tr,'dd',f2(R.dh)); put(tr,'ph',f2(R.ph)); put(tr,'tp',R.ph ? f2(tph(R.tk,R.ph)) : ''); };
+  t.querySelectorAll('tr.tot[data-d]').forEach(tr => fill(tr, stats(tr.dataset.d)));
+  const gt = t.querySelector('tr.tot:not([data-d])'); if(gt) fill(gt, agg(ui._sd || []));
+}
+function anchorOf(){
+  const m = /^([A-Za-z]+)(\d+)$/.exec(String(ui.sa || 'A1').trim());
+  if(!m) return {c:0, r:1};
+  let c = 0; for(const ch of m[1].toUpperCase()) c = c*26 + ch.charCodeAt(0) - 64;
+  return {c:c-1, r:Math.max(1, +m[2])};
+}
+/* Plain-text TSV with real formulas, built from the data (not the screen). Formulas use only
+   references and no quote characters, so they survive a paste. Paste into Google Sheets at the
+   cell shown in "paste at". Date / time cells are ISO text that Sheets parses on paste. */
+async function copyFormulas(){
+  const A = anchorOf(), T = prodTags(), nT = T.length, mode = ui.smode || 'days';
+  const R = (ci, row) => colL(A.c + ci) + row;
+  const r4 = n => +(+n).toFixed(4);
+  const head = [], out = [];
+  if(mode === 'days'){
+    head.push('DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
+      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %'));
+    const first = A.r + 1; let row = first;
+    for(const d of range(ui.view, ui.date)){
+      const St = stats(d); if(!St.lh) continue;
+      const sh = shift(d), q = (ci) => R(ci, row);
+      const line = [d, pd(d).toLocaleDateString(undefined,{weekday:'short'}), sh.start, sh.end, otOf(d,'preOT')/60, otOf(d,'postOT')/60,
+        '=MOD('+q(3)+'-'+q(2)+',1)*24+'+q(4)+'+'+q(5),
+        r4(St.lh), r4(St.ph), r4(St.dh), St.tk,
+        '=IFERROR('+q(10)+'/'+q(8)+')'];
+      T.forEach(t => line.push((St.task[t.id]||{}).tk || 0));
+      T.forEach(t => line.push(r4((St.task[t.id]||{}).h || 0)));
+      T.forEach((t,i) => line.push(t.quota ? '=IFERROR('+q(12+i)+'/('+(+t.quota)+'*'+q(12+nT+i)+')*100)' : ''));
+      out.push(line); row++;
+    }
+    if(out.length){
+      const last = row - 1, tot = row, rng = ci => R(ci,first)+':'+R(ci,last), sum = ci => '=SUM('+rng(ci)+')';
+      const line = ['TOTAL','','','', sum(4), sum(5), sum(6), sum(7), sum(8), sum(9), sum(10), '=IFERROR('+R(10,tot)+'/'+R(8,tot)+')'];
+      T.forEach((t,i) => line.push(sum(12+i)));
+      T.forEach((t,i) => line.push(sum(12+nT+i)));
+      T.forEach((t,i) => line.push(t.quota ? '=IFERROR('+R(12+i,tot)+'/('+(+t.quota)+'*'+R(12+nT+i,tot)+')*100)' : ''));
+      out.push(line);
+    }
+  } else {
+    head.push('DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD (1/0)','PROD HRS','T / HR','NOTE');
+    const first = A.r + 1; let row = first;
+    for(const d of range(ui.view, ui.date)){
+      for(const g of grid(d)){
+        const v = sl(d,g); if(!v) continue;
+        const x = slot(d,g.k), eff = effMin(d,g), bn = breaksInInterval(d,g).map(b => b.name+' -'+b.overlap+'m').join(', ');
+        const mins = R(4,row), blank = 'IF(ISBLANK('+mins+'),'+eff+','+mins+')';
+        out.push([d, g.k+'\u2013'+ft(g.e), v.tag.name, v.pr && v.tk ? v.tk : '', x.mins != null ? +x.mins : '',
+          '='+blank+'/60',
+          '=('+g.def+'-'+blank+')/60',
+          v.pr ? 1 : 0,
+          '='+R(5,row)+'*'+R(7,row),
+          '=IFERROR('+R(3,row)+'*'+R(7,row)+'/'+R(8,row)+')',
+          (g.zone ? g.zone.toUpperCase() : '')+(bn ? (g.zone ? ' / ' : '')+'sched: '+bn : '')]);
+        row++;
+      }
+    }
+    if(out.length){
+      const last = row - 1, tot = row, rng = ci => R(ci,first)+':'+R(ci,last), sum = ci => '=SUM('+rng(ci)+')';
+      out.push(['TOTAL','','','=SUMPRODUCT('+rng(3)+','+rng(7)+')','', sum(5), sum(6), '', sum(8), '=IFERROR('+R(3,tot)+'/'+R(8,tot)+')','']);
+    }
+  }
+  if(!out.length) return say('nothing logged in this range');
+  const fc = v => (typeof v === 'string' && v.charAt(0) === '=') ? v : cell(v, '\t');
+  const text = [head, ...out].map(r => r.map(fc).join('\t')).join('\n');
+  const ok = await cp(text);
+  say(ok ? 'copied '+(out.length-1)+' rows with formulas \u2014 paste into '+R(0,A.r)+' in Google Sheets' : 'copy blocked');
+}
+async function copySheet(kind){
+  if(kind === 'f') return copyFormulas();
+  const tb = $('sheetT'); if(!tb) return;
+  const rows = [...tb.rows].filter(r => !r.classList.contains('skip') && !r.classList.contains('tot') && !(r.dataset.k && !(r.querySelector('select') || {}).value));
+  const data = rows.map(r => [...r.cells].filter(c => !c.classList.contains('rn')).map(c => {
+    const i = c.querySelector('select,input');
+    if(!i) return c.textContent.trim();
+    if(i.tagName === 'SELECT'){ const g = S.tags.find(q => q.id === i.value); return g ? g.name : ''; }
+    return i.value; }));
+  const tsv = toTxt(data, '\t');
+  const html = '<table>'+data.map((r,ri)=>'<tr>'+r.map(c=>(ri?'<td>':'<th>')+esc(c)+(ri?'</td>':'</th>')).join('')+'</tr>').join('')+'</table>';
+  let ok = false;
+  try{ await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([tsv],{type:'text/plain'}),'text/html':new Blob([html],{type:'text/html'})})]); ok = true; }
+  catch(_){ ok = await cp(tsv); }
+  say(ok ? 'copied '+(data.length-1)+' rows — paste into Sheets / Excel' : 'copy blocked');
+}
+
+/* ---------- export ---------- */
+const cell = (v,sep) => { v = String(v ?? ''); if(/^[=+\-@]/.test(v) && isNaN(v)) v = "'"+v;
+  return v.includes(sep) || /["\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+const toTxt = (rows,sep) => rows.map(r=>r.map(c=>cell(c,sep)).join(sep)).join('\n');
+function slotRows(ds, empty){
+  const r = [['date','slot_start','slot_end','tag','counts_as_productive','tickets','minutes','hours','hours_deducted','tickets_per_hour','zone']];
+  for(const d of ds) for(const g of grid(d)){
+    const v = sl(d,g); if(!v && !empty) continue;
+    const def = effMin(d, g);
+    r.push(v ? [d,g.k,ft(g.e),v.tag.name,v.pr?'Y':'N',v.tk,v.m,+f2(v.h),+f2(v.ded),v.pr&&v.h?+f2(v.tk/v.h):'',g.zone||''] : [d,g.k,ft(g.e),'','','',def,'','','',g.zone||'']);
+  }
+  return r;
+}
+function dayRows(ds){
+  const T = prodTags(), G = S.tags;
+  const r = [['date','shift_start','shift_end','pre_ot_hours','post_ot_hours','scheduled_hours','logged_hours','productive_hours','deducted_hours','tickets','tickets_per_hour',
+    ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' quota %'), ...G.map(g=>g.name+' hours')]];
+  for(const d of ds){ const R = stats(d); if(!R.lh) continue;
+    const sp = shiftSpan(d);
+    r.push([d, sp.baseStart, sp.baseEnd, +(sp.preOT/60).toFixed(2), +(sp.postOT/60).toFixed(2), +f2(R.sh), +f2(R.lh), +f2(R.ph), +f2(R.dh), R.tk, +f2(tph(R.tk,R.ph)),
+      ...T.map(t=>(R.task[t.id]||{}).tk||0),
+      ...T.map(t=>{ const o = R.task[t.id]; return t.quota && o && o.h ? +f2(o.tk/(t.quota*o.h)*100) : ''; }),
+      ...G.map(g=>+f2(R.tag[g.id]||0))]);
+  }
+  return r;
+}
+function dl(name, text, type){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text],{type})); a.download = name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+async function cp(text){
+  try{ await navigator.clipboard.writeText(text); return true; }
+  catch(_){ const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); const ok = document.execCommand('copy'); t.remove(); return ok; }
+}
+const say = m => { const s = $('xs'); if(s) s.textContent = m; };
+function restore(f){
+  if(!f) return;
+  f.text().then(t=>{ try{ const o = JSON.parse(t); if(!o.days || !o.tags) throw 0;
+    S = hydrate(o); save(); applyTheme(); renderThemebar(); render(); say('restored'); }
+    catch(_){ say('not a valid backup file'); } });
+}
+
+/* ---------- xlsx ---------- */
+let EXJ;
+const loadEx = () => EXJ ? Promise.resolve(EXJ) : new Promise((ok,no)=>{
+  if(window.ExcelJS) return ok(EXJ = window.ExcelJS);
+  const u = ['https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'];
+  const next = () => { const src = u.shift(); if(!src) return no(new Error('could not load exceljs'));
+    const s = document.createElement('script'); s.src = src; s.onload = () => ok(EXJ = window.ExcelJS); s.onerror = () => { s.remove(); next(); }; document.head.append(s); };
+  next();
+});
+
+function buildWb(E, ds, empty){
+  const P = thm(S.theme), A = x => 'FF'+x.toUpperCase(), dark = lum(P.bg) < .5;
+  const GOOD = dark ? 'FF34D399' : 'FF15803D', BAD = dark ? 'FFF87171' : 'FFB91C1C';
+  const wb = new E.Workbook();wb.calcProperties = {calcMode: 'auto',fullCalcOnLoad: true,forceFullCalc: true};wb.creator = 'shift.mk';
+  const wsU = wb.addWorksheet('Summary'), wsD = wb.addWorksheet('Daily'), wsP = wb.addWorksheet('Setup');
+  const FONT = 'Consolas';
+  const fnt = o => Object.assign({name:FONT, size:10, color:{argb:A(P.txt)}}, o);
+  const fill = x => ({type:'pattern', pattern:'solid', fgColor:{argb:A(x)}});
+  const cfill = x => ({type:'pattern', pattern:'solid', bgColor:{argb:A(x)}});
+  const ln = {style:'thin', color:{argb:A(P.line)}}, accB = {style:'medium', color:{argb:A(P.acc)}};
+  const serial = s => { const [a,b,c] = s.split('-').map(Number); return Math.round((Date.UTC(a,b-1,c) - Date.UTC(1899,11,30))/864e5); };
+  const fx = formula => ({  formula: formula.replace(/^=/, ''),result: 0});
+  const cl = n => { let s = ''; while(n > 0){ const m = (n-1) % 26; s = String.fromCharCode(65+m) + s; n = (n-m-1) / 26; } return s; };
+  const G = S.tags, Pr = G.filter(t=>t.prod), nG = G.length, nP = Pr.length;
+  const gi = t => G.indexOf(t) + 2;
+  const DATE = 'yyyy-mm-dd', H2 = '0.00', PCT = '0%';
+  const SPARE = 3;
+  const paint = (ws, n) => { for(let i=1; i<=n; i++) ws.getColumn(i).style = {fill:fill(P.bg), font:fnt()}; ws.properties.tabColor = {argb:A(P.acc)}; };
+  const mkTable = (ws, name, headers, rows) => {
+    ws.addTable({name, ref:'A1', headerRow:true, totalsRow:false, style:{theme:'TableStyleLight1', showRowStripes:false},
+      columns:headers.map(h=>({name:h, filterButton:true})), rows: rows.length ? rows : [headers.map(()=>null)]});
+  };
+  const dress = (ws, nc, last, calc, nfs, widths, o={}) => {
+    const left = o.left || new Set([1]);
+    for(let c=1; c<=nc; c++){ const x = ws.getRow(1).getCell(c), cc = calc.has(c);
+      x.font = fnt({bold:true, size:9, color:{argb:A(cc ? P.dim : P.acc)}}); x.fill = fill(P.bg);
+      x.border = {bottom:cc ? ln : accB};
+      x.alignment = {vertical:'middle', horizontal:left.has(c)?'left':'center', wrapText:true, indent:left.has(c)?1:0}; }
+    ws.getRow(1).height = 30;
+    for(let r=2; r<=last; r++){ const f = fill(r%2===0 ? P.panel : P.panel2);
+      for(let c=1; c<=nc; c++){ const x = ws.getCell(r,c);
+        x.font = fnt(c===o.hi ? {bold:true, color:{argb:A(P.acc)}} : {});
+        if(nfs[c-1]) x.numFmt = nfs[c-1];
+        x.fill = f; x.border = {bottom:ln};
+        x.alignment = {vertical:'middle', horizontal:left.has(c)?'left':'center', indent:left.has(c)?1:0}; } }
+    widths.forEach((w,i)=>{ ws.getColumn(i+1).width = w; });
+    ws.views = [Object.assign({state:'frozen', ySplit:1, showGridLines:false}, o.view||{})];
+  };
+
+  paint(wsP, 12);
+  const sRows = G.map(g=>[g.name, g.prod?'Y':'N', g.prod && g.quota!=null ? g.quota : null]);
+  for(let i=0; i<SPARE; i++) sRows.push([null,null,null]);
+  mkTable(wsP, 'tblSetup', ['TAG','PRODUCTIVE (Y/N)','QUOTA / HR'], sRows);
+  dress(wsP, 3, sRows.length+1, new Set(), [null,null,'0.##'], [26,18,13]);
+  for(let r=2; r<=sRows.length+1; r++) wsP.getCell(r,2).dataValidation = {type:'list', allowBlank:true, formulae:['"Y,N"'], showErrorMessage:true, errorStyle:'stop', errorTitle:'Y or N', error:'Pick Y (productive) or N.'};
+  const lg = [['HOW THIS WORKBOOK WORKS', {bold:true, size:9, color:{argb:A(P.acc)}}],
+    ['Accent headers are inputs you type into. Dim headers are formulas — leave them alone.'],
+    ['Setup: mark a tag Y to make it a task. It counts toward tickets/hr and can carry a quota per hour.'],
+    ['Daily: one interval table per day. Pick a tag on each row, then type tickets and MINUTES WORKED.'],
+    ['Overtime intervals appear as normal rows before/after the base shift — tag them the same way.'],
+    ['Leave minutes blank for the full interval — scheduled breaks are auto-deducted from the available minutes at export time.'],
+    ['HOURS, DEDUCTED, PROD HRS, TICKETS and T/HR are formulas. Each day closes with its own TOTAL row.'],
+    ['New tags go in the blank rows under the tag list on this sheet. Re-export to pick up break / OT changes.']];
+  lg.forEach((x,i)=>{ const c = wsP.getCell(i+1,5); c.value = x[0]; c.font = fnt(Object.assign({color:{argb:A(P.dim)}}, x[1]||{})); c.alignment = {vertical:'middle', wrapText:true}; });
+  wsP.getColumn(4).width = 3; wsP.getColumn(5).width = 95;
+
+  paint(wsD, 11);
+  wsD.views = [{showGridLines:false}];
+  const NC = 10;
+  [10,15,20,9,8,9,10,12,12,11,10].forEach((w,i)=>{ wsD.getColumn(i+1).width = w; });
+  wsD.getColumn(1).hidden = true;
+  wsD.getColumn(11).hidden = true;
+
+  const tagRange = `Setup!$A$2:$A$${nG+1+SPARE}`;
+  let r = 1, cfP = 10;
+  for(const d of ds){
+    const rows = grid(d).map(g=>({g, v:sl(d,g), raw:slot(d,g.k), eff:effMin(d, g), bo:breaksInInterval(d, g)})).filter(o => empty || o.v);
+    if(!rows.length) continue;
+    const sh = shift(d), sp = shiftSpan(d);
+    const len = (sp.b - sp.a)/60;
+    const hasBreaks = rows.some(o => o.bo.length > 0);
+    const otText = (sp.preOT || sp.postOT) ? '   ·   OT '+(sp.preOT?'-'+f2(sp.preOT/60)+'h pre':'')+(sp.preOT && sp.postOT?' ':'')+(sp.postOT?'+'+f2(sp.postOT/60)+'h post':'') : '';
+
+    wsD.mergeCells(r,2,r,4);
+    wsD.mergeCells(r,5,r,NC);
+    const bc = wsD.getCell(r,2);
+    bc.value = serial(d); bc.numFmt = 'ddd, mmm d, yyyy';
+    bc.font = fnt({bold:true, size:12, color:{argb:A(P.acc)}});
+    bc.alignment = {vertical:'middle', indent:1};
+    const sc = wsD.getCell(r,5);
+    sc.value = 'shift '+sh.start+' → '+sh.end+'   ·   '+f2(len)+' h   ·   '+rows.length+' intervals'+otText+(hasBreaks ? '   ·   breaks auto-deducted' : '');
+    sc.font = fnt({size:9, color:{argb:A(P.dim)}});
+    sc.alignment = {vertical:'middle', horizontal:'right', indent:1};
+    for(let c=2; c<=NC; c++){ const x = wsD.getCell(r,c); x.fill = fill(P.panel); x.border = {bottom:accB}; }
+    wsD.getRow(r).height = 26;
+    r++;
+
+    const HH = [['SLOT',0],['TAG',0],['TICKETS',1],['MINS',1],['HOURS',2],['DEDUCTED',2],['PROD HRS',2],['TICKETS',2],['T / HR',2]];
+    HH.forEach(([h,k],i)=>{ const x = wsD.getCell(r, i+2);
+      x.value = h;
+      x.font = fnt({bold:true, size:8, color:{argb:A(k===2 ? P.dim : P.acc)}});
+      x.alignment = {horizontal: i<2 ? 'left' : 'center', vertical:'middle', indent: i<2 ? 1 : 0};
+      x.fill = fill(P.bg);
+      x.border = {bottom: k===2 ? ln : {style:'thin', color:{argb:A(P.acc)}}};
+    });
+    wsD.getRow(r).height = 18;
+    r++;
+
+    const first = r;
+    for(let i=0; i<rows.length; i++){
+      const o = rows[i], g = o.g, v = o.v, raw = o.raw, rr = r + i, eff = o.eff;
+      const isOT = !!g.zone;
+      const bg = i%2 ? P.panel : P.panel2;
+      const put = (c, val, s) => { const x = wsD.getCell(rr,c);
+        if(val !== undefined) x.value = val;
+        x.font = fnt(s && s.f || {size:9});
+        x.fill = fill(bg);
+        x.border = {bottom:ln};
+        if(s && s.nf) x.numFmt = s.nf;
+        x.alignment = Object.assign({vertical:'middle'}, s && s.al || {});
+        return x; };
+      put(1, serial(d), {nf:DATE, f:{size:8, color:{argb:A(P.dim)}}});
+      put(2, g.k+'–'+ft(g.e)+(isOT?'  ·  '+g.zone.toUpperCase():''), {f:{size:9, color:{argb:A(isOT?P.acc:P.dim)}}, al:{indent:1}});
+      put(3, v ? v.tag.name : null, {f:{size:9}, al:{indent:1}});
+      put(4, v && v.pr && v.tk ? v.tk : null, {nf:'0', f:{size:9}, al:{horizontal:'center'}});
+      put(5, v && raw.mins != null ? +raw.mins : null, {nf:'0', f:{size:9}, al:{horizontal:'center'}});
+      put(6, fx(`IF($C${rr}="","",IF($E${rr}="",${eff},$E${rr})/60)`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
+      put(7, fx(`IF($C${rr}="","",(${g.def}-IF($E${rr}="",${eff},$E${rr}))/60)`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
+      put(8, fx(`IF($C${rr}="",0,IF(IFERROR(VLOOKUP($C${rr},Setup!$A$2:$B$60,2,FALSE),"N")="Y",$F${rr},0))`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
+      put(9, fx(`IF($C${rr}="",0,IF(IFERROR(VLOOKUP($C${rr},Setup!$A$2:$B$60,2,FALSE),"N")="Y",N($D${rr}),0))`), {nf:'0', f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
+      put(10, fx(`IF($H${rr}>0,$I${rr}/$H${rr},"")`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
+    }
+    r += rows.length;
+    const last = r-1, tot = r;
+
+    for(let c=2; c<=NC; c++){ const x = wsD.getCell(tot,c);
+      x.fill = fill(P.panel);
+      x.border = {top:{style:'thin', color:{argb:A(P.acc)}}, bottom:ln};
+      x.font = fnt({bold:true, size:9, color:{argb:A(c===2 ? P.acc : P.txt)}});
+      x.alignment = {vertical:'middle', horizontal: c===2 ? 'left' : 'center', indent: c===2 ? 1 : 0}; }
+    wsD.getCell(tot,2).value = 'TOTAL';
+    wsD.getCell(tot,6).value = fx(`SUM(F${first}:F${last})`); wsD.getCell(tot,6).numFmt = H2;
+    wsD.getCell(tot,7).value = fx(`SUM(G${first}:G${last})`); wsD.getCell(tot,7).numFmt = H2;
+    wsD.getCell(tot,8).value = fx(`SUM(H${first}:H${last})`); wsD.getCell(tot,8).numFmt = H2;
+    wsD.getCell(tot,10).value = fx(`IF(H${tot}>0,SUM(I${first}:I${last})/H${tot},"")`); wsD.getCell(tot,10).numFmt = H2;
+
+    wsD.getCell(first,11).value = fx(`IF($F${tot}>0,${+len.toFixed(4)},0)`);
+    wsD.getCell(first,11).numFmt = H2;
+
+    for(let i=first; i<=last; i++){
+      wsD.getCell(i,3).dataValidation = {type:'list', allowBlank:true, formulae:[tagRange], showErrorMessage:false};
+      wsD.getCell(i,5).dataValidation = {type:'decimal', operator:'between', allowBlank:true, formulae:[0, rows[i-first].g.def]};
+    }
+    wsD.addConditionalFormatting({ref:`D${first}:D${last}`, rules:[
+      {type:'expression', priority:cfP++, formulae:[`$H${first}=0`], style:{font:{color:{argb:A(P.dim)}}}}]});
+
+    r = tot + 2;
+  }
+  if(r === 1){
+    wsD.getCell(1,2).value = 'nothing to export in this range';
+    wsD.getCell(1,2).font = fnt({size:10, color:{argb:A(P.dim)}});
+  }
+
+  paint(wsU, 12);
+  const DR = 'Daily!$A:$A,">="&$B$3,Daily!$A:$A,"<="&$B$4';
+  const sm = c => `SUMIFS(Daily!$${c}:$${c},${DR})`;
+  const put = (a, v, o={}) => { const x = wsU.getCell(a); x.value = v; x.font = fnt(o.f); if(o.nf) x.numFmt = o.nf; if(o.fill) x.fill = fill(o.fill); if(o.al) x.alignment = o.al; if(o.bd) x.border = o.bd; return x; };
+  wsU.views = [{showGridLines:false}];
+  [26,16,16,16,16,16,16].forEach((w,i)=>{ wsU.getColumn(i+1).width = w; });
+  wsU.mergeCells('A1:G1');
+  const f0 = {name:FONT, size:18, bold:true};
+  put('A1', {richText:[{text:'shift', font:Object.assign({color:{argb:A(P.txt)}}, f0)}, {text:'.', font:Object.assign({color:{argb:A(P.acc)}}, f0)}, {text:'mk', font:Object.assign({color:{argb:A(P.txt)}}, f0)},
+    {text:'  / productivity', font:{name:FONT, size:10, color:{argb:A(P.dim)}}}]}, {fill:P.panel, al:{vertical:'middle', indent:1}});
+  for(let c=1; c<=7; c++){ const x = wsU.getCell(1,c); x.fill = fill(P.panel); x.border = {bottom:accB}; }
+  wsU.getRow(1).height = 42;
+  wsU.mergeCells('A2:G2');
+  put('A2','TICKETS PER HOUR  ·  QUOTAS  ·  SET FROM / TO TO REPORT ANY DAY, WEEK OR MONTH',{f:{size:8,color:{argb:A(P.dim)}}, al:{vertical:'middle', indent:1}}); wsU.getRow(2).height = 24;
+  const lab = {size:9, bold:true, color:{argb:A(P.dim)}}, inb = {top:{style:'thin',color:{argb:A(P.acc)}}, bottom:{style:'thin',color:{argb:A(P.acc)}}, left:{style:'thin',color:{argb:A(P.acc)}}, right:{style:'thin',color:{argb:A(P.acc)}}};
+  put('A3','FROM',{f:lab, al:{indent:1, vertical:'middle'}}); put('B3', serial(ds[0]), {nf:DATE, f:{bold:true, color:{argb:A(P.acc)}}, fill:P.panel2, al:{horizontal:'center'}, bd:inb});
+  put('A4','TO',{f:lab, al:{indent:1, vertical:'middle'}});   put('B4', serial(ds[ds.length-1]), {nf:DATE, f:{bold:true, color:{argb:A(P.acc)}}, fill:P.panel2, al:{horizontal:'center'}, bd:inb});
+  wsU.getRow(3).height = 22; wsU.getRow(4).height = 22;
+  wsU.mergeCells('A6:G6');
+  put('A6','tickets / hr = tickets ÷ productive hours, after deductions. Ranges sum the daily totals, so they are weighted by hours, not an average of averages.',{f:{size:8,color:{argb:A(P.dim)}}, al:{indent:1, vertical:'middle'}});
+
+  const secHead = (row, text, n) => { put('A'+row, text, {f:{bold:true,size:9,color:{argb:A(P.acc)}}, al:{vertical:'bottom',indent:1}});
+    for(let c=1; c<=n; c++) wsU.getCell(row,c).border = {top:ln}; wsU.getRow(row).height = 28; };
+  const colHead = (row, arr) => { arr.forEach((h,i)=>put(cl(i+1)+row, h, {f:{bold:true,size:9,color:{argb:A(P.acc)}}, fill:P.bg, al:{horizontal:i?'center':'left',vertical:'middle',indent:i?0:1}, bd:{bottom:accB}})); wsU.getRow(row).height = 24; };
+  const band = (ref, first) => wsU.addConditionalFormatting({ref, rules:[
+    {type:'expression', priority:3, formulae:[`AND($A${first}<>"",MOD(ROW(),2)=1)`], style:{fill:cfill(P.panel2), border:{bottom:ln}}},
+    {type:'expression', priority:4, formulae:[`AND($A${first}<>"",MOD(ROW(),2)=0)`], style:{fill:cfill(P.panel), border:{bottom:ln}}}]});
+
+  const taskRows = [...Pr.map(gi)]; for(let i=0; i<4; i++) taskRows.push(nG+2+i);
+  const t0 = 9, tN = t0 + taskRows.length;
+  secHead(8, 'TASKS VS QUOTA  (PRODUCTIVE TAGS)', 7);
+  colHead(9-1, ['TASK','TICKETS','HOURS','T / HR','QUOTA / H','EXPECTED','ATTAINMENT']);
+  taskRows.forEach((so,i)=>{ const rr = t0+i, a = `Setup!$A$${so}`, ctr = {horizontal:'center'};
+    put('A'+rr, fx(`IF(AND(${a}<>"",Setup!$B$${so}="Y"),${a},"")`), {al:{indent:1}});
+    put('B'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$I:$I,${DR},Daily!$C:$C,$A${rr}))`), {nf:'0', al:ctr});
+    put('C'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$H:$H,${DR},Daily!$C:$C,$A${rr}))`), {nf:H2, al:ctr});
+    put('D'+rr, fx(`IF($A${rr}="","",IF(C${rr}>0,B${rr}/C${rr},0))`), {nf:H2, al:ctr, f:{bold:true,color:{argb:A(P.acc)}}});
+    put('E'+rr, fx(`IF($A${rr}="","",IF(N(Setup!$C$${so})>0,Setup!$C$${so},""))`), {nf:'0.##', al:ctr});
+    put('F'+rr, fx(`IF($A${rr}="","",IF(AND(N(E${rr})>0,C${rr}>0),E${rr}*C${rr},""))`), {nf:H2, al:ctr});
+    put('G'+rr, fx(`IF($A${rr}="","",IF(F${rr}="","",B${rr}/F${rr}))`), {nf:PCT, al:ctr}); });
+  band(`A${t0}:G${tN-1}`, t0);
+  wsU.addConditionalFormatting({ref:`G${t0}:G${tN-1}`, rules:[
+    {type:'expression', priority:1, formulae:[`AND(ISNUMBER($G${t0}),$G${t0}>=1)`], style:{font:{bold:true,color:{argb:GOOD}}}},
+    {type:'expression', priority:2, formulae:[`AND(ISNUMBER($G${t0}),$G${t0}<1)`], style:{font:{bold:true,color:{argb:BAD}}}}]});
+
+  const g0 = tN + 3, nGR = nG + 4;
+  secHead(tN+1, 'TIME BY TAG', 3);
+  colHead(tN+2, ['TAG','HOURS','% OF LOGGED']);
+  for(let i=0; i<nGR; i++){ const rr = g0+i, a = `Setup!$A$${i+2}`, ctr = {horizontal:'center'};
+    put('A'+rr, fx(`IF(${a}="","",${a})`), {al:{indent:1}});
+    put('B'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$F:$F,${DR},Daily!$C:$C,$A${rr}))`), {nf:H2, al:ctr});
+    put('C'+rr, fx(`IF($A${rr}="","",IF(${sm('F')}>0,B${rr}/${sm('F')},0))`), {nf:PCT, al:ctr}); }
+  band(`A${g0}:C${g0+nGR-1}`, g0);
+  return wb;
+}
+
+function exportDates(a, z, mode){
+  if(mode !== 'months') return span(a,z);
+  const first = pd(a); first.setDate(1);
+  const last = pd(z); last.setMonth(last.getMonth()+1,0);
+  return span(ymd(first), ymd(last));
+}
+async function xlsx(ds, empty){
+  if(!empty && !ds.some(d=>stats(d).lh)) return null;
+  const wb = buildWb(await loadEx(), ds, empty);
+  const nm = 'productivity_'+ds[0]+'_'+ds[ds.length-1]+'_'+thm(S.theme).id+'.xlsx';
+  dl(nm, await wb.xlsx.writeBuffer(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  return nm;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e=>{
+  const r = e.target.closest('[data-open]');
+  if(r){ ui.view = 'day'; ui.date = r.dataset.open; if(ui.tab==='sheet') ui.smode = 'intervals'; render(); return; }
+  const b = e.target.closest('button'); if(!b) return; const D = b.dataset;
+  if(D.tab){ ui.tab = D.tab; render(); }
+  else if(D.view){ ui.view = D.view; render(); }
+  else if(D.smode){ ui.smode = D.smode; render(); }
+  else if(D.sc!==undefined){ copySheet(D.sc); }
+  else if(D.nav!==undefined){
+    const n = +D.nav, d = pd(ui.date);
+    if(ui.view==='month'){ d.setDate(1); d.setMonth(d.getMonth()+n); } else d.setDate(d.getDate()+n*(ui.view==='week'?7:1));
+    ui.date = ymd(d); render();
+  }
+  else if(D.today!==undefined){ ui.date = ymd(new Date()); render(); }
+  else if(D.th){ S.theme = D.th; save(); applyTheme(); renderThemebar(); render(); }
+  else if(D.cr!==undefined){ S.custom = Object.assign({}, DEF.custom); S.theme = 'custom'; save(); applyTheme(); renderThemebar(); render(); }
+  else if(D.ot){
+    const d = ui.date;
+    if(D.ot==='pre-add') setOT(d, 'preOT', (+D.h || 4) * 60);
+    else if(D.ot==='post-add') setOT(d, 'postOT', (+D.h || 4) * 60);
+    else if(D.ot==='pre-rm') setOT(d, 'preOT', 0);
+    else if(D.ot==='post-rm') setOT(d, 'postOT', 0);
+    render();
+  }
+  else if(D.add){
+    const mk = {tags:{id:uid(),name:'New tag',prod:false,mins:null,quota:null}, breaks:{id:uid(),name:'Break',start:'12:00',mins:15}};
+    S[D.add].push(mk[D.add]); save(); render();
+  }
+  else if(D.del){
+    const [l,id] = D.del.split(':');
+    if(confirm('Remove this? Logged slots that use it will stop being counted.')){ S[l] = S[l].filter(x=>x.id!==id); save(); render(); }
+  }
+  else if(D.xr){ const m = range(D.xr, ui.date); ui.xa = m[0]; ui.xb = m[m.length-1]; render(); }
+  else if(D.x){
+    if(D.x==='bak'){ dl('shift-backup.json', JSON.stringify(S), 'application/json'); return; }
+    const a = ui.xa, z = ui.xb;
+    if(!a || !z || a>z) return say('check the date range');
+    const ds = exportDates(a,z,ui.xmode); if(ds.length>800) return say('range too long (800 days max)');
+    const empty = ui.xmode !== 'logged';
+    if(D.x==='xlsx'){
+      say('building…');
+      try{ const nm = await xlsx(ds, empty); say(nm ? 'downloaded '+nm : 'nothing to export in that range'); }
+      catch(err){ say('xlsx failed ('+err.message+'), use the .csv'); }
+      return;
+    }
+    const slots = D.x[0]==='s', rows = slots ? slotRows(ds, empty) : dayRows(ds);
+    if(rows.length<2) return say('nothing to export in that range');
+    const nm = 'productivity-'+(slots?'intervals':'daily')+'_'+a+'_'+z;
+    if(D.x.endsWith('csv')){ dl(nm+'.csv', '\ufeff'+toTxt(rows,','), 'text/csv'); say('downloaded '+nm+'.csv'); }
+    else say((await cp(toTxt(rows,'\t'))) ? 'copied — click a cell in sheets and paste' : 'copy blocked, use the .csv instead');
+  }
+});
+
+document.addEventListener('input', e=>{
+  const t = e.target; if(!t.dataset || !t.dataset.cc) return;
+  S.custom[t.dataset.cc] = hex6(t.value.slice(1), S.custom[t.dataset.cc]); S.theme = 'custom';
+  applyTheme();
+  const pv = $('pv'); if(pv) pv.innerHTML = pvHtml(thm('custom'));
+});
+
+document.addEventListener('change', e=>{
+  const t = e.target, D = t.dataset;
+  if(D.cc){ S.custom[D.cc] = hex6(t.value.slice(1), S.custom[D.cc]); S.theme = 'custom'; save(); applyTheme(); renderThemebar(); render(); return; }
+  if(t.id==='dt'){ if(t.value){ ui.date = t.value; render(); } return; }
+  if(t.id==='ss' || t.id==='se'){ const o = S.days[ui.date] || (S.days[ui.date] = {slots:{}}); o[t.id==='ss'?'start':'end'] = t.value || undefined; save(); render(); return; }
+  if(t.id==='preOT'){ setOT(ui.date, 'preOT', parseFloat(t.value||0) * 60); render(); return; }
+  if(t.id==='postOT'){ setOT(ui.date, 'postOT', parseFloat(t.value||0) * 60); render(); return; }
+  if(t.id==='sa'){ ui.sa = t.value; return; }
+  if(t.id==='xa' || t.id==='xb'){ ui[t.id] = t.value; return; }
+  if(t.id==='xmode'){ ui.xmode = t.value; return; }
+  if(t.id==='xr'){ restore(t.files[0]); return; }
+  if(D.cfg){ pinDays(); S.cfg[D.cfg] = D.cfg==='interval' ? Math.max(5, +t.value||30) : (t.value || DEF.cfg[D.cfg]); save(); return; }
+  if(D.sd){
+    const d = D.d;
+    if(D.sd==='start' || D.sd==='end'){ const o = S.days[d] || (S.days[d] = {slots:{}}); o[D.sd] = t.value || undefined; }
+    else { setOT(d, D.sd, parseFloat(t.value||0) * 60); t.value = (otOf(d, D.sd)/60) || ''; }
+    save(); sheetCalc(); return;
+  }
+  if(D.l){
+    const o = S[D.l].find(x=>x.id===D.id); if(!o) return;
+    o[D.f] = t.type==='checkbox' ? t.checked : t.type==='number' ? (t.value==='' ? null : +t.value) : t.value; save();
+    if(D.f==='prod') render();
+    else if(D.l==='breaks') render();
+    return;
+  }
+  if(D.f){
+    const tr = t.closest('tr[data-k]'); if(!tr) return;
+    const d = tr.dataset.d || ui.date, o = S.days[d] || (S.days[d] = {slots:{}}), x = o.slots[tr.dataset.k] || (o.slots[tr.dataset.k] = {}), v = t.value;
+    if(D.f==='tag'){
+      x.tag = v || undefined;
+      const g = S.tags.find(q=>q.id===v);
+      if(g && g.mins!=null){ x.mins = g.mins; x.am = 1; } else if(x.am){ delete x.mins; delete x.am; }
+      tr.querySelector('[data-f=mins]').value = x.mins ?? '';
+    }
+    else if(D.f==='tickets') x.tickets = v==='' ? undefined : Math.max(0, Math.floor(+v));
+    else if(D.f==='mins'){ x.mins = v==='' ? undefined : Math.max(0, +v); delete x.am; }
+    save(); if(ui.tab==='sheet') sheetCalc(); else calc();
+  }
+});
+
+/* ---------- live sync with tally.mk (same browser, other tab) ---------- */
+function reloadFromStorage(){
+  try{
+    const o = JSON.parse(localStorage.getItem(KEY));
+    if(o && o.days){ S = hydrate(o); applyTheme(); renderThemebar(); render(); }
+  }catch(_){}
+}
+window.addEventListener('storage', e=>{
+  if(e.key !== KEY || !e.newValue) return;
+  try{
+    const o = JSON.parse(e.newValue);
+    if(o && o.days) S = hydrate(o);
+    else return;
+  }catch(_){ return; }
+  /* update memory always; re-render only when it won't yank focus from a field */
+  const a = document.activeElement;
+  if(!document.hidden && !(a && a.matches && a.matches('input,select,textarea'))) render();
+});
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) reloadFromStorage(); });
+
+/* ---------- sheet: keyboard nav + column paste ---------- */
+document.addEventListener('keydown', e=>{
+  const t = e.target;
+  if(ui.tab !== 'sheet' || !t.closest || !t.closest('#sheetT') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const isIn = t.tagName === 'INPUT', isSel = t.tagName === 'SELECT';
+  if(!isIn && !isSel) return;
+  let dir = 0;
+  if(e.key === 'Enter') dir = e.shiftKey ? -1 : 1;
+  else if(isIn && e.key === 'ArrowDown') dir = 1;
+  else if(isIn && e.key === 'ArrowUp') dir = -1;
+  if(!dir) return;
+  e.preventDefault();
+  const td = t.closest('td'), ci = td.cellIndex, all = [...$('sheetT').tBodies[0].rows];
+  let i = all.indexOf(td.parentElement) + dir;
+  while(i >= 0 && i < all.length){
+    const c = all[i].cells[ci], f = c && c.querySelector('input:not(:disabled),select:not(:disabled)');
+    if(f){ f.focus(); try{ f.select(); }catch(_){} return; }
+    i += dir;
+  }
+});
+document.addEventListener('paste', e=>{
+  const t = e.target;
+  if(!t.closest || !t.closest('#sheetT') || t.tagName !== 'INPUT' || !t.dataset.f) return;
+  const txt = ((e.clipboardData || window.clipboardData).getData('text') || '').trim();
+  if(!/[\n\r]/.test(txt)) return;
+  e.preventDefault();
+  const vals = txt.split(/\r?\n/).map(l => l.split('\t')[0].trim());
+  const ci = t.closest('td').cellIndex, all = [...$('sheetT').tBodies[0].rows];
+  let i = all.indexOf(t.closest('tr'));
+  for(const v of vals){
+    while(i < all.length){
+      const f = all[i].cells[ci].querySelector('input[data-f]:not(:disabled)'); i++;
+      if(f){ f.value = v; f.dispatchEvent(new Event('change', {bubbles:true})); break; }
+    }
+  }
+});
+
+/* ---------- shared backup: identical in tally + shift ---------- */
+window.mkBackupAdvanced = () => { ui.tab = 'export'; render(); window.scrollTo(0,0); };
+(function(){
+  const KEYS = {t:'tally.v1', s:'shift.v1'};
+  const HAS = typeof CompressionStream !== 'undefined';
+  const toB64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+  const fromB64 = b => { b=b.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b+='='; const s=atob(b), u=new Uint8Array(s.length);
+    for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+  const pipe = async (u8, st) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(st)).arrayBuffer());
+
+  async function pack(withHist){
+    const o = {};
+    for(const k in KEYS){
+      const raw = localStorage.getItem(KEYS[k]); if(!raw) continue;
+      let v; try{ v = JSON.parse(raw); }catch(_){ continue; }
+      if(!withHist && k==='t' && Array.isArray(v.items)) v.items.forEach(i=>{ if(i.history) i.history = []; });
+      o[k] = v;
+    }
+    const u8 = new TextEncoder().encode(JSON.stringify(o));
+    return HAS ? 'MK1.'+toB64(await pipe(u8, new CompressionStream('deflate-raw'))) : 'MK0.'+toB64(u8);
+  }
+
+  async function unpack(txt){
+    txt = txt.trim();
+    let o;
+    if(/^MK[01]\./.test(txt)){
+      let u8 = fromB64(txt.slice(4).replace(/\s+/g,''));
+      if(txt[2]==='1') u8 = await pipe(u8, new DecompressionStream('deflate-raw'));
+      o = JSON.parse(new TextDecoder().decode(u8));
+    } else {
+      o = JSON.parse(txt);                                   // legacy formats
+      if(o && o.v===1 && o.tally) o = {t:o.tally, s:o.shift};  // old tally bundle
+      else if(o && Array.isArray(o.items)) o = {t:o};          // old tally-only
+      else if(o && o.days && o.tags) o = {s:o};                // old shift backup
+    }
+    if(!o || (!o.t && !o.s)) throw new Error('unrecognized backup');
+    if(o.t && !Array.isArray(o.t.items)) throw new Error('bad tally data');
+    if(o.s && (!o.s.days || !o.s.tags)) throw new Error('bad shift data');
+    return o;
+  }
+
+  const css = '#mkdlg{background:var(--panel);color:var(--txt);border:2px solid var(--line);padding:18px;width:min(560px,94vw);font-family:var(--mono);font-size:12px}'+
+    '#mkdlg::backdrop{background:rgba(0,0,0,.65)}'+
+    '#mkdlg h2{font-family:var(--display);font-size:15px;margin:0 0 4px;letter-spacing:1px}'+
+    '#mkdlg textarea{width:100%;height:84px;resize:vertical;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px;word-break:break-all}'+
+    '#mkdlg textarea:focus{outline:none;border-color:var(--blood)}'+
+    '#mkdlg .r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}'+
+    '#mkdlg .h{color:var(--dim);font-size:11px}'+
+    '#mkdlg .st{min-height:1.2em;font-size:11px;color:var(--dim)}'+
+    '#mkdlg .st.ok{color:#34d399}#mkdlg .st.err{color:#f87171}'+
+    '#mkdlg .t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-top:12px}';
+  const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+
+  const dlg = document.createElement('dialog'); dlg.id = 'mkdlg';
+  dlg.innerHTML =
+    '<h2>data backup</h2><div class="h">Backs up tally + shift together. Copy on one side, paste on the other. Works from either page.</div>'+
+    '<div class="t">export</div>'+
+    '<textarea id="mkx" readonly spellcheck="false"></textarea>'+
+    '<div class="r"><button class="btn sm" id="mkcp">copy</button>'+
+    '<label class="h"><input type="checkbox" id="mkh"> include history (longer)</label>'+
+    '<span class="h" id="mkn"></span></div>'+
+    '<div class="t">import</div>'+
+    '<textarea id="mki" spellcheck="false" placeholder="paste backup here…"></textarea>'+
+    '<div class="r"><button class="btn sm" id="mkgo">import &amp; reload</button>'+
+    '<button class="btn sm ghost" id="mkadv" style="display:none">advanced</button>'+
+    '<button class="btn sm ghost" id="mkclose" style="margin-left:auto">close</button></div>'+
+    '<div class="st" id="mkst"></div>';
+  document.body.append(dlg);
+  const $$ = id => dlg.querySelector('#'+id);
+  const say = (m, c) => { const s=$$('mkst'); s.textContent = m; s.className = 'st '+(c||''); };
+
+  async function fill(){
+    const t = await pack($$('mkh').checked);
+    $$('mkx').value = t; $$('mkn').textContent = t.length.toLocaleString()+' chars';
+  }
+  $$('mkh').onchange = fill;
+  $$('mkcp').onclick = async () => {
+    const t = $$('mkx').value; let ok = false;
+    try{ await navigator.clipboard.writeText(t); ok = true; }
+    catch(_){ $$('mkx').select(); try{ ok = document.execCommand('copy'); }catch(_2){} }
+    say(ok ? 'copied' : 'copy blocked, text is selected, use ctrl/cmd+c', ok ? 'ok' : 'err');
+  };
+  $$('mkgo').onclick = async () => {
+    const t = $$('mki').value.trim(); if(!t) return say('paste something first','err');
+    let o; try{ o = await unpack(t); }catch(e){ return say('import failed: '+e.message,'err'); }
+    const what = [o.t&&'tally', o.s&&'shift'].filter(Boolean).join(' + ');
+    if(!confirm('Replace current '+what+' data in this browser?')) return;
+    try{
+      if(o.t) localStorage.setItem(KEYS.t, JSON.stringify(o.t));
+      if(o.s) localStorage.setItem(KEYS.s, JSON.stringify(o.s));
+    }catch(e){ return say('write failed: '+e.message,'err'); }
+    window.__mkSkip = true;           // stop pagehide save() from overwriting the import
+    say('imported '+what+', reloading…','ok');
+    setTimeout(()=>location.reload(), 300);
+  };
+  $$('mkclose').onclick = () => dlg.close();
+  if(window.mkBackupAdvanced){ const a=$$('mkadv'); a.style.display=''; a.onclick=()=>{ dlg.close(); window.mkBackupAdvanced(); }; }
+  dlg.addEventListener('click', e => { if(e.target===dlg) dlg.close(); });
+
+  document.addEventListener('click', async e => {
+    if(!e.target.closest('[data-data]')) return;
+    e.preventDefault();
+    if(dlg.open) return;
+    $$('mki').value = ''; say('');
+    await fill(); dlg.showModal();
+  });
+})();
+
+/* ---------- boot ---------- */
+applyTheme();
+renderThemebar();
+render();
+</script>
+
+</body>
+</html>

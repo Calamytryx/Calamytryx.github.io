@@ -870,6 +870,11 @@
       }
 
       /* ---------- shift.mk bridge ---------- */
+      const UNIT = () => {
+        const sh = readShift();
+        const u = (sh && sh.cfg && sh.cfg.unit) || {};
+        return { one: u.one || "ticket", many: u.many || "tickets" };
+      };
       function readShift() {
         try {
           return JSON.parse(localStorage.getItem(SHIFT_KEY) || "null");
@@ -1922,7 +1927,7 @@
           sumEl.append(
             document.createTextNode("day · "),
             h("b", {}, String(tk)),
-            document.createTextNode(" tickets · "),
+            document.createTextNode(" " + UNIT().many + " · "),
             h("b", {}, ph.toFixed(2)),
             document.createTextNode(" prod hrs · "),
             h("b", {}, ph > 0 ? (tk / ph).toFixed(2) : "0.00"),
@@ -2196,7 +2201,7 @@
             cdEl,
           ),
 
-          h("div", { class: "sub_t" }, "tickets"),
+          h("div", { class: "sub_t" }, UNIT().many),
           valEl,
           h("div", { class: "row2 c" }, minusB, plusB),
           h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add · − subtract · u undo"),
@@ -2369,7 +2374,7 @@
             "div",
             {},
             h("b", { class: "cnt" }, String(tickets)),
-            h("span", { class: "hint" }, " tickets"),
+            h("span", { class: "hint" }, " " + UNIT().many),
             meta.length
               ? h("div", { class: "hint" }, meta.join(" · "))
               : h("div", { class: "hint" }, "no tag yet"),
@@ -2813,7 +2818,7 @@ function simpleView() {
     p1.textContent = "+1";
     tagSel.value = s.tag || "";
     const tag = s.tag && fresh.tags.find((t) => t.id === s.tag);
-    noteEl.textContent = !tag ? "pick a tag, tickets don't count without one" : tag.prod ? "" : "not a productive tag, tickets don't count";
+    noteEl.textContent = !tag ? "pick a tag, " + UNIT().many + " don't count without one" : tag.prod ? "" : "not a productive tag, " + UNIT().many + " don't count";
     let last = null;
     const dd = shiftDay(fresh, date);
     for (const x of shiftGrid(fresh, date)) {
@@ -2826,7 +2831,7 @@ function simpleView() {
     lastB.textContent = lt ? "use last: " + lt.name : "";
     lastB.style.display = !s.tag && lt ? "" : "none";
     const t = dayTotals(fresh, date);
-    dayEl.textContent = (date === todayYMD() ? "today" : fmtDate(date)) + " · " + t.tk + " tickets · " + t.ph.toFixed(2) + " prod h · " + (t.ph > 0 ? (t.tk / t.ph).toFixed(1) : "0.0") + "/hr";
+    dayEl.textContent = (date === todayYMD() ? "today" : fmtDate(date)) + " · " + t.tk + " " + UNIT().many + " · " + t.ph.toFixed(2) + " prod h · " + (t.ph > 0 ? (t.tk / t.ph).toFixed(1) : "0.0") + "/hr";
     undoB.disabled = !S.sx.history.length;
   }
   const cd = countdownState(date, g);

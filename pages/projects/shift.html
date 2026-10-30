@@ -82,7 +82,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:12px;width:max-c
 
 <header class="toolbar">
 <h1>shift<span>.</span>mk</h1>
-<span class="tbsub">tickets per hour · quotas · sheets export — saved in this browser</span>
+<span class="tbsub" id="tbsub">tickets per hour · quotas · sheets export — saved in this browser</span>
 <div class="toolbar-end">
   <div class="themebar" id="themebar"></div>
   <a href="#" data-data title="backup / restore">data</a>
@@ -102,6 +102,11 @@ const uid = () => Math.random().toString(36).slice(2,8);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const f2 = n => (Math.round(n*100)/100).toFixed(2);
 const tph = (t,h) => h > 0 ? t/h : 0;
+
+/* ---------- unit: what you count (shared with tally.mk through shift.v1 cfg.unit) ---------- */
+const U = () => { const u = (S && S.cfg && S.cfg.unit) || {}; return {one: u.one || 'ticket', many: u.many || 'tickets'}; };
+const slug = s => String(s).trim().replace(/\s+/g,'_');
+function applyUnit(){ const e = $('tbsub'); if(e) e.textContent = U().many+' per hour · quotas · sheets export — saved in this browser'; }
 
 /* ---------- dates / times ---------- */
 const ymd = d => d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
@@ -153,7 +158,7 @@ function renderThemebar(){
 
 /* ---------- state ---------- */
 const DEF = {
-  cfg:{start:'09:00', end:'18:00', interval:30},
+  cfg:{start:'09:00', end:'18:00', interval:30, unit:{one:'ticket', many:'tickets'}},
   theme:'site',
   custom:{bg:'0b0b0c', panel:'141416', txt:'e6e6e6', acc:'e11d2e'},
   tags:[{id:'g1',name:'Task 1',prod:true,mins:null,quota:10},{id:'g5',name:'Task 2',prod:true,mins:null,quota:null},
@@ -293,6 +298,7 @@ function render(){
   const body = {overview:vOverview, track:vTrack, sheet:vSheet, setup:vSetup, export:vExport}[ui.tab]();
   $('main').innerHTML = '<div class="bar"><div class="seg">'+['overview','track','sheet','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
   if(ui.tab==='track') calc(); else if(ui.tab==='sheet') sheetCalc(); else if(ui.tab==='overview') ovCalc();
+  applyUnit();
 }
 
 function vTrack(){
@@ -342,9 +348,9 @@ function dayBody(){
       '<td class="cc n"></td><td class="hint">'+(bn?'sched: '+bn:'')+'</td></tr>';
   }).join('');
   return '<div class="panel mod"><div class="row2"><span class="hint">shift</span><input type="time" id="ss" value="'+sh.start+'"><span class="hint">to</span><input type="time" id="se" value="'+sh.end+'">'+otInfo+
-    '<span class="hint">· '+ivOf(d)+' min slots · '+f2(totalSpan)+' h span · tickets only count on productive tags</span></div>'+
+    '<span class="hint">· '+ivOf(d)+' min slots · '+f2(totalSpan)+' h span · '+U().many+' only count on productive tags</span></div>'+
     otControls(d)+
-    '<div class="scroll"><table><tr><th>slot</th><th>tag</th><th class="n">tickets</th><th class="n">mins</th><th class="n">hours</th><th></th></tr>'+rows+'</table></div></div>';
+    '<div class="scroll"><table><tr><th>slot</th><th>tag</th><th class="n">'+U().many+'</th><th class="n">mins</th><th class="n">hours</th><th></th></tr>'+rows+'</table></div></div>';
 }
 
 function calc(){
@@ -361,15 +367,15 @@ function calc(){
 }
 
 function sumHtml(R){
-  let h = '<p class="hint">tickets / hr = tickets ÷ productive hours, after deductions. Week and month add up the daily totals, so they are weighted by hours, not an average of averages.</p>';
+  let h = '<p class="hint">'+U().many+' / hr = '+U().many+' ÷ productive hours, after deductions. Week and month add up the daily totals, so they are weighted by hours, not an average of averages.</p>';
   if(ui.view!=='day'){
     const rs = R.rows.filter(r=>r.lh>0);
     h += '<div class="sub_t" style="margin-top:18px">by day — click a row to open it</div>'+(rs.length ?
-      '<div class="scroll"><table><tr><th>date</th><th class="n">shift</th><th class="n">logged</th><th class="n">productive</th><th class="n">deducted</th><th class="n">t/hr</th></tr>'+
+      '<div class="scroll"><table><tr><th>date</th><th class="n">shift</th><th class="n">logged</th><th class="n">productive</th><th class="n">deducted</th><th class="n">per hr</th></tr>'+
       rs.map(r=>'<tr data-open="'+r.d+'" style="cursor:pointer"><td>'+r.d+'</td><td class="n">'+f2(r.sh)+'</td><td class="n">'+f2(r.lh)+'</td><td class="n">'+f2(r.ph)+'</td><td class="n">'+f2(r.dh)+'</td><td class="n">'+f2(tph(r.tk,r.ph))+'</td></tr>').join('')+'</table></div>' :
       '<p class="hint">Nothing logged in this range.</p>');
   }
-  h += '<div class="sub_t" style="margin-top:18px">productive tags vs quota</div><div class="scroll"><table><tr><th>tag</th><th class="n">tickets</th><th class="n">hours</th><th class="n">t/hr</th><th class="n">quota/h</th><th class="n">expected</th><th class="n">attainment</th></tr>'+
+  h += '<div class="sub_t" style="margin-top:18px">productive tags vs quota</div><div class="scroll"><table><tr><th>tag</th><th class="n">'+U().many+'</th><th class="n">hours</th><th class="n">per hr</th><th class="n">quota/h</th><th class="n">expected</th><th class="n">attainment</th></tr>'+
     prodTags().map(t=>{ const o = R.task[t.id]||{tk:0,h:0}, q = t.quota, ex = q ? q*o.h : 0;
       return '<tr><td>'+esc(t.name)+'</td><td class="n">'+o.tk+'</td><td class="n">'+f2(o.h)+'</td><td class="n">'+f2(tph(o.tk,o.h))+'</td><td class="n">'+(q||'—')+'</td><td class="n">'+(q&&o.h?f2(ex):'—')+'</td><td class="n">'+(q&&o.h?Math.round(o.tk/ex*100)+'%':'—')+'</td></tr>'; }).join('')+'</table></div>';
   const tg = S.tags.filter(t=>R.tag[t.id]>0);
@@ -378,9 +384,72 @@ function sumHtml(R){
   return h;
 }
 
+const UNITS = ['ticket','call','order','page','task','rep','item','chat','email','case','delivery','problem'];
+
+/* preset: [name, productive(1/0), quota/h, auto-minutes]  ·  breaks: [name, start, mins] */
+const TEMPLATES = [
+  {id:'callcenter', name:'Call center', desc:'Calls per hour, 9–6, two short breaks and a lunch',
+    unit:['call','calls'], cfg:{start:'09:00', end:'18:00', interval:30},
+    tags:[['Inbound calls',1,12],['Callbacks / email',1,8],['Break (15 min)',0,null,15],['Lunch',0],['Coaching / training',0],['Idle / waiting',0]],
+    breaks:[['Break','11:00',15],['Lunch','13:00',60],['Break','15:30',15]]},
+  {id:'support', name:'Ticket support', desc:'Tickets per hour across two tiers',
+    unit:['ticket','tickets'], cfg:{start:'09:00', end:'18:00', interval:30},
+    tags:[['Tier 1',1,10],['Tier 2',1,6],['Break (15 min)',0,null,15],['Lunch',0],['Meeting / training',0],['Idle',0]],
+    breaks:[['Break','11:00',15],['Lunch','13:00',60],['Break','15:30',15]]},
+  {id:'delivery', name:'Delivery', desc:'Orders per hour, hourly slots, one lunch',
+    unit:['order','orders'], cfg:{start:'08:00', end:'17:00', interval:60},
+    tags:[['Deliveries',1,3],['Pickup / waiting',0],['Break (15 min)',0,null,15],['Lunch',0],['Vehicle / admin',0]],
+    breaks:[['Lunch','12:00',60]]},
+  {id:'freelance', name:'Freelancer hours', desc:'Billable vs non-billable time, no quota',
+    unit:['task','tasks'], cfg:{start:'09:00', end:'17:00', interval:60},
+    tags:[['Client work',1,null],['Admin / invoicing',0],['Outreach / pitching',0],['Break',0,null,15]],
+    breaks:[]},
+  {id:'study', name:'Study sessions', desc:'Pages per hour in an evening block',
+    unit:['page','pages'], cfg:{start:'18:00', end:'21:00', interval:30},
+    tags:[['Reading',1,15],['Notes / recall',1,null],['Review',0],['Break (5 min)',0,null,5]],
+    breaks:[['Break','19:30',10]]},
+  {id:'moderation', name:'Content moderation', desc:'Items per hour with wellness breaks',
+    unit:['item','items'], cfg:{start:'09:00', end:'18:00', interval:30},
+    tags:[['Queue review',1,60],['Escalations',1,10],['Wellness break (15 min)',0,null,15],['Lunch',0],['Training',0]],
+    breaks:[['Wellness break','11:00',15],['Lunch','13:00',60],['Wellness break','15:30',15]]},
+  {id:'blank', name:'Blank', desc:'Start from scratch: one productive tag, a break, idle',
+    unit:['ticket','tickets'], cfg:{start:'09:00', end:'18:00', interval:30},
+    tags:[['Work',1,null],['Break',0,null,15],['Idle',0]], breaks:[]}
+];
+function unitRow(){
+  const u = U();
+  return '<div class="sub_t">what you count</div>'+
+    '<div class="row2"><span class="hint">one</span><input data-unit="one" list="unitList" value="'+esc(u.one)+'" style="width:110px">'+
+    '<span class="hint">many</span><input data-unit="many" value="'+esc(u.many)+'" style="width:110px">'+
+    '<datalist id="unitList">'+UNITS.map(x=>'<option value="'+x+'">').join('')+'</datalist></div>'+
+    '<p class="hint">Labels, quotas, the sheet copy, csv and xlsx all follow this, and tally.mk reads it too. Type your own if the list does not have it.</p>';
+}
+function tplPanel(){
+  return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">start from a preset</div>'+
+    '<div class="row2">'+TEMPLATES.map(t=>'<button class="btn sm ghost" data-tpl="'+t.id+'" title="'+esc(t.desc)+'">'+esc(t.name)+'</button>').join('')+'</div>'+
+    '<p class="hint">One click fills the unit, default shift times, tags, quotas and scheduled breaks. Everything stays editable below. Days you already logged keep their own shift times and intervals.</p>'+
+    unitRow()+'</div>';
+}
+function applyTemplate(id){
+  const t = TEMPLATES.find(x=>x.id===id); if(!t) return;
+  const logged = Object.values(S.days).some(d => Object.values((d && d.slots) || {}).some(x => x && x.tag));
+  const msg = 'Load the "'+t.name+'" preset? This replaces your unit, default shift times, tags and scheduled breaks.'+
+    (logged ? ' Days you already logged keep their shift times. Tags with the same name keep their logged slots; slots on any other tag stop counting. Use data → copy to back up first if unsure.' : '');
+  if(!confirm(msg)) return;
+  pinDays();
+  const old = S.tags.slice();
+  S.cfg = Object.assign({}, S.cfg, t.cfg, {unit:{one:t.unit[0], many:t.unit[1]}});
+  S.tags = t.tags.map(([name,prod,quota,mins]) => {
+    const same = old.find(o => String(o.name).toLowerCase() === name.toLowerCase());
+    return {id: same ? same.id : uid(), name, prod:!!prod, mins: mins ?? null, quota: prod ? (quota ?? null) : null};
+  });
+  S.breaks = t.breaks.map(([name,start,mins]) => ({id:uid(), name, start, mins}));
+  save(); render();
+}
+
 function vSetup(){
   const c = S.cfg, row = (l,o,inner) => '<div class="row2">'+inner+'<button class="btn sm ghost" data-del="'+l+':'+o.id+'">×</button></div>';
-  return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">defaults</div>'+
+  return tplPanel()+'<div class="panel mod"><div class="sub_t" style="border:0;padding:0">defaults</div>'+
     '<div class="row2"><span class="hint">shift</span><input type="time" data-cfg="start" value="'+c.start+'"><span class="hint">to</span><input type="time" data-cfg="end" value="'+c.end+'"><span class="hint">interval (min)</span><input type="number" class="num" min="5" step="5" data-cfg="interval" value="'+c.interval+'"></div>'+
     '<p class="hint">Each day can override the shift times on the track tab. Overtime (pre-shift and/or post-shift) is set per day on the track tab — it extends the interval grid without touching the base shift, so you can tag OT slots exactly like regular ones. Recommended: 4h on one side, or 2h + 2h if both. Days that already have logged slots keep their own start, end and interval, so changing these defaults only affects days with nothing logged yet.</p>'+
     '<div class="sub_t">tags — a productive tag is a task: it counts toward tickets/hr and can have a quota per hour. mins = auto-fill the real minutes when picked</div>'+
@@ -398,9 +467,9 @@ function pvHtml(p){
   const rows = [['2026-10-28','Task 1','14','7.00'],['2026-10-28','Task 2','9','4.50'],['2026-10-29','Task 1','16','8.00']];
   return '<div style="background:'+c(p.bg)+';border:2px solid '+c(p.line)+';max-width:480px;font-family:Consolas,var(--mono),monospace;font-size:11px;color:'+c(p.txt)+'">'+
     '<div style="background:'+c(p.panel)+';padding:10px 14px;border-bottom:2px solid '+c(p.acc)+';font-size:16px;font-weight:700">shift<span style="color:'+c(p.acc)+'">.</span>mk <span style="color:'+c(p.dim)+';font-size:10px;font-weight:400">/ productivity</span></div>'+
-    '<div style="display:flex;padding:8px 14px 6px;color:'+c(p.dim)+';font-size:8px;letter-spacing:1.5px"><span style="flex:1">PRODUCTIVE HRS</span><span style="flex:1">TICKETS / HR</span><span style="flex:1">ATTAINMENT</span></div>'+
+    '<div style="display:flex;padding:8px 14px 6px;color:'+c(p.dim)+';font-size:8px;letter-spacing:1.5px"><span style="flex:1">PRODUCTIVE HRS</span><span style="flex:1">'+U().many.toUpperCase()+' / HR</span><span style="flex:1">ATTAINMENT</span></div>'+
     '<div style="display:flex;padding:0 14px 10px;font-size:18px;font-weight:700"><span style="flex:1">6.00</span><span style="flex:1;color:'+c(p.acc)+'">6.50</span><span style="flex:1">108%</span></div>'+
-    '<div style="display:flex;background:'+c(p.bg)+';border-bottom:2px solid '+c(p.acc)+';padding:7px 14px;color:'+c(p.acc)+';font-size:9px;letter-spacing:1.5px;font-weight:700"><span style="flex:1">DATE</span><span style="flex:1">TAG</span><span style="flex:1;text-align:center">TICKETS</span><span style="flex:1;text-align:center;color:'+c(p.dim)+'">TICKETS / HR</span></div>'+
+    '<div style="display:flex;background:'+c(p.bg)+';border-bottom:2px solid '+c(p.acc)+';padding:7px 14px;color:'+c(p.acc)+';font-size:9px;letter-spacing:1.5px;font-weight:700"><span style="flex:1">DATE</span><span style="flex:1">TAG</span><span style="flex:1;text-align:center">'+U().many.toUpperCase()+'</span><span style="flex:1;text-align:center;color:'+c(p.dim)+'">'+U().many.toUpperCase()+' / HR</span></div>'+
     rows.map((r,i)=>'<div style="display:flex;background:'+c(i%2?p.panel2:p.panel)+';border-bottom:1px solid '+c(p.line)+';padding:7px 14px"><span style="flex:1">'+r[0]+'</span><span style="flex:1">'+r[1]+'</span><span style="flex:1;text-align:center">'+r[2]+'</span><span style="flex:1;text-align:center;color:'+c(p.acc)+';font-weight:700">'+r[3]+'</span></div>').join('')+'</div>';
 }
 
@@ -421,7 +490,7 @@ function vExport(){
     '<div id="pv">'+pvHtml(cur)+'</div>'+
     '<div class="sub_t">google sheets — live formulas, real tables</div>'+
     '<div class="row2"><button class="btn sm" data-x="xlsx">workbook .xlsx</button></div>'+
-    '<p class="hint">Three tabs. <b>Daily</b> is one interval table per day — pick a tag on each row, type tickets and minutes, and hours, deductions, tickets per hour and the day’s totals are formulas you never touch. Overtime intervals appear as normal rows alongside the base shift. Scheduled breaks are auto-deducted at export time (blank minutes uses the available time after break overlap). <b>Summary</b> reads whatever falls between its FROM / TO from Daily. <b>Setup</b> holds the tags, the productive flags and the quotas. Upload to Drive and open with Sheets (or File → Import); everything recalculates there without this page.</p>'+
+    '<p class="hint">Three tabs. <b>Daily</b> is one interval table per day — pick a tag on each row, type '+U().many+' and minutes, and hours, deductions, '+U().many+' per hour and the day’s totals are formulas you never touch. Overtime intervals appear as normal rows alongside the base shift. Scheduled breaks are auto-deducted at export time (blank minutes uses the available time after break overlap). <b>Summary</b> reads whatever falls between its FROM / TO from Daily. <b>Setup</b> holds the tags, the productive flags and the quotas. Upload to Drive and open with Sheets (or File → Import); everything recalculates there without this page.</p>'+
     '<div class="sub_t">plain data</div>'+
     '<div class="row2"><button class="btn sm ghost" data-x="dcsv">daily summary .csv</button><button class="btn sm ghost" data-x="scsv">intervals .csv</button><button class="btn sm ghost" data-x="dtsv">copy daily</button><button class="btn sm ghost" data-x="stsv">copy intervals</button></div>'+
     '<p class="hint">CSV and copied text are static values. Daily CSV now includes <code>pre_ot_hours</code> and <code>post_ot_hours</code> columns. Dates are yyyy-mm-dd and hours are plain decimals.</p>'+
@@ -465,9 +534,9 @@ function vOverview(){
     '<div class="panel mod"><div class="ovbig" id="ov-clock">--:--:--</div><div class="hint" id="ov-date"></div></div>'+
     '<div class="ovgrid">'+
     c('shift','<div class="hint" id="ov-shift-day"></div><div class="ovmid" id="ov-shift-range"></div><div class="hint" id="ov-shift-lab"></div><div class="ovbig2" id="ov-shift-left">-</div><div class="ovbar"><i id="ov-shift-bar"></i></div>')+
-    c('current slot','<div class="ovmid" id="ov-slot-range">\u2014</div><div class="hint">time left</div><div class="ovbig2" id="ov-slot-left">\u2014</div><div class="hint" id="ov-slot-tag"></div><div class="hint">tickets this slot: <b id="ov-slot-tk">0</b></div>')+
-    c('quota \u2014 tickets still needed','<div class="ovbig2" id="ov-q-remaining">\u2014</div><div class="hint" id="ov-q-prog"></div><div class="hint" id="ov-q-need"></div><div class="hint" id="ov-q-slot"></div><div class="hint" id="ov-q-diff"></div><div class="hint" id="ov-q-note"></div>')+
-    c('today so far','<div class="ovmid"><b id="ov-day-tk">0</b> tickets</div><div class="hint">productive hours <b id="ov-day-ph">0.00</b></div><div class="hint">tickets / hr <b id="ov-day-tp">\u2014</b></div>')+
+    c('current slot','<div class="ovmid" id="ov-slot-range">\u2014</div><div class="hint">time left</div><div class="ovbig2" id="ov-slot-left">\u2014</div><div class="hint" id="ov-slot-tag"></div><div class="hint">'+U().many+' this slot: <b id="ov-slot-tk">0</b></div>')+
+    c('quota \u2014 '+U().many+' still needed','<div class="ovbig2" id="ov-q-remaining">\u2014</div><div class="hint" id="ov-q-prog"></div><div class="hint" id="ov-q-need"></div><div class="hint" id="ov-q-slot"></div><div class="hint" id="ov-q-diff"></div><div class="hint" id="ov-q-note"></div>')+
+    c('today so far','<div class="ovmid"><b id="ov-day-tk">0</b> '+U().many+'</div><div class="hint">productive hours <b id="ov-day-ph">0.00</b></div><div class="hint">'+U().many+' / hr <b id="ov-day-tp">\u2014</b></div>')+
     '</div></div>';
 }
 function ovCalc(){
@@ -503,7 +572,7 @@ function ovCalc(){
     set('q-prog', Math.round(M.done)+' done of '+Math.ceil(M.target - 1e-9)+' expected by end of shift');
     if(M.remaining === 0){ set('q-need','quota met'); set('q-slot',''); }
     else if(M.hRem > 0){
-      set('q-need', (M.remaining / M.hRem).toFixed(1)+' tickets / hr for the open '+f2(M.hRem)+' h');
+      set('q-need', (M.remaining / M.hRem).toFixed(1)+' '+U().many+' / hr for the open '+f2(M.hRem)+' h');
       set('q-slot', 'about '+Math.ceil(M.remaining / Math.max(1, M.openSlots))+' per open slot ('+M.openSlots+' left)');
     } else { set('q-need','no open time left'); set('q-slot',''); }
     const diff = M.done - M.soFar;
@@ -549,8 +618,8 @@ function vSheet(){
     '<p class="hint" style="margin-bottom:12px">'+lab+' · <span id="xs"></span></p>';
   let head, body, hint;
   if(mode === 'days'){
-    head = sheetHead(['DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
-      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %')]);
+    head = sheetHead(['DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H',U().many.toUpperCase(),'PER HR',
+      ...T.map(t=>t.name+' '+U().many), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %')]);
     body = ds.map(d=>{ const sh = shift(d), pre = otOf(d,'preOT')/60, post = otOf(d,'postOT')/60;
       return '<tr data-d="'+d+'"><td class="rn"></td><td class="lnk" data-open="'+d+'" title="open this day\u2019s intervals">'+d+'</td>'+
         '<td>'+pd(d).toLocaleDateString(undefined,{weekday:'short'})+'</td>'+
@@ -562,7 +631,7 @@ function vSheet(){
       '<tr class="tot"><td class="rn"></td><td>TOTAL</td>'+'<td></td>'.repeat(5)+valsFrom(agg(ds)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>';
     hint = 'Edit start, end and overtime straight in the cells. Each day keeps its own times and OT, so a Tuesday with OT stays that way in reports. Click a date to open its intervals. \u201ccopy for sheets\u201d pastes values plus live formulas starting at the cell in \u201cpaste at\u201d.';
   } else {
-    head = sheetHead(['DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD HRS','T / HR','NOTE']);
+    head = sheetHead(['DATE','SLOT','TAG',U().many.toUpperCase(),'MINS','HOURS','DEDUCTED','PROD HRS','PER HR','NOTE']);
     const shown = [], out = [];
     for(const d of ds){
       const gr = grid(d);
@@ -583,7 +652,7 @@ function vSheet(){
     if(shown.length > 1) out.push('<tr class="tot"><td class="rn"></td><td>ALL</td><td>TOTAL</td><td></td><td class="n tk"></td><td></td><td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td><td></td></tr>');
     ui._sd = shown;
     body = out.join('') || '<tr><td class="rn"></td><td colspan="10" class="hint">Nothing logged in this range.</td></tr>';
-    hint = 'Enter / \u2191 / \u2193 move between rows. Paste a column of numbers into tickets or mins to fill downward (untagged rows are skipped). Week and month only list days that have logs. \u201ccopy for sheets\u201d pastes tagged rows with live formulas and a TOTAL row at the cell in \u201cpaste at\u201d; \u201ccopy values\u201d gives plain rows.';
+    hint = 'Enter / \u2191 / \u2193 move between rows. Paste a column of numbers into '+U().many+' or mins to fill downward (untagged rows are skipped). Week and month only list days that have logs. \u201ccopy for sheets\u201d pastes tagged rows with live formulas and a TOTAL row at the cell in \u201cpaste at\u201d; \u201ccopy values\u201d gives plain rows.';
   }
   return bar+'<div class="sheetwrap"><table class="sheet" id="sheetT">'+head+'<tbody>'+body+'</tbody></table></div>'+
     '<p class="hint" style="margin-top:10px">'+hint+'</p>';
@@ -625,8 +694,8 @@ async function copyFormulas(){
   const r4 = n => +(+n).toFixed(4);
   const head = [], out = [];
   if(mode === 'days'){
-    head.push('DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
-      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %'));
+    head.push('DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H',U().many.toUpperCase(),'PER HR',
+      ...T.map(t=>t.name+' '+U().many), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %'));
     const first = A.r + 1; let row = first;
     for(const d of range(ui.view, ui.date)){
       const St = stats(d); if(!St.lh) continue;
@@ -649,7 +718,7 @@ async function copyFormulas(){
       out.push(line);
     }
   } else {
-    head.push('DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD (1/0)','PROD HRS','T / HR','NOTE');
+    head.push('DATE','SLOT','TAG',U().many.toUpperCase(),'MINS','HOURS','DEDUCTED','PROD (1/0)','PROD HRS','PER HR','NOTE');
     const first = A.r + 1; let row = first;
     for(const d of range(ui.view, ui.date)){
       for(const g of grid(d)){
@@ -699,7 +768,7 @@ const cell = (v,sep) => { v = String(v ?? ''); if(/^[=+\-@]/.test(v) && isNaN(v)
   return v.includes(sep) || /["\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
 const toTxt = (rows,sep) => rows.map(r=>r.map(c=>cell(c,sep)).join(sep)).join('\n');
 function slotRows(ds, empty){
-  const r = [['date','slot_start','slot_end','tag','counts_as_productive','tickets','minutes','hours','hours_deducted','tickets_per_hour','zone']];
+  const r = [['date','slot_start','slot_end','tag','counts_as_productive',slug(U().many),'minutes','hours','hours_deducted',slug(U().many)+'_per_hour','zone']];
   for(const d of ds) for(const g of grid(d)){
     const v = sl(d,g); if(!v && !empty) continue;
     const def = effMin(d, g);
@@ -709,8 +778,8 @@ function slotRows(ds, empty){
 }
 function dayRows(ds){
   const T = prodTags(), G = S.tags;
-  const r = [['date','shift_start','shift_end','pre_ot_hours','post_ot_hours','scheduled_hours','logged_hours','productive_hours','deducted_hours','tickets','tickets_per_hour',
-    ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' quota %'), ...G.map(g=>g.name+' hours')]];
+  const r = [['date','shift_start','shift_end','pre_ot_hours','post_ot_hours','scheduled_hours','logged_hours','productive_hours','deducted_hours',slug(U().many),slug(U().many)+'_per_hour',
+    ...T.map(t=>t.name+' '+U().many), ...T.map(t=>t.name+' quota %'), ...G.map(g=>g.name+' hours')]];
   for(const d of ds){ const R = stats(d); if(!R.lh) continue;
     const sp = shiftSpan(d);
     r.push([d, sp.baseStart, sp.baseEnd, +(sp.preOT/60).toFixed(2), +(sp.postOT/60).toFixed(2), +f2(R.sh), +f2(R.lh), +f2(R.ph), +f2(R.dh), R.tk, +f2(tph(R.tk,R.ph)),
@@ -793,11 +862,11 @@ function buildWb(E, ds, empty){
   for(let r=2; r<=sRows.length+1; r++) wsP.getCell(r,2).dataValidation = {type:'list', allowBlank:true, formulae:['"Y,N"'], showErrorMessage:true, errorStyle:'stop', errorTitle:'Y or N', error:'Pick Y (productive) or N.'};
   const lg = [['HOW THIS WORKBOOK WORKS', {bold:true, size:9, color:{argb:A(P.acc)}}],
     ['Accent headers are inputs you type into. Dim headers are formulas — leave them alone.'],
-    ['Setup: mark a tag Y to make it a task. It counts toward tickets/hr and can carry a quota per hour.'],
-    ['Daily: one interval table per day. Pick a tag on each row, then type tickets and MINUTES WORKED.'],
+    ['Setup: mark a tag Y to make it a task. It counts toward '+U().many+'/hr and can carry a quota per hour.'],
+    ['Daily: one interval table per day. Pick a tag on each row, then type '+U().many+' and MINUTES WORKED.'],
     ['Overtime intervals appear as normal rows before/after the base shift — tag them the same way.'],
     ['Leave minutes blank for the full interval — scheduled breaks are auto-deducted from the available minutes at export time.'],
-    ['HOURS, DEDUCTED, PROD HRS, TICKETS and T/HR are formulas. Each day closes with its own TOTAL row.'],
+    ['HOURS, DEDUCTED, PROD HRS, '+U().many.toUpperCase()+' and PER HR are formulas. Each day closes with its own TOTAL row.'],
     ['New tags go in the blank rows under the tag list on this sheet. Re-export to pick up break / OT changes.']];
   lg.forEach((x,i)=>{ const c = wsP.getCell(i+1,5); c.value = x[0]; c.font = fnt(Object.assign({color:{argb:A(P.dim)}}, x[1]||{})); c.alignment = {vertical:'middle', wrapText:true}; });
   wsP.getColumn(4).width = 3; wsP.getColumn(5).width = 95;
@@ -833,7 +902,7 @@ function buildWb(E, ds, empty){
     wsD.getRow(r).height = 26;
     r++;
 
-    const HH = [['SLOT',0],['TAG',0],['TICKETS',1],['MINS',1],['HOURS',2],['DEDUCTED',2],['PROD HRS',2],['TICKETS',2],['T / HR',2]];
+    const HH = [['SLOT',0],['TAG',0],[U().many.toUpperCase(),1],['MINS',1],['HOURS',2],['DEDUCTED',2],['PROD HRS',2],[U().many.toUpperCase(),2],['PER HR',2]];
     HH.forEach(([h,k],i)=>{ const x = wsD.getCell(r, i+2);
       x.value = h;
       x.font = fnt({bold:true, size:8, color:{argb:A(k===2 ? P.dim : P.acc)}});
@@ -912,13 +981,13 @@ function buildWb(E, ds, empty){
   for(let c=1; c<=7; c++){ const x = wsU.getCell(1,c); x.fill = fill(P.panel); x.border = {bottom:accB}; }
   wsU.getRow(1).height = 42;
   wsU.mergeCells('A2:G2');
-  put('A2','TICKETS PER HOUR  ·  QUOTAS  ·  SET FROM / TO TO REPORT ANY DAY, WEEK OR MONTH',{f:{size:8,color:{argb:A(P.dim)}}, al:{vertical:'middle', indent:1}}); wsU.getRow(2).height = 24;
+  put('A2',U().many.toUpperCase()+' PER HOUR  ·  QUOTAS  ·  SET FROM / TO TO REPORT ANY DAY, WEEK OR MONTH',{f:{size:8,color:{argb:A(P.dim)}}, al:{vertical:'middle', indent:1}}); wsU.getRow(2).height = 24;
   const lab = {size:9, bold:true, color:{argb:A(P.dim)}}, inb = {top:{style:'thin',color:{argb:A(P.acc)}}, bottom:{style:'thin',color:{argb:A(P.acc)}}, left:{style:'thin',color:{argb:A(P.acc)}}, right:{style:'thin',color:{argb:A(P.acc)}}};
   put('A3','FROM',{f:lab, al:{indent:1, vertical:'middle'}}); put('B3', serial(ds[0]), {nf:DATE, f:{bold:true, color:{argb:A(P.acc)}}, fill:P.panel2, al:{horizontal:'center'}, bd:inb});
   put('A4','TO',{f:lab, al:{indent:1, vertical:'middle'}});   put('B4', serial(ds[ds.length-1]), {nf:DATE, f:{bold:true, color:{argb:A(P.acc)}}, fill:P.panel2, al:{horizontal:'center'}, bd:inb});
   wsU.getRow(3).height = 22; wsU.getRow(4).height = 22;
   wsU.mergeCells('A6:G6');
-  put('A6','tickets / hr = tickets ÷ productive hours, after deductions. Ranges sum the daily totals, so they are weighted by hours, not an average of averages.',{f:{size:8,color:{argb:A(P.dim)}}, al:{indent:1, vertical:'middle'}});
+  put('A6',U().many+' / hr = '+U().many+' ÷ productive hours, after deductions. Ranges sum the daily totals, so they are weighted by hours, not an average of averages.',{f:{size:8,color:{argb:A(P.dim)}}, al:{indent:1, vertical:'middle'}});
 
   const secHead = (row, text, n) => { put('A'+row, text, {f:{bold:true,size:9,color:{argb:A(P.acc)}}, al:{vertical:'bottom',indent:1}});
     for(let c=1; c<=n; c++) wsU.getCell(row,c).border = {top:ln}; wsU.getRow(row).height = 28; };
@@ -930,7 +999,7 @@ function buildWb(E, ds, empty){
   const taskRows = [...Pr.map(gi)]; for(let i=0; i<4; i++) taskRows.push(nG+2+i);
   const t0 = 9, tN = t0 + taskRows.length;
   secHead(8, 'TASKS VS QUOTA  (PRODUCTIVE TAGS)', 7);
-  colHead(9-1, ['TASK','TICKETS','HOURS','T / HR','QUOTA / H','EXPECTED','ATTAINMENT']);
+  colHead(9-1, ['TASK',U().many.toUpperCase(),'HOURS','PER HR','QUOTA / H','EXPECTED','ATTAINMENT']);
   taskRows.forEach((so,i)=>{ const rr = t0+i, a = `Setup!$A$${so}`, ctr = {horizontal:'center'};
     put('A'+rr, fx(`IF(AND(${a}<>"",Setup!$B$${so}="Y"),${a},"")`), {al:{indent:1}});
     put('B'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$I:$I,${DR},Daily!$C:$C,$A${rr}))`), {nf:'0', al:ctr});
@@ -994,6 +1063,7 @@ document.addEventListener('click', async e=>{
     else if(D.ot==='post-rm') setOT(d, 'postOT', 0);
     render();
   }
+  else if(D.tpl){ applyTemplate(D.tpl); }
   else if(D.add){
     const mk = {tags:{id:uid(),name:'New tag',prod:false,mins:null,quota:null}, breaks:{id:uid(),name:'Break',start:'12:00',mins:15}};
     S[D.add].push(mk[D.add]); save(); render();
@@ -1041,6 +1111,13 @@ document.addEventListener('change', e=>{
   if(t.id==='xa' || t.id==='xb'){ ui[t.id] = t.value; return; }
   if(t.id==='xmode'){ ui.xmode = t.value; return; }
   if(t.id==='xr'){ restore(t.files[0]); return; }
+  if(D.unit){
+    const old = U(), v = (t.value || '').trim().toLowerCase();
+    const nx = {one: old.one, many: old.many};
+    if(D.unit === 'one'){ if(v){ const auto = old.many === old.one + 's'; nx.one = v; if(auto) nx.many = v + 's'; } }
+    else if(v) nx.many = v;
+    S.cfg.unit = nx; save(); render(); return;
+  }
   if(D.cfg){ pinDays(); S.cfg[D.cfg] = D.cfg==='interval' ? Math.max(5, +t.value||30) : (t.value || DEF.cfg[D.cfg]); save(); return; }
   if(D.sd){
     const d = D.d;
