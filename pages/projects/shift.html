@@ -48,6 +48,26 @@ tr[data-open]:hover td{background:var(--panel2)}
 .ot_row .hint{color:var(--dim)}
 .ot_badge{display:inline-block;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;margin-left:6px;border:1px solid var(--blood);color:var(--blood)}
 tr.ot td:first-child::after{content:' OT';font-size:9px;color:var(--blood);margin-left:4px;letter-spacing:1px}
+
+.sheetwrap{overflow:auto;max-height:72vh;border:2px solid var(--line)}
+table.sheet{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%;counter-reset:rn}
+.sheet th,.sheet td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:0 8px;height:26px;box-sizing:border-box;white-space:nowrap}
+.sheet td{background:var(--bg)}
+.sheet thead th{position:sticky;background:var(--panel);z-index:2}
+.sheet thead tr:first-child th{top:0;height:20px;color:var(--dim);text-align:center;font-size:10px;letter-spacing:0}
+.sheet thead tr:nth-child(2) th{top:20px}
+.sheet .rn{width:44px;min-width:44px;text-align:center;color:var(--dim);font-size:10px;background:var(--panel);position:sticky;left:0;z-index:1}
+.sheet thead .rn{z-index:3}
+.sheet tbody tr{counter-increment:rn}
+.sheet tbody .rn::before{content:counter(rn)}
+.sheet tbody tr:hover td:not(.rn){background:var(--panel2)}
+.sheet input,.sheet select{border:0;background:transparent;width:100%;min-width:62px;height:24px;padding:0;box-sizing:border-box}
+.sheet td:focus-within{outline:2px solid var(--blood);outline-offset:-2px}
+.sheet tr.tot td{background:var(--panel);font-weight:700;border-top:1px solid var(--blood)}
+.sheet tr.tot td.rn{background:var(--panel)}
+.sheet tr.empty .cv{color:var(--dim)}
+.sheet td.lnk{cursor:pointer;color:var(--blood);text-decoration:underline}
+.sheet td.n{text-align:right}
 </style>
 </head>
 <body data-page="projects">
@@ -202,8 +222,9 @@ function slotZone(d, s, e){
   return '';
 }
 
+function ivOf(d){ return Math.max(1, +((S.days[d]||{}).iv) || +S.cfg.interval || 30); }
 function grid(d){
-  const sp = shiftSpan(d), iv = Math.max(1, +S.cfg.interval || 30);
+  const sp = shiftSpan(d), iv = ivOf(d);
   const a = sp.a, b = sp.b;
   const o = [];
   for(let t=a; t<b; t+=iv) o.push({k:ft(t), s:t, e:Math.min(t+iv,b), def:Math.min(iv,b-t), zone:slotZone(d, t, Math.min(t+iv,b))});
@@ -261,9 +282,9 @@ function tagOpt(sel){
 }
 
 function render(){
-  const body = {track:vTrack, setup:vSetup, export:vExport}[ui.tab]();
-  $('main').innerHTML = '<div class="bar"><div class="seg">'+['track','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
-  if(ui.tab==='track') calc();
+  const body = {track:vTrack, sheet:vSheet, setup:vSetup, export:vExport}[ui.tab]();
+  $('main').innerHTML = '<div class="bar"><div class="seg">'+['track','sheet','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
+  if(ui.tab==='track') calc(); else if(ui.tab==='sheet') sheetCalc();
 }
 
 function vTrack(){
@@ -313,7 +334,7 @@ function dayBody(){
       '<td class="cc n"></td><td class="hint">'+(bn?'sched: '+bn:'')+'</td></tr>';
   }).join('');
   return '<div class="panel mod"><div class="row2"><span class="hint">shift</span><input type="time" id="ss" value="'+sh.start+'"><span class="hint">to</span><input type="time" id="se" value="'+sh.end+'">'+otInfo+
-    '<span class="hint">· '+S.cfg.interval+' min slots · '+f2(totalSpan)+' h span · tickets only count on productive tags</span></div>'+
+    '<span class="hint">· '+ivOf(d)+' min slots · '+f2(totalSpan)+' h span · tickets only count on productive tags</span></div>'+
     otControls(d)+
     '<div class="scroll"><table><tr><th>slot</th><th>tag</th><th class="n">tickets</th><th class="n">mins</th><th class="n">hours</th><th></th></tr>'+rows+'</table></div></div>';
 }
@@ -353,7 +374,7 @@ function vSetup(){
   const c = S.cfg, row = (l,o,inner) => '<div class="row2">'+inner+'<button class="btn sm ghost" data-del="'+l+':'+o.id+'">×</button></div>';
   return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">defaults</div>'+
     '<div class="row2"><span class="hint">shift</span><input type="time" data-cfg="start" value="'+c.start+'"><span class="hint">to</span><input type="time" data-cfg="end" value="'+c.end+'"><span class="hint">interval (min)</span><input type="number" class="num" min="5" step="5" data-cfg="interval" value="'+c.interval+'"></div>'+
-    '<p class="hint">Each day can override the shift times on the track tab. Overtime (pre-shift and/or post-shift) is set per day on the track tab — it extends the interval grid without touching the base shift, so you can tag OT slots exactly like regular ones. Recommended: 4h on one side, or 2h + 2h if both. Changing the interval hides logged slots that no longer line up with the new grid.</p>'+
+    '<p class="hint">Each day can override the shift times on the track tab. Overtime (pre-shift and/or post-shift) is set per day on the track tab — it extends the interval grid without touching the base shift, so you can tag OT slots exactly like regular ones. Recommended: 4h on one side, or 2h + 2h if both. Days that already have logged slots keep their own start, end and interval, so changing these defaults only affects days with nothing logged yet.</p>'+
     '<div class="sub_t">tags — a productive tag is a task: it counts toward tickets/hr and can have a quota per hour. mins = auto-fill the real minutes when picked</div>'+
     S.tags.map(t=>row('tags',t,'<input data-l="tags" data-id="'+t.id+'" data-f="name" value="'+esc(t.name)+'" placeholder="tag name"><label class="hint"><input type="checkbox" data-l="tags" data-id="'+t.id+'" data-f="prod"'+(t.prod?' checked':'')+'> productive</label>'+
       '<input type="number" class="num" min="0" step="any" data-l="tags" data-id="'+t.id+'" data-f="quota" value="'+(t.quota??'')+'" placeholder="quota/h"'+(t.prod?'':' disabled')+'>'+
@@ -399,6 +420,116 @@ function vExport(){
     '<div class="sub_t">backup — data lives in this browser only</div>'+
     '<div class="row2"><button class="btn sm" data-data>compact backup (copy / paste)</button><button class="btn sm ghost" data-x="bak">download backup .json</button><label class="btn sm ghost">restore<input type="file" id="xr" accept=".json" hidden></label></div>'+
     '<span class="hint" id="xs"></span></div>';
+}
+
+/* ---------- sheet view (excel-like) ---------- */
+/* Freeze start / end / interval into any day that already has logs, so editing the
+   defaults later never reshapes past days. Called before a default changes. */
+function pinDays(){
+  for(const d in S.days){ const o = S.days[d]; if(!o) continue;
+    const has = Object.values(o.slots || {}).some(x => x && (x.tag || x.tickets != null));
+    if(!has) continue;
+    if(!o.start) o.start = S.cfg.start;
+    if(!o.end) o.end = S.cfg.end;
+    if(!o.iv) o.iv = ivOf(d);
+  }
+}
+const colL = n => { let s = ''; n++; while(n > 0){ const m = (n-1) % 26; s = String.fromCharCode(65+m) + s; n = Math.floor((n-1)/26); } return s; };
+function sheetHead(names){
+  return '<thead><tr class="skip"><th class="rn"></th>'+names.map((_,i)=>'<th>'+colL(i)+'</th>').join('')+'</tr>'+
+    '<tr><th class="rn"></th>'+names.map(n=>'<th>'+esc(n)+'</th>').join('')+'</tr></thead>';
+}
+function valsFrom(R){
+  const T = prodTags();
+  return [f2(R.sh), f2(R.lh), f2(R.ph), f2(R.dh), R.tk, R.ph ? f2(tph(R.tk,R.ph)) : '',
+    ...T.map(t => (R.task[t.id]||{}).tk || 0),
+    ...T.map(t => { const o = R.task[t.id]; return t.quota && o && o.h ? Math.round(o.tk/(t.quota*o.h)*100)+'%' : ''; })];
+}
+function vSheet(){
+  const ds = range(ui.view, ui.date), mode = ui.smode || 'days', T = prodTags();
+  ui._sd = ds;
+  const lab = ui.view==='day' ? pd(ui.date).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'}) : ds[0]+' → '+ds[ds.length-1];
+  const bar = '<div class="bar"><div class="seg">'+['day','week','month'].map(v=>'<button data-view="'+v+'" class="'+(ui.view===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<div class="seg">'+['days','intervals'].map(v=>'<button data-smode="'+v+'" class="'+(mode===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
+    '<div class="addrow"><button class="btn sm ghost" data-nav="-1">‹</button><input type="date" id="dt" value="'+ui.date+'"><button class="btn sm ghost" data-nav="1">›</button><button class="btn sm ghost" data-today>today</button><button class="btn sm" data-sc>copy table</button></div></div>'+
+    '<p class="hint" style="margin-bottom:12px">'+lab+' · <span id="xs"></span></p>';
+  let head, body, hint;
+  if(mode === 'days'){
+    head = sheetHead(['DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
+      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' quota %')]);
+    body = ds.map(d=>{ const sh = shift(d), pre = otOf(d,'preOT')/60, post = otOf(d,'postOT')/60;
+      return '<tr data-d="'+d+'"><td class="rn"></td><td class="lnk" data-open="'+d+'" title="open this day\u2019s intervals">'+d+'</td>'+
+        '<td>'+pd(d).toLocaleDateString(undefined,{weekday:'short'})+'</td>'+
+        '<td><input type="time" data-sd="start" data-d="'+d+'" value="'+sh.start+'"></td>'+
+        '<td><input type="time" data-sd="end" data-d="'+d+'" value="'+sh.end+'"></td>'+
+        '<td><input type="number" min="0" max="24" step="0.5" data-sd="preOT" data-d="'+d+'" value="'+(pre||'')+'"></td>'+
+        '<td><input type="number" min="0" max="24" step="0.5" data-sd="postOT" data-d="'+d+'" value="'+(post||'')+'"></td>'+
+        valsFrom(stats(d)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>'; }).join('')+
+      '<tr class="tot"><td class="rn"></td><td>TOTAL</td>'+'<td></td>'.repeat(5)+valsFrom(agg(ds)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>';
+    hint = 'Edit start, end and overtime straight in the cells. Each day keeps its own times and OT, so a Tuesday with OT stays that way in reports. Click a date to open its intervals.';
+  } else {
+    head = sheetHead(['DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD HRS','T / HR','NOTE']);
+    const shown = [], out = [];
+    for(const d of ds){
+      const gr = grid(d);
+      if(ui.view !== 'day' && !gr.some(g => sl(d,g))) continue;
+      shown.push(d);
+      for(const g of gr){
+        const x = slot(d,g.k), bo = breaksInInterval(d,g), def = effMin(d,g);
+        const bn = bo.map(b => esc(b.name)+' \u2212'+b.overlap+'m').join(', ');
+        out.push('<tr data-d="'+d+'" data-k="'+g.k+'"'+(g.zone?' class="ot"':'')+'><td class="rn"></td><td>'+d+'</td><td>'+g.k+'\u2013'+ft(g.e)+'</td>'+
+          '<td><select data-f="tag">'+tagOpt(x.tag)+'</select></td>'+
+          '<td><input type="number" data-f="tickets" min="0" step="1" value="'+(x.tickets??'')+'"></td>'+
+          '<td><input type="number" data-f="mins" min="0" max="'+g.def+'" step="1" placeholder="'+def+'" value="'+(x.mins??'')+'"></td>'+
+          '<td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td>'+
+          '<td class="hint">'+(g.zone?g.zone.toUpperCase():'')+(bn?(g.zone?' \u00b7 ':'')+'sched: '+bn:'')+'</td></tr>');
+      }
+      out.push('<tr class="tot" data-d="'+d+'"><td class="rn"></td><td>'+d+'</td><td>TOTAL</td><td></td><td class="n tk"></td><td></td><td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td><td></td></tr>');
+    }
+    if(shown.length > 1) out.push('<tr class="tot"><td class="rn"></td><td>ALL</td><td>TOTAL</td><td></td><td class="n tk"></td><td></td><td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td><td></td></tr>');
+    ui._sd = shown;
+    body = out.join('') || '<tr><td class="rn"></td><td colspan="10" class="hint">Nothing logged in this range.</td></tr>';
+    hint = 'Enter / \u2191 / \u2193 move between rows. Paste a column of numbers into tickets or mins to fill downward (untagged rows are skipped). Week and month only list days that have logs. \u201ccopy table\u201d gives clean rows without totals.';
+  }
+  return bar+'<div class="sheetwrap"><table class="sheet" id="sheetT">'+head+'<tbody>'+body+'</tbody></table></div>'+
+    '<p class="hint" style="margin-top:10px">'+hint+'</p>';
+}
+function sheetCalc(){
+  const t = $('sheetT'); if(!t) return;
+  const put = (tr, c, v) => { const e = tr.querySelector('.'+c); if(e) e.textContent = v; };
+  if((ui.smode || 'days') === 'days'){
+    t.querySelectorAll('tbody tr[data-d]').forEach(tr => { const R = stats(tr.dataset.d), v = valsFrom(R);
+      tr.querySelectorAll('.cv').forEach((c,i) => c.textContent = v[i]); tr.classList.toggle('empty', !R.lh); });
+    const tot = t.querySelector('tr.tot');
+    if(tot){ const v = valsFrom(agg(ui._sd || [])); tot.querySelectorAll('.cv').forEach((c,i) => c.textContent = v[i]); }
+    return;
+  }
+  const gc = {};
+  t.querySelectorAll('tbody tr[data-k]').forEach(tr => {
+    const d = tr.dataset.d, g = (gc[d] || (gc[d] = grid(d))).find(x => x.k === tr.dataset.k); if(!g) return;
+    const v = sl(d,g);
+    tr.querySelector('[data-f=tickets]').disabled = !(v && v.pr);
+    put(tr,'hr', v ? f2(v.h) : ''); put(tr,'dd', v && v.ded > 0 ? f2(v.ded) : '');
+    put(tr,'ph', v && v.pr ? f2(v.h) : ''); put(tr,'tp', v && v.pr && v.h ? f2(v.tk/v.h) : '');
+  });
+  const fill = (tr, R) => { put(tr,'tk',R.tk); put(tr,'hr',f2(R.lh)); put(tr,'dd',f2(R.dh)); put(tr,'ph',f2(R.ph)); put(tr,'tp',R.ph ? f2(tph(R.tk,R.ph)) : ''); };
+  t.querySelectorAll('tr.tot[data-d]').forEach(tr => fill(tr, stats(tr.dataset.d)));
+  const gt = t.querySelector('tr.tot:not([data-d])'); if(gt) fill(gt, agg(ui._sd || []));
+}
+async function copySheet(){
+  const tb = $('sheetT'); if(!tb) return;
+  const rows = [...tb.rows].filter(r => !r.classList.contains('skip') && !r.classList.contains('tot') && !(r.dataset.k && !(r.querySelector('select') || {}).value));
+  const data = rows.map(r => [...r.cells].filter(c => !c.classList.contains('rn')).map(c => {
+    const i = c.querySelector('select,input');
+    if(!i) return c.textContent.trim();
+    if(i.tagName === 'SELECT'){ const g = S.tags.find(q => q.id === i.value); return g ? g.name : ''; }
+    return i.value; }));
+  const tsv = toTxt(data, '\t');
+  const html = '<table>'+data.map((r,ri)=>'<tr>'+r.map(c=>(ri?'<td>':'<th>')+esc(c)+(ri?'</td>':'</th>')).join('')+'</tr>').join('')+'</table>';
+  let ok = false;
+  try{ await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([tsv],{type:'text/plain'}),'text/html':new Blob([html],{type:'text/html'})})]); ok = true; }
+  catch(_){ ok = await cp(tsv); }
+  say(ok ? 'copied '+(data.length-1)+' rows — paste into Sheets / Excel' : 'copy blocked');
 }
 
 /* ---------- export ---------- */
@@ -678,11 +809,13 @@ async function xlsx(ds, empty){
 
 /* ---------- events ---------- */
 document.addEventListener('click', async e=>{
-  const r = e.target.closest('tr[data-open]');
-  if(r){ ui.view = 'day'; ui.date = r.dataset.open; render(); return; }
+  const r = e.target.closest('[data-open]');
+  if(r){ ui.view = 'day'; ui.date = r.dataset.open; if(ui.tab==='sheet') ui.smode = 'intervals'; render(); return; }
   const b = e.target.closest('button'); if(!b) return; const D = b.dataset;
   if(D.tab){ ui.tab = D.tab; render(); }
   else if(D.view){ ui.view = D.view; render(); }
+  else if(D.smode){ ui.smode = D.smode; render(); }
+  else if(D.sc!==undefined){ copySheet(); }
   else if(D.nav!==undefined){
     const n = +D.nav, d = pd(ui.date);
     if(ui.view==='month'){ d.setDate(1); d.setMonth(d.getMonth()+n); } else d.setDate(d.getDate()+n*(ui.view==='week'?7:1));
@@ -745,7 +878,13 @@ document.addEventListener('change', e=>{
   if(t.id==='xa' || t.id==='xb'){ ui[t.id] = t.value; return; }
   if(t.id==='xmode'){ ui.xmode = t.value; return; }
   if(t.id==='xr'){ restore(t.files[0]); return; }
-  if(D.cfg){ S.cfg[D.cfg] = D.cfg==='interval' ? Math.max(5, +t.value||30) : (t.value || DEF.cfg[D.cfg]); save(); return; }
+  if(D.cfg){ pinDays(); S.cfg[D.cfg] = D.cfg==='interval' ? Math.max(5, +t.value||30) : (t.value || DEF.cfg[D.cfg]); save(); return; }
+  if(D.sd){
+    const d = D.d;
+    if(D.sd==='start' || D.sd==='end'){ const o = S.days[d] || (S.days[d] = {slots:{}}); o[D.sd] = t.value || undefined; }
+    else { setOT(d, D.sd, parseFloat(t.value||0) * 60); t.value = (otOf(d, D.sd)/60) || ''; }
+    save(); sheetCalc(); return;
+  }
   if(D.l){
     const o = S[D.l].find(x=>x.id===D.id); if(!o) return;
     o[D.f] = t.type==='checkbox' ? t.checked : t.type==='number' ? (t.value==='' ? null : +t.value) : t.value; save();
@@ -755,7 +894,7 @@ document.addEventListener('change', e=>{
   }
   if(D.f){
     const tr = t.closest('tr[data-k]'); if(!tr) return;
-    const d = ui.date, o = S.days[d] || (S.days[d] = {slots:{}}), x = o.slots[tr.dataset.k] || (o.slots[tr.dataset.k] = {}), v = t.value;
+    const d = tr.dataset.d || ui.date, o = S.days[d] || (S.days[d] = {slots:{}}), x = o.slots[tr.dataset.k] || (o.slots[tr.dataset.k] = {}), v = t.value;
     if(D.f==='tag'){
       x.tag = v || undefined;
       const g = S.tags.find(q=>q.id===v);
@@ -764,7 +903,7 @@ document.addEventListener('change', e=>{
     }
     else if(D.f==='tickets') x.tickets = v==='' ? undefined : Math.max(0, Math.floor(+v));
     else if(D.f==='mins'){ x.mins = v==='' ? undefined : Math.max(0, +v); delete x.am; }
-    save(); calc();
+    save(); if(ui.tab==='sheet') sheetCalc(); else calc();
   }
 });
 
@@ -787,6 +926,43 @@ window.addEventListener('storage', e=>{
   if(!document.hidden && !(a && a.matches && a.matches('input,select,textarea'))) render();
 });
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) reloadFromStorage(); });
+
+/* ---------- sheet: keyboard nav + column paste ---------- */
+document.addEventListener('keydown', e=>{
+  const t = e.target;
+  if(ui.tab !== 'sheet' || !t.closest || !t.closest('#sheetT') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const isIn = t.tagName === 'INPUT', isSel = t.tagName === 'SELECT';
+  if(!isIn && !isSel) return;
+  let dir = 0;
+  if(e.key === 'Enter') dir = e.shiftKey ? -1 : 1;
+  else if(isIn && e.key === 'ArrowDown') dir = 1;
+  else if(isIn && e.key === 'ArrowUp') dir = -1;
+  if(!dir) return;
+  e.preventDefault();
+  const td = t.closest('td'), ci = td.cellIndex, all = [...$('sheetT').tBodies[0].rows];
+  let i = all.indexOf(td.parentElement) + dir;
+  while(i >= 0 && i < all.length){
+    const c = all[i].cells[ci], f = c && c.querySelector('input:not(:disabled),select:not(:disabled)');
+    if(f){ f.focus(); try{ f.select(); }catch(_){} return; }
+    i += dir;
+  }
+});
+document.addEventListener('paste', e=>{
+  const t = e.target;
+  if(!t.closest || !t.closest('#sheetT') || t.tagName !== 'INPUT' || !t.dataset.f) return;
+  const txt = ((e.clipboardData || window.clipboardData).getData('text') || '').trim();
+  if(!/[\n\r]/.test(txt)) return;
+  e.preventDefault();
+  const vals = txt.split(/\r?\n/).map(l => l.split('\t')[0].trim());
+  const ci = t.closest('td').cellIndex, all = [...$('sheetT').tBodies[0].rows];
+  let i = all.indexOf(t.closest('tr'));
+  for(const v of vals){
+    while(i < all.length){
+      const f = all[i].cells[ci].querySelector('input[data-f]:not(:disabled)'); i++;
+      if(f){ f.value = v; f.dispatchEvent(new Event('change', {bubbles:true})); break; }
+    }
+  }
+});
 
 /* ---------- shared backup: identical in tally + shift ---------- */
 window.mkBackupAdvanced = () => { ui.tab = 'export'; render(); window.scrollTo(0,0); };
