@@ -1940,6 +1940,10 @@
             it.slotKey = g.key;
             save();
           }
+          if (!it.date) {
+            it.date = date;
+            save();
+          }
 
           const d = shiftDay(sh, date);
           const st = getSlotState();
@@ -2852,6 +2856,18 @@
     if (e.key === " " && live() && !typing(e.target) && document.querySelector('[data-act="plus"]'))
       e.preventDefault();
   });
+})();
+
+/* ---------- repair: slot cards without a stored date used to follow "today" ---------- */
+(function () {
+  let changed = false;
+  for (const it of S.items) {
+    if (it.type !== "slot" || it.date) continue;
+    const first = (it.history || []).find((x) => x && x.ts);
+    it.date = first ? isoLocal(first.ts).slice(0, 10) : todayYMD();
+    changed = true;
+  }
+  if (changed) save();
 })();
 
 /* ---------- boot ---------- */
