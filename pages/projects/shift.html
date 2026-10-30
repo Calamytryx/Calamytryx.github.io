@@ -443,6 +443,7 @@ function valsFrom(R){
   const T = prodTags();
   return [f2(R.sh), f2(R.lh), f2(R.ph), f2(R.dh), R.tk, R.ph ? f2(tph(R.tk,R.ph)) : '',
     ...T.map(t => (R.task[t.id]||{}).tk || 0),
+    ...T.map(t => f2((R.task[t.id]||{}).h || 0)),
     ...T.map(t => { const o = R.task[t.id]; return t.quota && o && o.h ? Math.round(o.tk/(t.quota*o.h)*100)+'%' : ''; })];
 }
 function vSheet(){
@@ -451,12 +452,12 @@ function vSheet(){
   const lab = ui.view==='day' ? pd(ui.date).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'short',day:'numeric'}) : ds[0]+' → '+ds[ds.length-1];
   const bar = '<div class="bar"><div class="seg">'+['day','week','month'].map(v=>'<button data-view="'+v+'" class="'+(ui.view===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
     '<div class="seg">'+['days','intervals'].map(v=>'<button data-smode="'+v+'" class="'+(mode===v?'on':'')+'">'+v+'</button>').join('')+'</div>'+
-    '<div class="addrow"><button class="btn sm ghost" data-nav="-1">‹</button><input type="date" id="dt" value="'+ui.date+'"><button class="btn sm ghost" data-nav="1">›</button><button class="btn sm ghost" data-today>today</button><button class="btn sm" data-sc>copy table</button></div></div>'+
+    '<div class="addrow"><button class="btn sm ghost" data-nav="-1">‹</button><input type="date" id="dt" value="'+ui.date+'"><button class="btn sm ghost" data-nav="1">›</button><button class="btn sm ghost" data-today>today</button><span class="hint">paste at</span><input id="sa" value="'+esc(ui.sa||'A1')+'" style="width:56px" title="top-left cell you will paste into"><button class="btn sm" data-sc="f" title="values plus live formulas, for Google Sheets">copy for sheets</button><button class="btn sm ghost" data-sc="v" title="plain values">copy values</button></div></div>'+
     '<p class="hint" style="margin-bottom:12px">'+lab+' · <span id="xs"></span></p>';
   let head, body, hint;
   if(mode === 'days'){
     head = sheetHead(['DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
-      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' quota %')]);
+      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %')]);
     body = ds.map(d=>{ const sh = shift(d), pre = otOf(d,'preOT')/60, post = otOf(d,'postOT')/60;
       return '<tr data-d="'+d+'"><td class="rn"></td><td class="lnk" data-open="'+d+'" title="open this day\u2019s intervals">'+d+'</td>'+
         '<td>'+pd(d).toLocaleDateString(undefined,{weekday:'short'})+'</td>'+
@@ -466,7 +467,7 @@ function vSheet(){
         '<td><input type="number" min="0" max="24" step="0.5" data-sd="postOT" data-d="'+d+'" value="'+(post||'')+'"></td>'+
         valsFrom(stats(d)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>'; }).join('')+
       '<tr class="tot"><td class="rn"></td><td>TOTAL</td>'+'<td></td>'.repeat(5)+valsFrom(agg(ds)).map(v=>'<td class="n cv">'+v+'</td>').join('')+'</tr>';
-    hint = 'Edit start, end and overtime straight in the cells. Each day keeps its own times and OT, so a Tuesday with OT stays that way in reports. Click a date to open its intervals.';
+    hint = 'Edit start, end and overtime straight in the cells. Each day keeps its own times and OT, so a Tuesday with OT stays that way in reports. Click a date to open its intervals. \u201ccopy for sheets\u201d pastes values plus live formulas starting at the cell in \u201cpaste at\u201d.';
   } else {
     head = sheetHead(['DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD HRS','T / HR','NOTE']);
     const shown = [], out = [];
@@ -489,7 +490,7 @@ function vSheet(){
     if(shown.length > 1) out.push('<tr class="tot"><td class="rn"></td><td>ALL</td><td>TOTAL</td><td></td><td class="n tk"></td><td></td><td class="n hr"></td><td class="n dd"></td><td class="n ph"></td><td class="n tp"></td><td></td></tr>');
     ui._sd = shown;
     body = out.join('') || '<tr><td class="rn"></td><td colspan="10" class="hint">Nothing logged in this range.</td></tr>';
-    hint = 'Enter / \u2191 / \u2193 move between rows. Paste a column of numbers into tickets or mins to fill downward (untagged rows are skipped). Week and month only list days that have logs. \u201ccopy table\u201d gives clean rows without totals.';
+    hint = 'Enter / \u2191 / \u2193 move between rows. Paste a column of numbers into tickets or mins to fill downward (untagged rows are skipped). Week and month only list days that have logs. \u201ccopy for sheets\u201d pastes tagged rows with live formulas and a TOTAL row at the cell in \u201cpaste at\u201d; \u201ccopy values\u201d gives plain rows.';
   }
   return bar+'<div class="sheetwrap"><table class="sheet" id="sheetT">'+head+'<tbody>'+body+'</tbody></table></div>'+
     '<p class="hint" style="margin-top:10px">'+hint+'</p>';
@@ -516,7 +517,75 @@ function sheetCalc(){
   t.querySelectorAll('tr.tot[data-d]').forEach(tr => fill(tr, stats(tr.dataset.d)));
   const gt = t.querySelector('tr.tot:not([data-d])'); if(gt) fill(gt, agg(ui._sd || []));
 }
-async function copySheet(){
+function anchorOf(){
+  const m = /^([A-Za-z]+)(\d+)$/.exec(String(ui.sa || 'A1').trim());
+  if(!m) return {c:0, r:1};
+  let c = 0; for(const ch of m[1].toUpperCase()) c = c*26 + ch.charCodeAt(0) - 64;
+  return {c:c-1, r:Math.max(1, +m[2])};
+}
+/* Plain-text TSV with real formulas, built from the data (not the screen). Formulas use only
+   references and no quote characters, so they survive a paste. Paste into Google Sheets at the
+   cell shown in "paste at". Date / time cells are ISO text that Sheets parses on paste. */
+async function copyFormulas(){
+  const A = anchorOf(), T = prodTags(), nT = T.length, mode = ui.smode || 'days';
+  const R = (ci, row) => colL(A.c + ci) + row;
+  const r4 = n => +(+n).toFixed(4);
+  const head = [], out = [];
+  if(mode === 'days'){
+    head.push('DATE','DAY','START','END','PRE OT (h)','POST OT (h)','SHIFT H','LOGGED H','PROD H','DEDUCTED H','TICKETS','T / HR',
+      ...T.map(t=>t.name+' tickets'), ...T.map(t=>t.name+' hours'), ...T.map(t=>t.name+' quota %'));
+    const first = A.r + 1; let row = first;
+    for(const d of range(ui.view, ui.date)){
+      const St = stats(d); if(!St.lh) continue;
+      const sh = shift(d), q = (ci) => R(ci, row);
+      const line = [d, pd(d).toLocaleDateString(undefined,{weekday:'short'}), sh.start, sh.end, otOf(d,'preOT')/60, otOf(d,'postOT')/60,
+        '=MOD('+q(3)+'-'+q(2)+',1)*24+'+q(4)+'+'+q(5),
+        r4(St.lh), r4(St.ph), r4(St.dh), St.tk,
+        '=IFERROR('+q(10)+'/'+q(8)+')'];
+      T.forEach(t => line.push((St.task[t.id]||{}).tk || 0));
+      T.forEach(t => line.push(r4((St.task[t.id]||{}).h || 0)));
+      T.forEach((t,i) => line.push(t.quota ? '=IFERROR('+q(12+i)+'/('+(+t.quota)+'*'+q(12+nT+i)+')*100)' : ''));
+      out.push(line); row++;
+    }
+    if(out.length){
+      const last = row - 1, tot = row, rng = ci => R(ci,first)+':'+R(ci,last), sum = ci => '=SUM('+rng(ci)+')';
+      const line = ['TOTAL','','','', sum(4), sum(5), sum(6), sum(7), sum(8), sum(9), sum(10), '=IFERROR('+R(10,tot)+'/'+R(8,tot)+')'];
+      T.forEach((t,i) => line.push(sum(12+i)));
+      T.forEach((t,i) => line.push(sum(12+nT+i)));
+      T.forEach((t,i) => line.push(t.quota ? '=IFERROR('+R(12+i,tot)+'/('+(+t.quota)+'*'+R(12+nT+i,tot)+')*100)' : ''));
+      out.push(line);
+    }
+  } else {
+    head.push('DATE','SLOT','TAG','TICKETS','MINS','HOURS','DEDUCTED','PROD (1/0)','PROD HRS','T / HR','NOTE');
+    const first = A.r + 1; let row = first;
+    for(const d of range(ui.view, ui.date)){
+      for(const g of grid(d)){
+        const v = sl(d,g); if(!v) continue;
+        const x = slot(d,g.k), eff = effMin(d,g), bn = breaksInInterval(d,g).map(b => b.name+' -'+b.overlap+'m').join(', ');
+        const mins = R(4,row), blank = 'IF(ISBLANK('+mins+'),'+eff+','+mins+')';
+        out.push([d, g.k+'\u2013'+ft(g.e), v.tag.name, v.pr && v.tk ? v.tk : '', x.mins != null ? +x.mins : '',
+          '='+blank+'/60',
+          '=('+g.def+'-'+blank+')/60',
+          v.pr ? 1 : 0,
+          '='+R(5,row)+'*'+R(7,row),
+          '=IFERROR('+R(3,row)+'*'+R(7,row)+'/'+R(8,row)+')',
+          (g.zone ? g.zone.toUpperCase() : '')+(bn ? (g.zone ? ' / ' : '')+'sched: '+bn : '')]);
+        row++;
+      }
+    }
+    if(out.length){
+      const last = row - 1, tot = row, rng = ci => R(ci,first)+':'+R(ci,last), sum = ci => '=SUM('+rng(ci)+')';
+      out.push(['TOTAL','','','=SUMPRODUCT('+rng(3)+','+rng(7)+')','', sum(5), sum(6), '', sum(8), '=IFERROR('+R(3,tot)+'/'+R(8,tot)+')','']);
+    }
+  }
+  if(!out.length) return say('nothing logged in this range');
+  const fc = v => (typeof v === 'string' && v.charAt(0) === '=') ? v : cell(v, '\t');
+  const text = [head, ...out].map(r => r.map(fc).join('\t')).join('\n');
+  const ok = await cp(text);
+  say(ok ? 'copied '+(out.length-1)+' rows with formulas \u2014 paste into '+R(0,A.r)+' in Google Sheets' : 'copy blocked');
+}
+async function copySheet(kind){
+  if(kind === 'f') return copyFormulas();
   const tb = $('sheetT'); if(!tb) return;
   const rows = [...tb.rows].filter(r => !r.classList.contains('skip') && !r.classList.contains('tot') && !(r.dataset.k && !(r.querySelector('select') || {}).value));
   const data = rows.map(r => [...r.cells].filter(c => !c.classList.contains('rn')).map(c => {
@@ -815,7 +884,7 @@ document.addEventListener('click', async e=>{
   if(D.tab){ ui.tab = D.tab; render(); }
   else if(D.view){ ui.view = D.view; render(); }
   else if(D.smode){ ui.smode = D.smode; render(); }
-  else if(D.sc!==undefined){ copySheet(); }
+  else if(D.sc!==undefined){ copySheet(D.sc); }
   else if(D.nav!==undefined){
     const n = +D.nav, d = pd(ui.date);
     if(ui.view==='month'){ d.setDate(1); d.setMonth(d.getMonth()+n); } else d.setDate(d.getDate()+n*(ui.view==='week'?7:1));
@@ -875,6 +944,7 @@ document.addEventListener('change', e=>{
   if(t.id==='ss' || t.id==='se'){ const o = S.days[ui.date] || (S.days[ui.date] = {slots:{}}); o[t.id==='ss'?'start':'end'] = t.value || undefined; save(); render(); return; }
   if(t.id==='preOT'){ setOT(ui.date, 'preOT', parseFloat(t.value||0) * 60); render(); return; }
   if(t.id==='postOT'){ setOT(ui.date, 'postOT', parseFloat(t.value||0) * 60); render(); return; }
+  if(t.id==='sa'){ ui.sa = t.value; return; }
   if(t.id==='xa' || t.id==='xb'){ ui[t.id] = t.value; return; }
   if(t.id==='xmode'){ ui.xmode = t.value; return; }
   if(t.id==='xr'){ restore(t.files[0]); return; }
