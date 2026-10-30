@@ -538,6 +538,14 @@
           width: auto;
         }
       }
+
+      .sx { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+      .sx_top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+      .sx_num { font-family: var(--display); font-size: clamp(5.5rem, 30vw, 11rem); line-height: 1; text-align: center; color: var(--txt); padding: 6px 0; }
+      .sx_btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .sx_btns .btn { font-size: 1.25rem; padding: 22px 0; text-align: center; }
+      .sx .slot_cd { font-size: 1.5rem; }
+      .sx_row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
     </style>
   </head>
   <body data-page="projects">
@@ -549,6 +557,7 @@
       <div class="toolbar-end">
         <div class="themebar" id="themebar"></div>
         <div class="tlinks">
+          <a href="#" data-simple id="simple-link" title="big ticket display, nothing else">simple view</a>
           <a href="#" data-data title="backup / restore">data</a>
           <a href="shift.html">shift.mk →</a>
           <a href="index.html">← projects</a>
@@ -1387,6 +1396,7 @@
             if (fn) fn();
           });
         }
+        sxTick();
         if (dirty) render();
       }
       setInterval(tick, 250);
@@ -2641,7 +2651,227 @@
         );
       }
 
-      /* ---------- routing ---------- */
+      /* ---------- simple view (big ticket display) ---------- */
+function sxEnsure() {
+  if (!S.sx || typeof S.sx !== "object") S.sx = {};
+  if (!(S.sx.interval > 0)) S.sx.interval = 5;
+  if (!Array.isArray(S.sx.history)) S.sx.history = [];
+  if (S.sx.sel === undefined) S.sx.sel = null;
+}
+function sxPrevYMD() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+}
+/* the slot running right now; a 23:00 -> 08:00 shift is still yesterday's at 02:00 */
+function sxNow(sh) {
+  const n = new Date(), min = n.getHours() * 60 + n.getMinutes();
+  const y = sxPrevYMD(), gy = shiftGrid(sh, y);
+  if (gy.length) {
+    const rel = min + 1440;
+    const g = gy.find((x) => rel >= x.start && rel < x.end);
+    if (g) return { date: y, g };
+  }
+  const t = todayYMD(), g = shiftCurrentSlot(sh, t);
+  return g ? { date: t, g } : null;
+}
+function sxSlot(sh) {
+  sxEnsure();
+  const sel = S.sx.sel;
+  if (sel) {
+    const g = shiftGrid(sh, sel.date).find((x) => x.key === sel.key);
+    if (g) return { date: sel.date, g };
+  }
+  return sxNow(sh);
+}
+function dayTotals(sh, date) {
+  const d = shiftDay(sh, date);
+  let tk = 0, ph = 0;
+  for (const g of shiftGrid(sh, date)) {
+    const s = d.slots[g.key];
+    if (!s || !s.tag) continue;
+    const tag = sh.tags.find((t) => t.id === s.tag);
+    if (!tag || !tag.prod) continue;
+    const eff = shiftEffMin(sh, date, g);
+    const m = s.mins == null ? eff : Math.min(Math.max(0, s.mins), g.def);
+    ph += m / 60;
+    tk += +s.tickets || 0;
+  }
+  return { tk, ph };
+}
+function sxSlotData(fresh, date, key) {
+  if (!fresh.days) fresh.days = {};
+  if (!fresh.days[date]) fresh.days[date] = {};
+  if (!fresh.days[date].slots) fresh.days[date].slots = {};
+  return fresh.days[date].slots[key] || (fresh.days[date].slots[key] = {});
+}
+function sxSet(date, key, val, label, record = true) {
+  const fresh = readShift();
+  if (!fresh) return false;
+  const cur = sxSlotData(fresh, date, key);
+  const prev = +cur.tickets || 0, next = Math.max(0, Math.floor(val));
+  if (prev === next) return true;
+  cur.tickets = next;
+  if (!writeShift(fresh)) return false;
+  if (record) {
+    S.sx.history.push({ date, key, prev, next, label, ts: Date.now() });
+    if (S.sx.history.length > 200) S.sx.history.shift();
+  }
+  save();
+  return true;
+}
+function sxSetTag(date, key, id) {
+  const fresh = readShift();
+  if (!fresh) return false;
+  const cur = sxSlotData(fresh, date, key);
+  if (id) cur.tag = id;
+  else delete cur.tag;
+  return writeShift(fresh);
+}
+function simpleView() {
+  sxEnsure();
+  const sh = readShift();
+  if (!sh || !Array.isArray(sh.tags) || !sh.tags.length)
+    return h("div", { class: "sx" },
+      h("p", { class: "hint" }, "No shift.mk data yet. Open shift.mk and add at least one tag first."),
+      h("a", { href: "shift.html", class: "btn sm", style: "text-decoration:none;color:var(--txt);align-self:flex-start" }, "open shift.mk →"));
+  const f = sxSlot(sh);
+  if (!f) return h("div", { class: "sx" }, h("p", { class: "hint" }, "No slot found."));
+  const { date, g } = f;
+  const following = !S.sx.sel;
+  const grid = shiftGrid(sh, date), idx = grid.findIndex((x) => x.key === g.key);
+
+  const numEl = h("div", { class: "sx_num" });
+  const cdEl = h("div", { class: "slot_cd", "data-sx-cd": "1" }, "—");
+  const dayEl = h("div", { class: "hint", style: "text-align:center" });
+  const noteEl = h("div", { class: "hint", style: "text-align:center;min-height:1.2em" });
+  const tagSel = h("select", {});
+  const sorted = [...sh.tags].sort((a, b) => (b.prod ? 1 : 0) - (a.prod ? 1 : 0));
+  tagSel.append(
+    h("option", { value: "" }, "— pick a tag"),
+    ...sorted.map((t) => h("option", { value: t.id }, t.name + (t.prod ? (t.quota ? " · " + t.quota + "/h" : "") : " (non-prod)"))),
+  );
+  const lastB = h("button", { class: "btn sm ghost" });
+  const bump = (delta, label) => {
+    const fresh = readShift() || sh;
+    const cur = shiftDay(fresh, date).slots[g.key] || {};
+    const ok = sxSet(date, g.key, (+cur.tickets || 0) + delta, label);
+    paint();
+    if (!ok) noteEl.textContent = "write failed";
+  };
+  const mk = (cls, act, fn) => h("button", { class: cls, "data-act": act, onclick: fn });
+  const m1 = mk("btn ghost", "minus1", () => bump(-1, "−1"));
+  const mN = mk("btn ghost", "minus", () => bump(-S.sx.interval, "−" + S.sx.interval));
+  const pN = mk("btn", "plus", () => bump(S.sx.interval, "+" + S.sx.interval));
+  const p1 = mk("btn", "plus1", () => bump(1, "+1"));
+  const undoB = mk("btn sm ghost", "undo", () => {
+    const x = S.sx.history.pop();
+    if (!x) return;
+    sxSet(x.date, x.key, x.prev, "", false);
+    save();
+    if (x.date !== date || x.key !== g.key) {
+      S.sx.sel = { date: x.date, key: x.key };
+      save();
+      render();
+    } else paint();
+  });
+  const stepIn = h("input", { type: "number", min: "1", step: "1", class: "num", value: S.sx.interval });
+  stepIn.onchange = () => {
+    const v = Math.floor(parseFloat(stepIn.value));
+    if (v > 0) S.sx.interval = v;
+    stepIn.value = S.sx.interval;
+    save();
+    paint();
+  };
+  tagSel.onchange = () => {
+    sxSetTag(date, g.key, tagSel.value);
+    paint();
+  };
+  lastB.onclick = () => {
+    if (lastB._id) sxSetTag(date, g.key, lastB._id);
+    paint();
+  };
+  const move = (key) => {
+    S.sx.sel = key ? { date, key } : null;
+    save();
+    render();
+  };
+  const prevB = h("button", { class: "btn sm ghost", onclick: () => move(grid[idx - 1].key) }, "‹");
+  const nextB = h("button", { class: "btn sm ghost", onclick: () => move(grid[idx + 1].key) }, "›");
+  prevB.disabled = idx <= 0;
+  nextB.disabled = idx >= grid.length - 1;
+  const nowB = following ? null : h("button", { class: "btn sm", onclick: () => move(null) }, "now");
+
+  function paint() {
+    const fresh = readShift() || sh;
+    const s = shiftDay(fresh, date).slots[g.key] || {};
+    const iv = S.sx.interval;
+    numEl.textContent = String(+s.tickets || 0);
+    m1.textContent = "−1";
+    mN.textContent = "−" + iv;
+    pN.textContent = "+" + iv;
+    p1.textContent = "+1";
+    tagSel.value = s.tag || "";
+    const tag = s.tag && fresh.tags.find((t) => t.id === s.tag);
+    noteEl.textContent = !tag ? "pick a tag, tickets don't count without one" : tag.prod ? "" : "not a productive tag, tickets don't count";
+    let last = null;
+    const dd = shiftDay(fresh, date);
+    for (const x of shiftGrid(fresh, date)) {
+      if (x.start >= g.start) break;
+      const sx = dd.slots[x.key];
+      if (sx && sx.tag) last = sx.tag;
+    }
+    const lt = last && fresh.tags.find((t) => t.id === last);
+    lastB._id = lt ? lt.id : null;
+    lastB.textContent = lt ? "use last: " + lt.name : "";
+    lastB.style.display = !s.tag && lt ? "" : "none";
+    const t = dayTotals(fresh, date);
+    dayEl.textContent = (date === todayYMD() ? "today" : fmtDate(date)) + " · " + t.tk + " tickets · " + t.ph.toFixed(2) + " prod h · " + (t.ph > 0 ? (t.tk / t.ph).toFixed(1) : "0.0") + "/hr";
+    undoB.disabled = !S.sx.history.length;
+  }
+  const cd = countdownState(date, g);
+  cdEl.textContent = cd.text;
+  cdEl.className = "slot_cd " + cd.state;
+  paint();
+  return h("div", { class: "sx", "data-sx": "1", "data-date": date, "data-key": g.key },
+    h("div", { class: "sx_top" }, prevB, h("span", { class: "slot_big" }, fmtRange(g)),
+      g.zone ? h("span", { class: "slot_ot" }, g.zone === "pre" ? "PRE-OT" : "POST-OT") : null,
+      cd.state === "live" || cd.state === "warning" ? h("span", { class: "slot_live" }, "live") : null,
+      nextB, nowB),
+    h("div", { class: "hint" }, fmtDate(date)),
+    h("div", { class: "row2" }, h("span", { class: "slot_cd_label" }, "time left"), cdEl),
+    h("div", { class: "sx_row" }, tagSel, lastB),
+    numEl,
+    h("div", { class: "sx_btns" }, m1, mN, pN, p1),
+    noteEl,
+    h("div", { class: "sx_row" }, h("span", { class: "hint" }, "step"), stepIn, undoB),
+    dayEl,
+    h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add step · − subtract step · ↑ +1 · ↓ −1 · u undo"),
+  );
+}
+/* keeps the countdown live and moves to the next slot by itself while following "now" */
+function sxTick() {
+  const root = document.querySelector("[data-sx]");
+  if (!root) return;
+  const sh = readShift();
+  if (!sh) return;
+  const f = sxSlot(sh);
+  if (!f || f.date !== root.dataset.date || f.g.key !== root.dataset.key) {
+    render();
+    return;
+  }
+  const el2 = root.querySelector("[data-sx-cd]");
+  if (el2) {
+    const cd = countdownState(f.date, f.g);
+    el2.textContent = cd.text;
+    el2.className = "slot_cd " + cd.state;
+  }
+}
+window.addEventListener("focus", () => { if (S.simple) render(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.simple) render(); });
+window.addEventListener("storage", (e) => { if (e.key === SHIFT_KEY && S.simple) render(); });
+
+/* ---------- routing ---------- */
       function go(id) {
         route = id;
         save();
@@ -2650,6 +2880,13 @@
       }
       function render() {
         const m = $("main");
+        const sl = $("simple-link");
+        if (sl) sl.textContent = S.simple ? "full view" : "simple view";
+        if (S.simple) {
+          m.replaceChildren(simpleView());
+          tick();
+          return;
+        }
         if (route === "_data") {
           m.replaceChildren(dataView());
         } else {
@@ -2679,6 +2916,14 @@
 
       /* ---------- events ---------- */
       document.addEventListener("click", (e) => {
+        const sm = e.target.closest("[data-simple]");
+        if (sm) {
+          e.preventDefault();
+          S.simple = !S.simple;
+          save();
+          render();
+          return;
+        }
         const th = e.target.closest("[data-th]");
         if (th) {
           S.theme = th.dataset.th;
@@ -2725,7 +2970,7 @@
       });
 
       /* ---------- shared backup: identical in tally + shift ---------- */
-      window.mkBackupAdvanced = () => go("_data");
+      window.mkBackupAdvanced = () => { S.simple = false; go("_data"); };
       (function(){
         const KEYS = {t:'tally.v1', s:'shift.v1'};
         const HAS = typeof CompressionStream !== 'undefined';
@@ -2839,8 +3084,8 @@
 (function () {
   const typing = (t) =>
     t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-  const map = { " ": "plus", "+": "plus", "=": "plus", "-": "minus", "_": "minus", u: "undo", U: "undo", z: "undo", Z: "undo" };
-  const live = () => route && route !== "_data";
+  const map = { " ": "plus", "+": "plus", "=": "plus", "-": "minus", "_": "minus", u: "undo", U: "undo", z: "undo", Z: "undo", ArrowUp: "plus1", ArrowDown: "minus1" };
+  const live = () => S.simple || (route && route !== "_data");
   document.addEventListener("keydown", (e) => {
     if (!live() || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
     const a = map[e.key];
