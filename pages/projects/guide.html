@@ -90,6 +90,7 @@
     <a href="#sound">sound.mk</a>
     <a href="#shift">shift.mk</a>
     <a href="#tally">tally.mk</a>
+    <a href="#wellness">wellness.mk</a>
   </nav>
 
   <!-- ================= CONTENT ================= -->
@@ -275,6 +276,9 @@
     <h3>Overview</h3>
     <p>The landing view shows every top-level item as a card in <b>grid</b> or <b>list</b> layout (toggle with the segmented control). Card previews show the live counter value, a snippet of the note, or a ticking timer. Click a card to open its detail view. The top bar has <b>+ counter</b>, <b>+ notepad</b> and <b>+ timer</b> buttons to add new top-level items — each prompts for a name.</p>
 
+    <h3>Scheduled breaks</h3>
+    <p>When a break scheduled in shift.mk begins, tally.mk shows a full-screen reminder and blocks tally actions until the break ends. Running tally timers pause for the break and resume automatically afterward.</p>
+
     <h3>Counters</h3>
     <ul>
       <li><b>Big +/− buttons</b> add or subtract the saved interval (default 200).</li>
@@ -299,6 +303,17 @@
 
     <h3>Navigation &amp; persistence</h3>
     <p>Every view has a <b>← all</b> button that returns to the overview. The current view and the entire item list (counters, notes, timers, history, attachments) are saved to localStorage under <code>tally.v1</code>, so a refresh restores your dashboard exactly. There's no cloud sync — clearing site data wipes it, so back up if it matters.</p>
+
+    <!-- ===================== WELLNESS.MK ===================== -->
+    <h2 id="wellness"><span class="mk">//</span> wellness.mk — daily wellness tracker</h2>
+    <p>Quickly log mood, sleep, water, and a few small habits, then review a simple mood trend and recent stats. It does not set targets, grade your wellbeing, or provide medical advice or diagnosis.</p>
+    <a class="open" href="wellness.html">open wellness.mk →</a>
+
+    <h3>Daily logs &amp; patterns</h3>
+    <p>Use the date controls to view or edit today and previous days. Choose a mood with one tap, add or remove a glass of water, enter sleep hours, tick any habits you did, and optionally add a note. Changes save in this browser; the last-seven-days summary shows your check-in streak, mood and sleep averages, water average, and a small mood chart. It is descriptive, not a health score.</p>
+
+    <h3>Privacy &amp; compact backup</h3>
+    <p>Entries are saved in this browser's localStorage and are not uploaded. Use <b>data backup</b> to copy the compact string or download a JSON file; either format can be restored. <b>Reset all data</b> clears this tool's saved entries after confirmation. Clearing site data also removes them. There is no account, sync, or cloud backup; avoid storing details you would not want someone with access to this device to read.</p>
 
     <p class="muted mt_3" style="border-top:1px solid var(--line);padding-top:18px">// everything here is free, offline-capable, and yours. report weirdness on github.</p>
   </main>

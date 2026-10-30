@@ -102,6 +102,8 @@
       main.wrap {
         padding-top: 24px;
         padding-bottom: 60px;
+        width: 100%;
+        max-width: none;
       }
       input,
       select,
@@ -227,7 +229,8 @@
         font-weight: 400;
       }
       .detail {
-        max-width: 760px;
+        width: 100%;
+        max-width: 1440px;
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -477,7 +480,8 @@
       }
       /* data view */
       .data_wrap {
-        max-width: 760px;
+        width: 100%;
+        max-width: 1200px;
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -539,13 +543,92 @@
         }
       }
 
-      .sx { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-      .sx_top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-      .sx_num { font-family: var(--display); font-size: clamp(5.5rem, 30vw, 11rem); line-height: 1; text-align: center; color: var(--txt); padding: 6px 0; }
-      .sx_btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-      .sx_btns .btn { font-size: 1.25rem; padding: 22px 0; text-align: center; }
-      .sx .slot_cd { font-size: 1.5rem; }
-      .sx_row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+      .sx {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .sx_top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+      }
+      .sx_num {
+        font-family: var(--display);
+        font-size: clamp(5.5rem, 30vw, 11rem);
+        line-height: 1;
+        text-align: center;
+        color: var(--txt);
+        padding: 6px 0;
+      }
+      .sx_btns {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .sx_btns .btn {
+        font-size: 1.25rem;
+        padding: 22px 0;
+        text-align: center;
+      }
+      .sx .slot_cd {
+        font-size: 1.5rem;
+      }
+      .sx_row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+      }
+      #break-screen[hidden] {
+        display: none;
+      }
+      #break-screen {
+        position: fixed;
+        z-index: 10000;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        overflow: auto;
+        background: var(--bg);
+        color: var(--txt);
+        text-align: center;
+      }
+      .break-content {
+        width: min(100%, 1100px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: clamp(14px, 3vh, 30px);
+      }
+      .break-kicker {
+        color: var(--blood);
+        font-size: clamp(1rem, 3vw, 2rem);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+      .break-message {
+        max-width: 1000px;
+        font-family: var(--display);
+        font-size: clamp(3rem, 12vw, 9rem);
+        line-height: 0.95;
+        overflow-wrap: anywhere;
+      }
+      .break-name {
+        color: var(--dim);
+        font-size: clamp(1rem, 3vw, 1.8rem);
+      }
+      .break-remaining {
+        font-family: var(--display);
+        font-size: clamp(2.5rem, 8vw, 6rem);
+        color: var(--blood);
+      }
     </style>
   </head>
   <body data-page="projects">
@@ -557,7 +640,13 @@
       <div class="toolbar-end">
         <div class="themebar" id="themebar"></div>
         <div class="tlinks">
-          <a href="#" data-simple id="simple-link" title="big ticket display, nothing else">simple view</a>
+          <a
+            href="#"
+            data-simple
+            id="simple-link"
+            title="big ticket display, nothing else"
+            >simple view</a
+          >
           <a href="#" data-data title="backup / restore">data</a>
           <a href="shift.html">shift.mk →</a>
           <a href="index.html">← projects</a>
@@ -611,7 +700,8 @@
         };
       }
       let S = load(),
-        route = null;
+        route = S.route || null,
+        breakActive = false;
       function save() {
         if (window.__mkSkip) return;
         try {
@@ -892,8 +982,7 @@
       }
 
       const pad2 = (n) => String(n).padStart(2, "0");
-      const todayYMD = () => {
-        const d = new Date();
+      const todayYMD = (d = new Date()) => {
         return (
           d.getFullYear() +
           "-" +
@@ -1390,6 +1479,18 @@
             const cd = countdownState(date, g);
             n.textContent = cd.text;
             n.className = "slot_cd " + cd.state;
+            if (!breakActive && item.auto && cd.state === "done") {
+              const gr = shiftGrid(sh, date);
+              const t = gr.find(
+                (x) => x.start >= g.end && slotEndMs(date, x) > Date.now(),
+              );
+              if (t) {
+                item.slotKey = t.key;
+                save();
+                const w = n.closest("[data-slot]");
+                if (w && w._slotRefresh) w._slotRefresh();
+              }
+            }
           });
         }
 
@@ -1412,8 +1513,15 @@
       MOD.counter = (c) => {
         const val = h("div", { class: "val" });
         const plus = h("button", { class: "btn big_b", "data-act": "plus" }),
-          minus = h("button", { class: "btn big_b ghost", "data-act": "minus" }),
-          undoB = h("button", { class: "btn sm ghost", "data-act": "undo" }, "undo");
+          minus = h("button", {
+            class: "btn big_b ghost",
+            "data-act": "minus",
+          }),
+          undoB = h(
+            "button",
+            { class: "btn sm ghost", "data-act": "undo" },
+            "undo",
+          );
         const amt = h("input", {
           type: "number",
           class: "amt",
@@ -1492,7 +1600,11 @@
           { class: "mod" },
           val,
           h("div", { class: "row2 c" }, minus, plus),
-          h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add · − subtract · u undo"),
+          h(
+            "div",
+            { class: "hint", style: "text-align:center" },
+            "keys: space or + add · − subtract · u undo",
+          ),
           h("div", { class: "sub_t" }, "one-off amount (interval untouched)"),
           h(
             "div",
@@ -1720,9 +1832,20 @@
         const minHint = h("span", { class: "hint" }, "");
 
         const valEl = h("div", { class: "val" });
-        const minusB = h("button", { class: "btn big_b ghost", "data-act": "minus" });
+        const ruleEl = h("div", {
+          class: "hint",
+          id: "slot_rule_" + it.id,
+        });
+        const minusB = h("button", {
+          class: "btn big_b ghost",
+          "data-act": "minus",
+        });
         const plusB = h("button", { class: "btn big_b", "data-act": "plus" });
-        const undoB = h("button", { class: "btn sm ghost", "data-act": "undo" }, "undo");
+        const undoB = h(
+          "button",
+          { class: "btn sm ghost", "data-act": "undo" },
+          "undo",
+        );
         const resetB = h("button", { class: "btn sm ghost" }, "reset");
         const amtEl = h("input", {
           type: "number",
@@ -1781,6 +1904,32 @@
           },
           "today · now",
         );
+        const stepSlot = (n) => {
+          const gr = shiftGrid(sh, curDate()),
+            c = curSlot(),
+            i = c ? gr.findIndex((x) => x.key === c.key) : -1;
+          const t = gr[i + n];
+          if (!t) return flash(n > 0 ? "last slot" : "first slot");
+          it.slotKey = t.key;
+          save();
+          refresh();
+        };
+        const prevB = h(
+          "button",
+          { class: "btn sm ghost", onclick: () => stepSlot(-1) },
+          "‹ prev",
+        );
+        const nextB = h(
+          "button",
+          { class: "btn sm", onclick: () => stepSlot(1) },
+          "next ›",
+        );
+        const autoIn = h("input", { type: "checkbox" });
+        autoIn.checked = !!it.auto;
+        autoIn.onchange = () => {
+          it.auto = autoIn.checked;
+          save();
+        };
 
         const curDate = () => it.date || todayYMD();
 
@@ -1897,6 +2046,41 @@
           minusB.textContent = "− " + iv;
           undoB.disabled = !it.history.length;
           histView.paint();
+          // Rule hint: tag first, then tally. Break / lunch awareness.
+          const bo =
+            typeof shiftBreaks === "function"
+              ? (function () {
+                  const list = [];
+                  const brk = (readShift() && readShift().breaks) || [];
+                  for (const b of brk) {
+                    if (!b.start) continue;
+                    const bm = +b.mins || 0;
+                    if (bm <= 0) continue;
+                    const bs = sToMins(b.start),
+                      be = bs + bm;
+                    const os = Math.max(st.g.start, bs),
+                      oe = Math.min(st.g.end, be);
+                    if (oe > os) list.push({ name: b.name, overlap: oe - os });
+                  }
+                  return list;
+                })()
+              : [];
+          if (!st.s.tag) {
+            ruleEl.textContent = bo.length
+              ? "⚠ break in this slot: " +
+                bo.map((b) => b.name + " −" + b.overlap + "m").join(" + ") +
+                " — pick a tag (or leave blank for auto break) before tallying"
+              : "① pick a tag first — ② then tally. Untagged counts are not saved.";
+            ruleEl.style.color = "var(--dim)";
+          } else if (bo.length) {
+            ruleEl.textContent =
+              "⏸ " +
+              bo.map((b) => b.name + " −" + b.overlap + "m").join(" + ") +
+              " auto in this slot";
+            ruleEl.style.color = "var(--dim)";
+          } else {
+            ruleEl.textContent = "";
+          }
         }
 
         function updateSummary() {
@@ -1988,7 +2172,8 @@
             d.end +
             (otlbl ? " · " + otlbl : "") +
             " · " +
-            (d.iv || sh.cfg.interval) + " min slots";
+            (d.iv || sh.cfg.interval) +
+            " min slots";
           liveTag.style.display = isActiveSlot() ? "" : "none";
 
           const cd = countdownState(date, g);
@@ -2191,7 +2376,16 @@
         wrap._slotRefresh = refresh;
 
         wrap.append(
-          h("div", { class: "slot_head" }, slotBig, slotOT, liveTag),
+          h(
+            "div",
+            { class: "slot_head" },
+            prevB,
+            slotBig,
+            slotOT,
+            liveTag,
+            nextB,
+            h("label", { class: "hint" }, autoIn, " auto next"),
+          ),
           slotMeta,
 
           h(
@@ -2202,9 +2396,14 @@
           ),
 
           h("div", { class: "sub_t" }, UNIT().many),
+          ruleEl,
           valEl,
           h("div", { class: "row2 c" }, minusB, plusB),
-          h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add · − subtract · u undo"),
+          h(
+            "div",
+            { class: "hint", style: "text-align:center" },
+            "keys: space or + add · − subtract · u undo",
+          ),
           h("div", { class: "row2 c", style: "margin-top:6px" }, resetB, undoB),
 
           h("div", { class: "sub_t" }, "quick"),
@@ -2657,228 +2856,550 @@
       }
 
       /* ---------- simple view (big ticket display) ---------- */
-function sxEnsure() {
-  if (!S.sx || typeof S.sx !== "object") S.sx = {};
-  if (!(S.sx.interval > 0)) S.sx.interval = 5;
-  if (!Array.isArray(S.sx.history)) S.sx.history = [];
-  if (S.sx.sel === undefined) S.sx.sel = null;
-}
-function sxPrevYMD() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
-}
-/* the slot running right now; a 23:00 -> 08:00 shift is still yesterday's at 02:00 */
-function sxNow(sh) {
-  const n = new Date(), min = n.getHours() * 60 + n.getMinutes();
-  const y = sxPrevYMD(), gy = shiftGrid(sh, y);
-  if (gy.length) {
-    const rel = min + 1440;
-    const g = gy.find((x) => rel >= x.start && rel < x.end);
-    if (g) return { date: y, g };
-  }
-  const t = todayYMD(), g = shiftCurrentSlot(sh, t);
-  return g ? { date: t, g } : null;
-}
-function sxSlot(sh) {
-  sxEnsure();
-  const sel = S.sx.sel;
-  if (sel) {
-    const g = shiftGrid(sh, sel.date).find((x) => x.key === sel.key);
-    if (g) return { date: sel.date, g };
-  }
-  return sxNow(sh);
-}
-function dayTotals(sh, date) {
-  const d = shiftDay(sh, date);
-  let tk = 0, ph = 0;
-  for (const g of shiftGrid(sh, date)) {
-    const s = d.slots[g.key];
-    if (!s || !s.tag) continue;
-    const tag = sh.tags.find((t) => t.id === s.tag);
-    if (!tag || !tag.prod) continue;
-    const eff = shiftEffMin(sh, date, g);
-    const m = s.mins == null ? eff : Math.min(Math.max(0, s.mins), g.def);
-    ph += m / 60;
-    tk += +s.tickets || 0;
-  }
-  return { tk, ph };
-}
-function sxSlotData(fresh, date, key) {
-  if (!fresh.days) fresh.days = {};
-  if (!fresh.days[date]) fresh.days[date] = {};
-  if (!fresh.days[date].slots) fresh.days[date].slots = {};
-  return fresh.days[date].slots[key] || (fresh.days[date].slots[key] = {});
-}
-function sxSet(date, key, val, label, record = true) {
-  const fresh = readShift();
-  if (!fresh) return false;
-  const cur = sxSlotData(fresh, date, key);
-  const prev = +cur.tickets || 0, next = Math.max(0, Math.floor(val));
-  if (prev === next) return true;
-  cur.tickets = next;
-  if (!writeShift(fresh)) return false;
-  if (record) {
-    S.sx.history.push({ date, key, prev, next, label, ts: Date.now() });
-    if (S.sx.history.length > 200) S.sx.history.shift();
-  }
-  save();
-  return true;
-}
-function sxSetTag(date, key, id) {
-  const fresh = readShift();
-  if (!fresh) return false;
-  const cur = sxSlotData(fresh, date, key);
-  if (id) cur.tag = id;
-  else delete cur.tag;
-  return writeShift(fresh);
-}
-function simpleView() {
-  sxEnsure();
-  const sh = readShift();
-  if (!sh || !Array.isArray(sh.tags) || !sh.tags.length)
-    return h("div", { class: "sx" },
-      h("p", { class: "hint" }, "No shift.mk data yet. Open shift.mk and add at least one tag first."),
-      h("a", { href: "shift.html", class: "btn sm", style: "text-decoration:none;color:var(--txt);align-self:flex-start" }, "open shift.mk →"));
-  const f = sxSlot(sh);
-  if (!f) return h("div", { class: "sx" }, h("p", { class: "hint" }, "No slot found."));
-  const { date, g } = f;
-  const following = !S.sx.sel;
-  const grid = shiftGrid(sh, date), idx = grid.findIndex((x) => x.key === g.key);
+      function sxEnsure() {
+        if (!S.sx || typeof S.sx !== "object") S.sx = {};
+        if (!(S.sx.interval > 0)) S.sx.interval = 5;
+        if (!Array.isArray(S.sx.history)) S.sx.history = [];
+        if (S.sx.sel === undefined) S.sx.sel = null;
+      }
+      function sxPrevYMD() {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return (
+          d.getFullYear() +
+          "-" +
+          pad2(d.getMonth() + 1) +
+          "-" +
+          pad2(d.getDate())
+        );
+      }
+      /* the slot running right now; a 23:00 -> 08:00 shift is still yesterday's at 02:00 */
+      function sxNow(sh) {
+        const n = new Date(),
+          min = n.getHours() * 60 + n.getMinutes();
+        const y = sxPrevYMD(),
+          gy = shiftGrid(sh, y);
+        if (gy.length) {
+          const rel = min + 1440;
+          const g = gy.find((x) => rel >= x.start && rel < x.end);
+          if (g) return { date: y, g };
+        }
+        const t = todayYMD(),
+          g = shiftCurrentSlot(sh, t);
+        return g ? { date: t, g } : null;
+      }
+      function sxSlot(sh) {
+        sxEnsure();
+        const sel = S.sx.sel;
+        if (sel) {
+          const g = shiftGrid(sh, sel.date).find((x) => x.key === sel.key);
+          if (g) return { date: sel.date, g };
+        }
+        return sxNow(sh);
+      }
+      function dayTotals(sh, date) {
+        const d = shiftDay(sh, date);
+        let tk = 0,
+          ph = 0;
+        for (const g of shiftGrid(sh, date)) {
+          const s = d.slots[g.key];
+          if (!s || !s.tag) continue;
+          const tag = sh.tags.find((t) => t.id === s.tag);
+          if (!tag || !tag.prod) continue;
+          const eff = shiftEffMin(sh, date, g);
+          const m = s.mins == null ? eff : Math.min(Math.max(0, s.mins), g.def);
+          ph += m / 60;
+          tk += +s.tickets || 0;
+        }
+        return { tk, ph };
+      }
+      function scheduledBreakNow(sh, now = Date.now()) {
+        if (!sh || !sh.cfg || !sh.cfg.start || !sh.cfg.end) return null;
+        const today = new Date(now);
+        const prev = new Date(today);
+        prev.setDate(prev.getDate() - 1);
+        const dates = [todayYMD(today), todayYMD(prev)];
+        const active = [];
+        for (const date of dates) {
+          const grid = shiftGrid(sh, date);
+          if (!grid.length) continue;
+          const startBound = grid[0].start;
+          const endBound = grid[grid.length - 1].end;
+          for (const br of sh.breaks || []) {
+            if (!br.start || !/^\d{2}:\d{2}$/.test(br.start)) continue;
+            const mins = +br.mins;
+            if (!Number.isFinite(mins) || mins <= 0) continue;
+            let startMinute = sToMins(br.start);
+            if (startMinute < startBound) startMinute += 1440;
+            if (startMinute >= endBound) continue;
+            const start = slotStartMs(date, { start: startMinute });
+            const end = start + mins * 60000;
+            if (now >= start && now < end)
+              active.push({ name: br.name || "Scheduled break", end });
+          }
+        }
+        if (!active.length) return null;
+        return {
+          name: [...new Set(active.map((br) => br.name))].join(" + "),
+          end: Math.max(...active.map((br) => br.end)),
+        };
+      }
+      let breakScreen = null;
+      const breakInerted = new Map();
+      function setBreakInert(locked) {
+        if (locked) {
+          for (const child of document.body.children) {
+            if (child === breakScreen || breakInerted.has(child)) continue;
+            breakInerted.set(child, child.inert);
+            child.inert = true;
+          }
+          return;
+        }
+        for (const [child, wasInert] of breakInerted) {
+          if (child.isConnected) child.inert = wasInert;
+        }
+        breakInerted.clear();
+      }
+      function pauseRunningTimers() {
+        S.breakPausedTimers = [];
+        for (const item of S.items) {
+          if (item.type !== "timer" || !item.t0) continue;
+          item.acc = el(item);
+          item.t0 = null;
+          S.breakPausedTimers.push(item.id);
+        }
+        save();
+      }
+      function resumeBreakTimers() {
+        for (const id of S.breakPausedTimers || []) {
+          const item = get(id);
+          if (item && item.type === "timer" && !item.t0) item.t0 = Date.now();
+        }
+        S.breakPausedTimers = null;
+        save();
+      }
+      function updateBreakScreen() {
+        const sh = readShift();
+        const current = scheduledBreakNow(sh);
+        const wasActive = breakActive;
+        breakActive = !!current;
+        if (breakActive && !Array.isArray(S.breakPausedTimers))
+          pauseRunningTimers();
+        else if (!breakActive && Array.isArray(S.breakPausedTimers))
+          resumeBreakTimers();
 
-  const numEl = h("div", { class: "sx_num" });
-  const cdEl = h("div", { class: "slot_cd", "data-sx-cd": "1" }, "—");
-  const dayEl = h("div", { class: "hint", style: "text-align:center" });
-  const noteEl = h("div", { class: "hint", style: "text-align:center;min-height:1.2em" });
-  const tagSel = h("select", {});
-  const sorted = [...sh.tags].sort((a, b) => (b.prod ? 1 : 0) - (a.prod ? 1 : 0));
-  tagSel.append(
-    h("option", { value: "" }, "— pick a tag"),
-    ...sorted.map((t) => h("option", { value: t.id }, t.name + (t.prod ? (t.quota ? " · " + t.quota + "/h" : "") : " (non-prod)"))),
-  );
-  const lastB = h("button", { class: "btn sm ghost" });
-  const bump = (delta, label) => {
-    const fresh = readShift() || sh;
-    const cur = shiftDay(fresh, date).slots[g.key] || {};
-    const ok = sxSet(date, g.key, (+cur.tickets || 0) + delta, label);
-    paint();
-    if (!ok) noteEl.textContent = "write failed";
-  };
-  const mk = (cls, act, fn) => h("button", { class: cls, "data-act": act, onclick: fn });
-  const m1 = mk("btn ghost", "minus1", () => bump(-1, "−1"));
-  const mN = mk("btn ghost", "minus", () => bump(-S.sx.interval, "−" + S.sx.interval));
-  const pN = mk("btn", "plus", () => bump(S.sx.interval, "+" + S.sx.interval));
-  const p1 = mk("btn", "plus1", () => bump(1, "+1"));
-  const undoB = mk("btn sm ghost", "undo", () => {
-    const x = S.sx.history.pop();
-    if (!x) return;
-    sxSet(x.date, x.key, x.prev, "", false);
-    save();
-    if (x.date !== date || x.key !== g.key) {
-      S.sx.sel = { date: x.date, key: x.key };
-      save();
-      render();
-    } else paint();
-  });
-  const stepIn = h("input", { type: "number", min: "1", step: "1", class: "num", value: S.sx.interval });
-  stepIn.onchange = () => {
-    const v = Math.floor(parseFloat(stepIn.value));
-    if (v > 0) S.sx.interval = v;
-    stepIn.value = S.sx.interval;
-    save();
-    paint();
-  };
-  tagSel.onchange = () => {
-    sxSetTag(date, g.key, tagSel.value);
-    paint();
-  };
-  lastB.onclick = () => {
-    if (lastB._id) sxSetTag(date, g.key, lastB._id);
-    paint();
-  };
-  const move = (key) => {
-    S.sx.sel = key ? { date, key } : null;
-    save();
-    render();
-  };
-  const prevB = h("button", { class: "btn sm ghost", onclick: () => move(grid[idx - 1].key) }, "‹");
-  const nextB = h("button", { class: "btn sm ghost", onclick: () => move(grid[idx + 1].key) }, "›");
-  prevB.disabled = idx <= 0;
-  nextB.disabled = idx >= grid.length - 1;
-  const nowB = following ? null : h("button", { class: "btn sm", onclick: () => move(null) }, "now");
+        if (!breakScreen) {
+          breakScreen = h(
+            "div",
+            {
+              id: "break-screen",
+              role: "alertdialog",
+              "aria-modal": "true",
+              "aria-label": "Scheduled break",
+              tabindex: "-1",
+            },
+            h(
+              "div",
+              { class: "break-content" },
+              h("div", { class: "break-kicker" }, "scheduled break"),
+              h("div", { class: "break-message" }, "You should be on a break."),
+              h("div", { class: "break-name" }),
+              h("div", { class: "break-remaining" }),
+            ),
+          );
+          breakScreen.hidden = true;
+          document.body.append(breakScreen);
+        }
+        if (breakActive) {
+          breakScreen.hidden = false;
+          breakScreen.querySelector(".break-name").textContent = current.name;
+          const remaining = Math.max(0, current.end - Date.now());
+          const seconds = Math.ceil(remaining / 1000);
+          const hours = Math.floor(seconds / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          const secs = seconds % 60;
+          breakScreen.querySelector(".break-remaining").textContent =
+            (hours ? pad2(hours) + ":" : "") +
+            pad2(minutes) +
+            ":" +
+            pad2(secs) +
+            " remaining";
+          setBreakInert(true);
+          if (!wasActive) breakScreen.focus();
+        } else {
+          breakScreen.hidden = true;
+          setBreakInert(false);
+        }
+      }
+      for (const type of [
+        "click",
+        "pointerdown",
+        "input",
+        "change",
+        "submit",
+        "keydown",
+        "keyup",
+        "beforeinput",
+        "contextmenu",
+      ]) {
+        document.addEventListener(
+          type,
+          (e) => {
+            if (!breakActive) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          },
+          true,
+        );
+      }
+      window.addEventListener("focus", updateBreakScreen);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) updateBreakScreen();
+      });
+      window.addEventListener("storage", (e) => {
+        if (e.key === SHIFT_KEY) updateBreakScreen();
+      });
+      function sxSlotData(fresh, date, key) {
+        if (!fresh.days) fresh.days = {};
+        if (!fresh.days[date]) fresh.days[date] = {};
+        if (!fresh.days[date].slots) fresh.days[date].slots = {};
+        return (
+          fresh.days[date].slots[key] || (fresh.days[date].slots[key] = {})
+        );
+      }
+      function sxSet(date, key, val, label, record = true) {
+        const fresh = readShift();
+        if (!fresh) return false;
+        const cur = sxSlotData(fresh, date, key);
+        const prev = +cur.tickets || 0,
+          next = Math.max(0, Math.floor(val));
+        if (prev === next) return true;
+        cur.tickets = next;
+        if (!writeShift(fresh)) return false;
+        if (record) {
+          S.sx.history.push({ date, key, prev, next, label, ts: Date.now() });
+          if (S.sx.history.length > 200) S.sx.history.shift();
+        }
+        save();
+        return true;
+      }
+      function sxSetTag(date, key, id) {
+        const fresh = readShift();
+        if (!fresh) return false;
+        const cur = sxSlotData(fresh, date, key);
+        if (id) cur.tag = id;
+        else delete cur.tag;
+        return writeShift(fresh);
+      }
+      function simpleView() {
+        sxEnsure();
+        const sh = readShift();
+        if (!sh || !Array.isArray(sh.tags) || !sh.tags.length)
+          return h(
+            "div",
+            { class: "sx" },
+            h(
+              "p",
+              { class: "hint" },
+              "No shift.mk data yet. Open shift.mk and add at least one tag first.",
+            ),
+            h(
+              "a",
+              {
+                href: "shift.html",
+                class: "btn sm",
+                style:
+                  "text-decoration:none;color:var(--txt);align-self:flex-start",
+              },
+              "open shift.mk →",
+            ),
+          );
+        const f = sxSlot(sh);
+        if (!f)
+          return h(
+            "div",
+            { class: "sx" },
+            h("p", { class: "hint" }, "No slot found."),
+          );
+        const { date, g } = f;
+        const following = !S.sx.sel;
+        const grid = shiftGrid(sh, date),
+          idx = grid.findIndex((x) => x.key === g.key);
 
-  function paint() {
-    const fresh = readShift() || sh;
-    const s = shiftDay(fresh, date).slots[g.key] || {};
-    const iv = S.sx.interval;
-    numEl.textContent = String(+s.tickets || 0);
-    m1.textContent = "−1";
-    mN.textContent = "−" + iv;
-    pN.textContent = "+" + iv;
-    p1.textContent = "+1";
-    tagSel.value = s.tag || "";
-    const tag = s.tag && fresh.tags.find((t) => t.id === s.tag);
-    noteEl.textContent = !tag ? "pick a tag, " + UNIT().many + " don't count without one" : tag.prod ? "" : "not a productive tag, " + UNIT().many + " don't count";
-    let last = null;
-    const dd = shiftDay(fresh, date);
-    for (const x of shiftGrid(fresh, date)) {
-      if (x.start >= g.start) break;
-      const sx = dd.slots[x.key];
-      if (sx && sx.tag) last = sx.tag;
-    }
-    const lt = last && fresh.tags.find((t) => t.id === last);
-    lastB._id = lt ? lt.id : null;
-    lastB.textContent = lt ? "use last: " + lt.name : "";
-    lastB.style.display = !s.tag && lt ? "" : "none";
-    const t = dayTotals(fresh, date);
-    dayEl.textContent = (date === todayYMD() ? "today" : fmtDate(date)) + " · " + t.tk + " " + UNIT().many + " · " + t.ph.toFixed(2) + " prod h · " + (t.ph > 0 ? (t.tk / t.ph).toFixed(1) : "0.0") + "/hr";
-    undoB.disabled = !S.sx.history.length;
-  }
-  const cd = countdownState(date, g);
-  cdEl.textContent = cd.text;
-  cdEl.className = "slot_cd " + cd.state;
-  paint();
-  return h("div", { class: "sx", "data-sx": "1", "data-date": date, "data-key": g.key },
-    h("div", { class: "sx_top" }, prevB, h("span", { class: "slot_big" }, fmtRange(g)),
-      g.zone ? h("span", { class: "slot_ot" }, g.zone === "pre" ? "PRE-OT" : "POST-OT") : null,
-      cd.state === "live" || cd.state === "warning" ? h("span", { class: "slot_live" }, "live") : null,
-      nextB, nowB),
-    h("div", { class: "hint" }, fmtDate(date)),
-    h("div", { class: "row2" }, h("span", { class: "slot_cd_label" }, "time left"), cdEl),
-    h("div", { class: "sx_row" }, tagSel, lastB),
-    numEl,
-    h("div", { class: "sx_btns" }, m1, mN, pN, p1),
-    noteEl,
-    h("div", { class: "sx_row" }, h("span", { class: "hint" }, "step"), stepIn, undoB),
-    dayEl,
-    h("div", { class: "hint", style: "text-align:center" }, "keys: space or + add step · − subtract step · ↑ +1 · ↓ −1 · u undo"),
-  );
-}
-/* keeps the countdown live and moves to the next slot by itself while following "now" */
-function sxTick() {
-  const root = document.querySelector("[data-sx]");
-  if (!root) return;
-  const sh = readShift();
-  if (!sh) return;
-  const f = sxSlot(sh);
-  if (!f || f.date !== root.dataset.date || f.g.key !== root.dataset.key) {
-    render();
-    return;
-  }
-  const el2 = root.querySelector("[data-sx-cd]");
-  if (el2) {
-    const cd = countdownState(f.date, f.g);
-    el2.textContent = cd.text;
-    el2.className = "slot_cd " + cd.state;
-  }
-}
-window.addEventListener("focus", () => { if (S.simple) render(); });
-document.addEventListener("visibilitychange", () => { if (!document.hidden && S.simple) render(); });
-window.addEventListener("storage", (e) => { if (e.key === SHIFT_KEY && S.simple) render(); });
+        const numEl = h("div", { class: "sx_num" });
+        const cdEl = h("div", { class: "slot_cd", "data-sx-cd": "1" }, "—");
+        const dayEl = h("div", { class: "hint", style: "text-align:center" });
+        const noteEl = h("div", {
+          class: "hint",
+          style: "text-align:center;min-height:1.2em",
+        });
+        const tagSel = h("select", {});
+        const sorted = [...sh.tags].sort(
+          (a, b) => (b.prod ? 1 : 0) - (a.prod ? 1 : 0),
+        );
+        tagSel.append(
+          h("option", { value: "" }, "— pick a tag"),
+          ...sorted.map((t) =>
+            h(
+              "option",
+              { value: t.id },
+              t.name +
+                (t.prod
+                  ? t.quota
+                    ? " · " + t.quota + "/h"
+                    : ""
+                  : " (non-prod)"),
+            ),
+          ),
+        );
+        const lastB = h("button", { class: "btn sm ghost" });
+        const bump = (delta, label) => {
+          const fresh = readShift() || sh;
+          const cur = shiftDay(fresh, date).slots[g.key] || {};
+          const ok = sxSet(date, g.key, (+cur.tickets || 0) + delta, label);
+          paint();
+          if (!ok) noteEl.textContent = "write failed";
+        };
+        const mk = (cls, act, fn) =>
+          h("button", { class: cls, "data-act": act, onclick: fn });
+        const m1 = mk("btn ghost", "minus1", () => bump(-1, "−1"));
+        const mN = mk("btn ghost", "minus", () =>
+          bump(-S.sx.interval, "−" + S.sx.interval),
+        );
+        const pN = mk("btn", "plus", () =>
+          bump(S.sx.interval, "+" + S.sx.interval),
+        );
+        const p1 = mk("btn", "plus1", () => bump(1, "+1"));
+        const undoB = mk("btn sm ghost", "undo", () => {
+          const x = S.sx.history.pop();
+          if (!x) return;
+          sxSet(x.date, x.key, x.prev, "", false);
+          save();
+          if (x.date !== date || x.key !== g.key) {
+            S.sx.sel = { date: x.date, key: x.key };
+            save();
+            render();
+          } else paint();
+        });
+        const stepIn = h("input", {
+          type: "number",
+          min: "1",
+          step: "1",
+          class: "num",
+          value: S.sx.interval,
+        });
+        stepIn.onchange = () => {
+          const v = Math.floor(parseFloat(stepIn.value));
+          if (v > 0) S.sx.interval = v;
+          stepIn.value = S.sx.interval;
+          save();
+          paint();
+        };
+        const autoIn = h("input", { type: "checkbox" });
+        autoIn.checked = !!S.sx.auto;
+        autoIn.onchange = () => {
+          S.sx.auto = autoIn.checked;
+          save();
+        };
+        tagSel.onchange = () => {
+          sxSetTag(date, g.key, tagSel.value);
+          paint();
+        };
+        lastB.onclick = () => {
+          if (lastB._id) sxSetTag(date, g.key, lastB._id);
+          paint();
+        };
+        const move = (key) => {
+          S.sx.sel = key ? { date, key } : null;
+          save();
+          render();
+        };
+        const prevB = h(
+          "button",
+          { class: "btn sm ghost", onclick: () => move(grid[idx - 1].key) },
+          "‹",
+        );
+        const nextB = h(
+          "button",
+          { class: "btn sm ghost", onclick: () => move(grid[idx + 1].key) },
+          "›",
+        );
+        prevB.disabled = idx <= 0;
+        nextB.disabled = idx >= grid.length - 1;
+        const nowB = following
+          ? null
+          : h("button", { class: "btn sm", onclick: () => move(null) }, "now");
 
-/* ---------- routing ---------- */
+        function paint() {
+          const fresh = readShift() || sh;
+          const s = shiftDay(fresh, date).slots[g.key] || {};
+          const iv = S.sx.interval;
+          numEl.textContent = String(+s.tickets || 0);
+          m1.textContent = "−1";
+          mN.textContent = "−" + iv;
+          pN.textContent = "+" + iv;
+          p1.textContent = "+1";
+          tagSel.value = s.tag || "";
+          const tag = s.tag && fresh.tags.find((t) => t.id === s.tag);
+          const _sh2 = readShift() || sh;
+          const _brk = (_sh2 && _sh2.breaks) || [];
+          const _bo = [];
+          for (const b of _brk) {
+            if (!b.start) continue;
+            const bm = +b.mins || 0;
+            if (bm <= 0) continue;
+            const bs = sToMins(b.start),
+              be = bs + bm;
+            const os = Math.max(g.start, bs),
+              oe = Math.min(g.end, be);
+            if (oe > os) _bo.push({ name: b.name, overlap: oe - os });
+          }
+          noteEl.textContent = !tag
+            ? _bo.length
+              ? "⚠ break here: " +
+                _bo.map((b) => b.name + " −" + b.overlap + "m").join(" + ") +
+                " — pick a tag or leave blank for auto break"
+              : "① pick a tag first — ② then tally. Counts without a tag are not saved."
+            : _bo.length
+              ? "⏸ " +
+                _bo.map((b) => b.name + " −" + b.overlap + "m").join(" + ") +
+                " auto in this slot"
+              : tag.prod
+                ? ""
+                : "not a productive tag, " + UNIT().many + " don't count";
+          let last = null;
+          const dd = shiftDay(fresh, date);
+          for (const x of shiftGrid(fresh, date)) {
+            if (x.start >= g.start) break;
+            const sx = dd.slots[x.key];
+            if (sx && sx.tag) last = sx.tag;
+          }
+          const lt = last && fresh.tags.find((t) => t.id === last);
+          lastB._id = lt ? lt.id : null;
+          lastB.textContent = lt ? "use last: " + lt.name : "";
+          lastB.style.display = !s.tag && lt ? "" : "none";
+          const t = dayTotals(fresh, date);
+          dayEl.textContent =
+            (date === todayYMD() ? "today" : fmtDate(date)) +
+            " · " +
+            t.tk +
+            " " +
+            UNIT().many +
+            " · " +
+            t.ph.toFixed(2) +
+            " prod h · " +
+            (t.ph > 0 ? (t.tk / t.ph).toFixed(1) : "0.0") +
+            "/hr";
+          undoB.disabled = !S.sx.history.length;
+        }
+        const cd = countdownState(date, g);
+        cdEl.textContent = cd.text;
+        cdEl.className = "slot_cd " + cd.state;
+        paint();
+        return h(
+          "div",
+          { class: "sx", "data-sx": "1", "data-date": date, "data-key": g.key },
+          h(
+            "div",
+            { class: "sx_top" },
+            prevB,
+            h("span", { class: "slot_big" }, fmtRange(g)),
+            g.zone
+              ? h(
+                  "span",
+                  { class: "slot_ot" },
+                  g.zone === "pre" ? "PRE-OT" : "POST-OT",
+                )
+              : null,
+            cd.state === "live" || cd.state === "warning"
+              ? h("span", { class: "slot_live" }, "live")
+              : null,
+            nextB,
+            nowB,
+          ),
+          h("div", { class: "hint" }, fmtDate(date)),
+          h(
+            "div",
+            { class: "row2" },
+            h("span", { class: "slot_cd_label" }, "time left"),
+            cdEl,
+          ),
+          h("div", { class: "sx_row" }, tagSel, lastB),
+          numEl,
+          h("div", { class: "sx_btns" }, m1, mN, pN, p1),
+          noteEl,
+          h(
+            "div",
+            { class: "sx_row" },
+            h("span", { class: "hint" }, "step"),
+            stepIn,
+            undoB,
+            h("label", { class: "hint" }, autoIn, " auto next"),
+          ),
+          dayEl,
+          h(
+            "div",
+            { class: "hint", style: "text-align:center" },
+            "keys: space or + add step · − subtract step · ↑ +1 · ↓ −1 · u undo",
+          ),
+        );
+      }
+      /* keeps the countdown live and moves to the next slot by itself while following "now" */
+      function sxTick() {
+        const root = document.querySelector("[data-sx]");
+        if (!root) return;
+        const sh = readShift();
+        if (!sh) return;
+        if (!breakActive && S.sx && S.sx.auto && S.sx.sel) {
+          const { date, key } = S.sx.sel,
+            gr = shiftGrid(sh, date),
+            cur = gr.find((x) => x.key === key);
+          if (cur && Date.now() >= slotEndMs(date, cur)) {
+            const t = gr.find(
+              (x) => x.start >= cur.end && slotEndMs(date, x) > Date.now(),
+            );
+            if (t) {
+              const nn = sxNow(sh);
+              S.sx.sel =
+                nn && nn.date === date && nn.g.key === t.key
+                  ? null
+                  : { date, key: t.key };
+              save();
+              render();
+              return;
+            }
+          }
+        }
+        const f = sxSlot(sh);
+        if (
+          !f ||
+          f.date !== root.dataset.date ||
+          f.g.key !== root.dataset.key
+        ) {
+          render();
+          return;
+        }
+        const el2 = root.querySelector("[data-sx-cd]");
+        if (el2) {
+          const cd = countdownState(f.date, f.g);
+          el2.textContent = cd.text;
+          el2.className = "slot_cd " + cd.state;
+        }
+      }
+      window.addEventListener("focus", () => {
+        if (S.simple) render();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && S.simple) render();
+      });
+      window.addEventListener("storage", (e) => {
+        if (e.key === SHIFT_KEY && S.simple) render();
+      });
+
+      /* ---------- routing ---------- */
       function go(id) {
         route = id;
+        S.route = id;
         save();
         render();
         window.scrollTo(0, 0);
@@ -2914,7 +3435,13 @@ window.addEventListener("storage", (e) => { if (e.key === SHIFT_KEY && S.simple)
                 )
               : overview(),
           );
-          if (!it) route = null;
+          if (!it) {
+            route = null;
+            if (S.route !== null) {
+              S.route = null;
+              save();
+            }
+          }
         }
         tick();
       }
@@ -2975,156 +3502,257 @@ window.addEventListener("storage", (e) => { if (e.key === SHIFT_KEY && S.simple)
       });
 
       /* ---------- shared backup: identical in tally + shift ---------- */
-      window.mkBackupAdvanced = () => { S.simple = false; go("_data"); };
-      (function(){
-        const KEYS = {t:'tally.v1', s:'shift.v1'};
-        const HAS = typeof CompressionStream !== 'undefined';
-        const toB64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
-          return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
-        const fromB64 = b => { b=b.replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b+='='; const s=atob(b), u=new Uint8Array(s.length);
-          for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
-        const pipe = async (u8, st) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(st)).arrayBuffer());
+      window.mkBackupAdvanced = () => {
+        S.simple = false;
+        go("_data");
+      };
+      (function () {
+        const KEYS = { t: "tally.v1", s: "shift.v1" };
+        const HAS = typeof CompressionStream !== "undefined";
+        const toB64 = (u8) => {
+          let s = "";
+          for (let i = 0; i < u8.length; i += 0x8000)
+            s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+          return btoa(s)
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
+        };
+        const fromB64 = (b) => {
+          b = b.replace(/-/g, "+").replace(/_/g, "/");
+          while (b.length % 4) b += "=";
+          const s = atob(b),
+            u = new Uint8Array(s.length);
+          for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+          return u;
+        };
+        const pipe = async (u8, st) =>
+          new Uint8Array(
+            await new Response(
+              new Blob([u8]).stream().pipeThrough(st),
+            ).arrayBuffer(),
+          );
 
-        async function pack(withHist){
+        async function pack(withHist) {
           const o = {};
-          for(const k in KEYS){
-            const raw = localStorage.getItem(KEYS[k]); if(!raw) continue;
-            let v; try{ v = JSON.parse(raw); }catch(_){ continue; }
-            if(!withHist && k==='t' && Array.isArray(v.items)) v.items.forEach(i=>{ if(i.history) i.history = []; });
+          for (const k in KEYS) {
+            const raw = localStorage.getItem(KEYS[k]);
+            if (!raw) continue;
+            let v;
+            try {
+              v = JSON.parse(raw);
+            } catch (_) {
+              continue;
+            }
+            if (!withHist && k === "t" && Array.isArray(v.items))
+              v.items.forEach((i) => {
+                if (i.history) i.history = [];
+              });
             o[k] = v;
           }
           const u8 = new TextEncoder().encode(JSON.stringify(o));
-          return HAS ? 'MK1.'+toB64(await pipe(u8, new CompressionStream('deflate-raw'))) : 'MK0.'+toB64(u8);
+          return HAS
+            ? "MK1." +
+                toB64(await pipe(u8, new CompressionStream("deflate-raw")))
+            : "MK0." + toB64(u8);
         }
 
-        async function unpack(txt){
+        async function unpack(txt) {
           txt = txt.trim();
           let o;
-          if(/^MK[01]\./.test(txt)){
-            let u8 = fromB64(txt.slice(4).replace(/\s+/g,''));
-            if(txt[2]==='1') u8 = await pipe(u8, new DecompressionStream('deflate-raw'));
+          if (/^MK[01]\./.test(txt)) {
+            let u8 = fromB64(txt.slice(4).replace(/\s+/g, ""));
+            if (txt[2] === "1")
+              u8 = await pipe(u8, new DecompressionStream("deflate-raw"));
             o = JSON.parse(new TextDecoder().decode(u8));
           } else {
-            o = JSON.parse(txt);                                   // legacy formats
-            if(o && o.v===1 && o.tally) o = {t:o.tally, s:o.shift};  // old tally bundle
-            else if(o && Array.isArray(o.items)) o = {t:o};          // old tally-only
-            else if(o && o.days && o.tags) o = {s:o};                // old shift backup
+            o = JSON.parse(txt); // legacy formats
+            if (o && o.v === 1 && o.tally)
+              o = { t: o.tally, s: o.shift }; // old tally bundle
+            else if (o && Array.isArray(o.items))
+              o = { t: o }; // old tally-only
+            else if (o && o.days && o.tags) o = { s: o }; // old shift backup
           }
-          if(!o || (!o.t && !o.s)) throw new Error('unrecognized backup');
-          if(o.t && !Array.isArray(o.t.items)) throw new Error('bad tally data');
-          if(o.s && (!o.s.days || !o.s.tags)) throw new Error('bad shift data');
+          if (!o || (!o.t && !o.s)) throw new Error("unrecognized backup");
+          if (o.t && !Array.isArray(o.t.items))
+            throw new Error("bad tally data");
+          if (o.s && (!o.s.days || !o.s.tags))
+            throw new Error("bad shift data");
           return o;
         }
 
-        const css = '#mkdlg{background:var(--panel);color:var(--txt);border:2px solid var(--line);padding:18px;width:min(560px,94vw);font-family:var(--mono);font-size:12px}'+
-          '#mkdlg::backdrop{background:rgba(0,0,0,.65)}'+
-          '#mkdlg h2{font-family:var(--display);font-size:15px;margin:0 0 4px;letter-spacing:1px}'+
-          '#mkdlg textarea{width:100%;height:84px;resize:vertical;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px;word-break:break-all}'+
-          '#mkdlg textarea:focus{outline:none;border-color:var(--blood)}'+
-          '#mkdlg .r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}'+
-          '#mkdlg .h{color:var(--dim);font-size:11px}'+
-          '#mkdlg .st{min-height:1.2em;font-size:11px;color:var(--dim)}'+
-          '#mkdlg .st.ok{color:#34d399}#mkdlg .st.err{color:#f87171}'+
-          '#mkdlg .t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-top:12px}';
-        const st = document.createElement('style'); st.textContent = css; document.head.append(st);
+        const css =
+          "#mkdlg{background:var(--panel);color:var(--txt);border:2px solid var(--line);padding:18px;width:min(560px,94vw);font-family:var(--mono);font-size:12px}" +
+          "#mkdlg::backdrop{background:rgba(0,0,0,.65)}" +
+          "#mkdlg h2{font-family:var(--display);font-size:15px;margin:0 0 4px;letter-spacing:1px}" +
+          "#mkdlg textarea{width:100%;height:84px;resize:vertical;box-sizing:border-box;background:var(--panel2);border:2px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px;word-break:break-all}" +
+          "#mkdlg textarea:focus{outline:none;border-color:var(--blood)}" +
+          "#mkdlg .r{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}" +
+          "#mkdlg .h{color:var(--dim);font-size:11px}" +
+          "#mkdlg .st{min-height:1.2em;font-size:11px;color:var(--dim)}" +
+          "#mkdlg .st.ok{color:#34d399}#mkdlg .st.err{color:#f87171}" +
+          "#mkdlg .t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-top:12px}";
+        const st = document.createElement("style");
+        st.textContent = css;
+        document.head.append(st);
 
-        const dlg = document.createElement('dialog'); dlg.id = 'mkdlg';
+        const dlg = document.createElement("dialog");
+        dlg.id = "mkdlg";
         dlg.innerHTML =
-          '<h2>data backup</h2><div class="h">Backs up tally + shift together. Copy on one side, paste on the other. Works from either page.</div>'+
-          '<div class="t">export</div>'+
-          '<textarea id="mkx" readonly spellcheck="false"></textarea>'+
-          '<div class="r"><button class="btn sm" id="mkcp">copy</button>'+
-          '<label class="h"><input type="checkbox" id="mkh"> include history (longer)</label>'+
-          '<span class="h" id="mkn"></span></div>'+
-          '<div class="t">import</div>'+
-          '<textarea id="mki" spellcheck="false" placeholder="paste backup here…"></textarea>'+
-          '<div class="r"><button class="btn sm" id="mkgo">import &amp; reload</button>'+
-          '<button class="btn sm ghost" id="mkadv" style="display:none">advanced</button>'+
-          '<button class="btn sm ghost" id="mkclose" style="margin-left:auto">close</button></div>'+
+          '<h2>data backup</h2><div class="h">Backs up tally + shift together. Copy on one side, paste on the other. Works from either page.</div>' +
+          '<div class="t">export</div>' +
+          '<textarea id="mkx" readonly spellcheck="false"></textarea>' +
+          '<div class="r"><button class="btn sm" id="mkcp">copy</button>' +
+          '<label class="h"><input type="checkbox" id="mkh"> include history (longer)</label>' +
+          '<span class="h" id="mkn"></span></div>' +
+          '<div class="t">import</div>' +
+          '<textarea id="mki" spellcheck="false" placeholder="paste backup here…"></textarea>' +
+          '<div class="r"><button class="btn sm" id="mkgo">import &amp; reload</button>' +
+          '<button class="btn sm ghost" id="mkadv" style="display:none">advanced</button>' +
+          '<button class="btn sm ghost" id="mkclose" style="margin-left:auto">close</button></div>' +
           '<div class="st" id="mkst"></div>';
         document.body.append(dlg);
-        const $$ = id => dlg.querySelector('#'+id);
-        const say = (m, c) => { const s=$$('mkst'); s.textContent = m; s.className = 'st '+(c||''); };
+        const $$ = (id) => dlg.querySelector("#" + id);
+        const say = (m, c) => {
+          const s = $$("mkst");
+          s.textContent = m;
+          s.className = "st " + (c || "");
+        };
 
-        async function fill(){
-          const t = await pack($$('mkh').checked);
-          $$('mkx').value = t; $$('mkn').textContent = t.length.toLocaleString()+' chars';
+        async function fill() {
+          const t = await pack($$("mkh").checked);
+          $$("mkx").value = t;
+          $$("mkn").textContent = t.length.toLocaleString() + " chars";
         }
-        $$('mkh').onchange = fill;
-        $$('mkcp').onclick = async () => {
-          const t = $$('mkx').value; let ok = false;
-          try{ await navigator.clipboard.writeText(t); ok = true; }
-          catch(_){ $$('mkx').select(); try{ ok = document.execCommand('copy'); }catch(_2){} }
-          say(ok ? 'copied' : 'copy blocked, text is selected, use ctrl/cmd+c', ok ? 'ok' : 'err');
+        $$("mkh").onchange = fill;
+        $$("mkcp").onclick = async () => {
+          const t = $$("mkx").value;
+          let ok = false;
+          try {
+            await navigator.clipboard.writeText(t);
+            ok = true;
+          } catch (_) {
+            $$("mkx").select();
+            try {
+              ok = document.execCommand("copy");
+            } catch (_2) {}
+          }
+          say(
+            ok ? "copied" : "copy blocked, text is selected, use ctrl/cmd+c",
+            ok ? "ok" : "err",
+          );
         };
-        $$('mkgo').onclick = async () => {
-          const t = $$('mki').value.trim(); if(!t) return say('paste something first','err');
-          let o; try{ o = await unpack(t); }catch(e){ return say('import failed: '+e.message,'err'); }
-          const what = [o.t&&'tally', o.s&&'shift'].filter(Boolean).join(' + ');
-          if(!confirm('Replace current '+what+' data in this browser?')) return;
-          try{
-            if(o.t) localStorage.setItem(KEYS.t, JSON.stringify(o.t));
-            if(o.s) localStorage.setItem(KEYS.s, JSON.stringify(o.s));
-          }catch(e){ return say('write failed: '+e.message,'err'); }
-          window.__mkSkip = true;           // stop pagehide save() from overwriting the import
-          say('imported '+what+', reloading…','ok');
-          setTimeout(()=>location.reload(), 300);
+        $$("mkgo").onclick = async () => {
+          const t = $$("mki").value.trim();
+          if (!t) return say("paste something first", "err");
+          let o;
+          try {
+            o = await unpack(t);
+          } catch (e) {
+            return say("import failed: " + e.message, "err");
+          }
+          const what = [o.t && "tally", o.s && "shift"]
+            .filter(Boolean)
+            .join(" + ");
+          if (!confirm("Replace current " + what + " data in this browser?"))
+            return;
+          try {
+            if (o.t) localStorage.setItem(KEYS.t, JSON.stringify(o.t));
+            if (o.s) localStorage.setItem(KEYS.s, JSON.stringify(o.s));
+          } catch (e) {
+            return say("write failed: " + e.message, "err");
+          }
+          window.__mkSkip = true; // stop pagehide save() from overwriting the import
+          say("imported " + what + ", reloading…", "ok");
+          setTimeout(() => location.reload(), 300);
         };
-        $$('mkclose').onclick = () => dlg.close();
-        if(window.mkBackupAdvanced){ const a=$$('mkadv'); a.style.display=''; a.onclick=()=>{ dlg.close(); window.mkBackupAdvanced(); }; }
-        dlg.addEventListener('click', e => { if(e.target===dlg) dlg.close(); });
+        $$("mkclose").onclick = () => dlg.close();
+        if (window.mkBackupAdvanced) {
+          const a = $$("mkadv");
+          a.style.display = "";
+          a.onclick = () => {
+            dlg.close();
+            window.mkBackupAdvanced();
+          };
+        }
+        dlg.addEventListener("click", (e) => {
+          if (e.target === dlg) dlg.close();
+        });
 
-        document.addEventListener('click', async e => {
-          if(!e.target.closest('[data-data]')) return;
+        document.addEventListener("click", async (e) => {
+          if (!e.target.closest("[data-data]")) return;
           e.preventDefault();
-          if(dlg.open) return;
-          $$('mki').value = ''; say('');
-          await fill(); dlg.showModal();
+          if (dlg.open) return;
+          $$("mki").value = "";
+          say("");
+          await fill();
+          dlg.showModal();
         });
       })();
 
       /* ---------- keyboard: space / + add, - subtract, u undo (counter + slot pages) ---------- */
-/* A web page only sees keys while its tab is focused, so true global hotkeys are not possible.
+      /* A web page only sees keys while its tab is focused, so true global hotkeys are not possible.
    These work the moment you alt-tab back, without needing a button to be focused first. */
-(function () {
-  const typing = (t) =>
-    t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-  const map = { " ": "plus", "+": "plus", "=": "plus", "-": "minus", "_": "minus", u: "undo", U: "undo", z: "undo", Z: "undo", ArrowUp: "plus1", ArrowDown: "minus1" };
-  const live = () => S.simple || (route && route !== "_data");
-  document.addEventListener("keydown", (e) => {
-    if (!live() || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
-    const a = map[e.key];
-    if (!a) return;
-    const b = document.querySelector('[data-act="' + a + '"]');
-    if (!b) return;
-    e.preventDefault();
-    if (e.repeat) return;
-    b.click();
-  });
-  /* stop a focused button from also firing its own click on Space release */
-  document.addEventListener("keyup", (e) => {
-    if (e.key === " " && live() && !typing(e.target) && document.querySelector('[data-act="plus"]'))
-      e.preventDefault();
-  });
-})();
+      (function () {
+        const typing = (t) =>
+          t &&
+          (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+        const map = {
+          " ": "plus",
+          "+": "plus",
+          "=": "plus",
+          "-": "minus",
+          _: "minus",
+          u: "undo",
+          U: "undo",
+          z: "undo",
+          Z: "undo",
+          ArrowUp: "plus1",
+          ArrowDown: "minus1",
+        };
+        const live = () => S.simple || (route && route !== "_data");
+        document.addEventListener("keydown", (e) => {
+          if (!live() || e.ctrlKey || e.metaKey || e.altKey || typing(e.target))
+            return;
+          const a = map[e.key];
+          if (!a) return;
+          const b = document.querySelector('[data-act="' + a + '"]');
+          if (!b) return;
+          e.preventDefault();
+          if (e.repeat) return;
+          b.click();
+        });
+        /* stop a focused button from also firing its own click on Space release */
+        document.addEventListener("keyup", (e) => {
+          if (
+            e.key === " " &&
+            live() &&
+            !typing(e.target) &&
+            document.querySelector('[data-act="plus"]')
+          )
+            e.preventDefault();
+        });
+      })();
 
-/* ---------- repair: slot cards without a stored date used to follow "today" ---------- */
-(function () {
-  let changed = false;
-  for (const it of S.items) {
-    if (it.type !== "slot" || it.date) continue;
-    const first = (it.history || []).find((x) => x && x.ts);
-    it.date = first ? isoLocal(first.ts).slice(0, 10) : todayYMD();
-    changed = true;
-  }
-  if (changed) save();
-})();
+      /* ---------- repair: slot cards without a stored date used to follow "today" ---------- */
+      (function () {
+        let changed = false;
+        for (const it of S.items) {
+          if (it.type !== "slot" || it.date) continue;
+          const first = (it.history || []).find((x) => x && x.ts);
+          it.date = first ? isoLocal(first.ts).slice(0, 10) : todayYMD();
+          changed = true;
+        }
+        if (changed) save();
+      })();
 
-/* ---------- boot ---------- */
+      /* ---------- boot ---------- */
       applyTheme();
       buildCustomBar();
       renderThemebar();
       render();
+      updateBreakScreen();
+      setInterval(updateBreakScreen, 1000);
     </script>
   </body>
 </html>

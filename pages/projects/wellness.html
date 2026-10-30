@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>wellness.mk — daily wellness tracker</title>
+    <link rel="icon" href="/assets/media/logo.png" />
+    <link rel="stylesheet" href="/my_css.css" />
+    <script src="/assets/layout/cursors.js" defer></script>
+    <style>
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 10px;
+        padding: 12px 18px;
+        border-bottom: 2px solid var(--line);
+        background: var(--panel);
+      }
+      .backup-file {
+        color: var(--dim);
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+      .backup-file input {
+        display: none;
+      }
+      .toolbar h1 {
+        font-family: var(--display);
+        font-size: 15px;
+        color: var(--txt);
+        letter-spacing: 1px;
+      }
+      .toolbar h1 .dot {
+        color: var(--blood);
+      }
+      .toolbar .tbsub {
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .toolbar .tlinks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-left: auto;
+        font-size: 12px;
+      }
+      .toolbar .tlinks a {
+        color: var(--dim);
+      }
+      .toolbar .tlinks a:hover {
+        color: var(--blood);
+      }
+      .toolbar button {
+        border: 0;
+        background: none;
+        color: var(--dim);
+        font: inherit;
+        cursor: pointer;
+      }
+      .toolbar button:hover {
+        color: var(--blood);
+      }
+      main.wrap {
+        max-width: 1000px;
+        padding-top: 35px;
+        padding-bottom: 70px;
+      }
+      h2,
+      h3 {
+        font-family: var(--display);
+        color: var(--txt);
+        letter-spacing: 1px;
+      }
+      .intro {
+        margin-bottom: 28px;
+      }
+      .intro h2 {
+        margin: 5px 0 8px;
+        font-size: clamp(1.7rem, 5vw, 2.5rem);
+      }
+      .intro p,
+      .hint {
+        color: var(--dim);
+        font-size: 0.9rem;
+      }
+      .panel {
+        background: var(--panel);
+        border: 2px solid var(--line);
+        box-shadow: 5px 5px 0 #000;
+        padding: clamp(16px, 3vw, 26px);
+        margin-bottom: 24px;
+      }
+      .panel-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      .panel-head h2 {
+        font-size: 1.25rem;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field label,
+      .field legend {
+        color: var(--dim);
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        min-width: 0;
+        padding: 10px;
+        border: 2px solid var(--line);
+        background: var(--panel2);
+        color: var(--txt);
+        font: inherit;
+      }
+      .field input:focus,
+      .field select:focus,
+      .field textarea:focus {
+        outline: 2px solid var(--blood);
+        outline-offset: 1px;
+      }
+      .field textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+      .field.full {
+        grid-column: 1 / -1;
+      }
+      .date-nav,
+      .water-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .date-nav button,
+      .water-nav button {
+        border: 2px solid var(--line);
+        padding: 8px 12px;
+        background: var(--panel2);
+        color: var(--txt);
+        font: inherit;
+        cursor: pointer;
+      }
+      .date-nav button:hover,
+      .water-nav button:hover {
+        border-color: var(--blood);
+      }
+      .date-nav button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .water-nav button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .mood-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .mood-option {
+        position: relative;
+        cursor: pointer;
+      }
+      .mood-option input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+      .mood-option span {
+        display: grid;
+        place-items: center;
+        gap: 3px;
+        min-width: 62px;
+        padding: 8px;
+        border: 2px solid var(--line);
+        background: var(--panel2);
+        color: var(--dim);
+        text-align: center;
+        font-size: 0.72rem;
+      }
+      .mood-option b {
+        font-size: 1.4rem;
+      }
+      .mood-option input:checked + span {
+        border-color: var(--blood);
+        color: var(--txt);
+      }
+      .mood-option input:focus-visible + span {
+        outline: 2px solid var(--blood);
+        outline-offset: 2px;
+      }
+      .habit-list {
+        display: grid;
+        gap: 8px;
+      }
+      .habit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--txt);
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .habit input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--blood);
+      }
+      .date-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .date-nav button,
+      .quick-add {
+        border: 2px solid var(--line);
+        padding: 8px 12px;
+        background: var(--panel2);
+        color: var(--txt);
+        font: inherit;
+        cursor: pointer;
+      }
+      .date-nav button:hover,
+      .quick-add:hover {
+        border-color: var(--blood);
+      }
+      .date-nav button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .mood-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .mood-option {
+        position: relative;
+        cursor: pointer;
+      }
+      .mood-option input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+      .mood-option span {
+        display: grid;
+        place-items: center;
+        gap: 3px;
+        min-width: 62px;
+        padding: 8px;
+        border: 2px solid var(--line);
+        background: var(--panel2);
+        color: var(--dim);
+        font-size: 0.72rem;
+      }
+      .mood-option b {
+        font-size: 1.4rem;
+      }
+      .mood-option input:checked + span {
+        border-color: var(--blood);
+        color: var(--txt);
+      }
+      .mood-option input:focus-visible + span {
+        outline: 2px solid var(--blood);
+        outline-offset: 2px;
+      }
+      .habit-list {
+        display: grid;
+        gap: 8px;
+      }
+      .habit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--txt);
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .habit input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--blood);
+      }
+      .field-help {
+        color: var(--dim);
+        font-size: 0.72rem;
+      }
+      .scale {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .scale label {
+        position: relative;
+        display: flex;
+        cursor: pointer;
+      }
+      .scale input {
+        position: absolute;
+        opacity: 0;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+      .scale span {
+        min-width: 46px;
+        padding: 8px 10px;
+        border: 2px solid var(--line);
+        background: var(--panel2);
+        color: var(--dim);
+        text-align: center;
+        font-size: 0.8rem;
+      }
+      .scale input:checked + span {
+        border-color: var(--blood);
+        color: var(--txt);
+      }
+      .scale input:focus-visible + span {
+        outline: 2px solid var(--blood);
+        outline-offset: 2px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .status {
+        min-height: 1.5em;
+        color: var(--dim);
+        font-size: 0.8rem;
+      }
+      .status.error {
+        color: #ff7777;
+      }
+      .status.success {
+        color: #7bd89a;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        padding: 14px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+      }
+      .stat b {
+        display: block;
+        color: var(--blood);
+        font-family: var(--display);
+        font-size: 1.2rem;
+      }
+      .stat span {
+        color: var(--dim);
+        font-size: 0.75rem;
+      }
+      .chart-wrap {
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        padding: 12px;
+        margin-bottom: 18px;
+      }
+      .chart-wrap h3 {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+      }
+      #mood-chart {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      #mood-chart text {
+        fill: var(--dim);
+        font: 10px var(--mono);
+      }
+      #mood-chart .gridline {
+        stroke: var(--line);
+        stroke-width: 1;
+      }
+      #mood-chart .trend {
+        fill: none;
+        stroke: var(--blood);
+        stroke-width: 3;
+        vector-effect: non-scaling-stroke;
+      }
+      #mood-chart .point {
+        fill: var(--blood);
+        stroke: var(--panel2);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+      }
+      .history {
+        display: grid;
+        gap: 10px;
+      }
+      .entry {
+        display: grid;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+      }
+      .entry-top {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .entry-values {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .entry-pill {
+        padding: 4px 8px;
+        border: 1px solid var(--line);
+        color: var(--dim);
+        font-size: 0.75rem;
+      }
+      .entry-note {
+        color: var(--dim);
+        font-size: 0.82rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .entry-date {
+        color: var(--txt);
+        font-weight: 700;
+      }
+      .entry-detail {
+        color: var(--dim);
+        font-size: 0.8rem;
+      }
+      .entry button {
+        justify-self: end;
+        border: 1px solid var(--line);
+        padding: 4px 8px;
+        background: transparent;
+        color: var(--dim);
+        font: inherit;
+        cursor: pointer;
+      }
+      .entry button:hover {
+        color: var(--blood);
+        border-color: var(--blood);
+      }
+      .empty {
+        color: var(--dim);
+        padding: 18px 0;
+      }
+      .privacy {
+        margin-top: 20px;
+        border-left: 3px solid var(--blood);
+        padding: 10px 14px;
+        background: var(--panel);
+        color: var(--dim);
+        font-size: 0.78rem;
+      }
+      #wellness-backup {
+        width: min(560px, 94vw);
+        border: 2px solid var(--line);
+        padding: 18px;
+        background: var(--panel);
+        color: var(--txt);
+        font: 12px var(--mono);
+      }
+      #wellness-backup::backdrop {
+        background: rgba(0, 0, 0, 0.7);
+      }
+      #wellness-backup h2 {
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+      #wellness-backup p {
+        color: var(--dim);
+        font-size: 11px;
+      }
+      #wellness-backup label {
+        display: block;
+        margin-top: 12px;
+        color: var(--blood);
+        font-size: 0.7rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      #wellness-backup textarea {
+        width: 100%;
+        height: 86px;
+        margin-top: 5px;
+        padding: 8px;
+        resize: vertical;
+        border: 2px solid var(--line);
+        background: var(--panel2);
+        color: var(--txt);
+        font: 11px var(--mono);
+        overflow-wrap: anywhere;
+      }
+      #wellness-backup textarea:focus {
+        outline: none;
+        border-color: var(--blood);
+      }
+      .backup-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .backup-file {
+        color: var(--dim);
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+      .backup-file input {
+        display: none;
+      }
+      @media (max-width: 650px) {
+        .fields {
+          grid-template-columns: 1fr;
+        }
+        .field.full {
+          grid-column: auto;
+        }
+        .summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .toolbar .tlinks {
+          margin-left: 0;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body data-page="projects">
+    <header class="toolbar">
+      <h1>wellness<span class="dot">.</span>mk</h1>
+      <span class="tbsub">daily patterns · saved in this browser</span>
+      <nav class="tlinks" aria-label="Tool actions">
+        <button type="button" id="backup-link">data backup</button>
+        <a href="guide.html#wellness">guide</a>
+        <a href="index.html">← projects</a>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <header class="intro">
+        <p class="eyebrow">// your day, at a glance</p>
+        <h2>A small check-in, your way.</h2>
+        <p>Notice how you feel and track a few everyday habits. Skip anything you don't want to log.</p>
+      </header>
+
+      <section class="panel" aria-labelledby="checkin-heading">
+        <div class="panel-head">
+          <h2 id="checkin-heading">daily check-in</h2>
+          <span class="hint">Changes save automatically on this device. Everything is optional.</span>
+        </div>
+        <form id="checkin-form">
+          <div class="fields">
+            <div class="field full">
+              <label for="entry-date">Choose a day</label>
+              <div class="date-nav">
+                <button type="button" id="previous-day" aria-label="Previous day">←</button>
+                <input id="entry-date" name="date" type="date" required />
+                <button type="button" id="next-day" aria-label="Next day">→</button>
+                <button type="button" id="today-button">today</button>
+              </div>
+            </div>
+            <fieldset class="field full" style="border: 0">
+              <legend>Mood</legend>
+              <div class="mood-options">
+                <label class="mood-option"><input type="radio" name="mood" value="" /><span><b>·</b>Skip</span></label>
+                <label class="mood-option"><input type="radio" name="mood" value="1" /><span><b>😞</b>Very low</span></label>
+                <label class="mood-option"><input type="radio" name="mood" value="2" /><span><b>🙁</b>Low</span></label>
+                <label class="mood-option"><input type="radio" name="mood" value="3" /><span><b>😐</b>Okay</span></label>
+                <label class="mood-option"><input type="radio" name="mood" value="4" /><span><b>🙂</b>Good</span></label>
+                <label class="mood-option"><input type="radio" name="mood" value="5" /><span><b>😄</b>Great</span></label>
+              </div>
+            </fieldset>
+            <div class="field">
+              <label for="sleep">Sleep (hours)</label>
+              <input id="sleep" name="sleep" type="number" min="0" max="24" step="0.25" placeholder="e.g. 7.5" />
+            </div>
+            <div class="field">
+              <label>Water</label>
+              <div class="water-nav">
+                <span id="water-count" class="field-help">0 glasses</span>
+                <button type="button" id="water-remove" aria-label="Remove one glass">−1</button>
+                <button type="button" id="water-add">+1 glass</button>
+              </div>
+            </div>
+            <fieldset class="field full" style="border: 0">
+              <legend>Small things you did today</legend>
+              <div class="habit-list">
+                <label class="habit"><input type="checkbox" name="movement" /> Moved your body</label>
+                <label class="habit"><input type="checkbox" name="outdoors" /> Spent a little time outdoors</label>
+                <label class="habit"><input type="checkbox" name="pause" /> Took a mindful pause</label>
+              </div>
+            </fieldset>
+            <div class="field full">
+              <label for="notes">A note to yourself</label>
+              <textarea id="notes" name="notes" maxlength="1000" placeholder="Anything you want to remember about today?"></textarea>
+              <span class="field-help">Optional. Keep private details out if someone else can access this device.</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn sm" type="submit">save day</button>
+            <span class="hint" id="saved-date-hint"></span>
+            <span class="status" id="form-status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="history-heading">
+        <div class="panel-head">
+          <h2 id="history-heading">last 7 days</h2>
+          <span class="hint">A snapshot of the patterns you chose to track.</span>
+        </div>
+        <div class="summary" id="summary" aria-label="Last seven days summary"></div>
+        <div class="chart-wrap">
+          <h3>mood trend</h3>
+          <svg id="mood-chart" viewBox="0 0 700 190" role="img" aria-label="Mood ratings over the last seven days"></svg>
+          <p class="field-help">Mood ratings from 1 (very low) to 5 (great). Days without a rating are left blank.</p>
+        </div>
+        <div class="history" id="history"></div>
+      </section>
+
+      <p class="privacy">Your entries stay in this browser and are not uploaded. Clearing browser data removes them; use data backup to keep a copy. No account or sync is provided. This is a personal tracker, not medical advice or diagnosis.</p>
+    </main>
+
+    <dialog id="wellness-backup" aria-labelledby="backup-heading">
+      <h2 id="backup-heading">data backup</h2>
+      <p>Copy the compact string to move your data between browsers, or download a JSON file. Importing replaces data saved in this browser.</p>
+      <label for="backup-output">export</label>
+      <textarea id="backup-output" readonly spellcheck="false"></textarea>
+      <div class="backup-actions">
+        <button class="btn sm" type="button" id="backup-copy">copy</button>
+        <button class="btn sm ghost" type="button" id="backup-json-export">download JSON</button>
+        <label class="backup-file">import JSON<input type="file" id="backup-json-import" accept="application/json,.json" /></label>
+        <span class="hint" id="backup-size"></span>
+      </div>
+      <label for="backup-input">import</label>
+      <textarea id="backup-input" spellcheck="false" placeholder="paste a wellness backup string…"></textarea>
+      <div class="backup-actions">
+        <button class="btn sm" type="button" id="backup-import">import</button>
+        <button class="btn sm ghost" type="button" id="clear-data">reset all data</button>
+        <button class="btn sm ghost" type="button" id="backup-close" style="margin-left:auto">close</button>
+      </div>
+      <p class="status" id="backup-status" role="status" aria-live="polite"></p>
+    </dialog>
+
+    <script>
+      "use strict";
+      (function () {
+        const KEY = "wellness.v1";
+        const HABITS = ["movement", "outdoors", "pause"];
+        const MOODS = ["Very low", "Low", "Okay", "Good", "Great"];
+        const MOOD_EMOJI = ["😞", "🙁", "😐", "🙂", "😄"];
+        const LEGACY_MOODS = { rough: 1, low: 2, okay: 3, good: 4, great: 5 };
+        const form = document.getElementById("checkin-form");
+        const dateField = document.getElementById("entry-date");
+        const notesField = document.getElementById("notes");
+        const status = document.getElementById("form-status");
+        const history = document.getElementById("history");
+        const summary = document.getElementById("summary");
+        const dialog = document.getElementById("wellness-backup");
+        const backupOutput = document.getElementById("backup-output");
+        const backupInput = document.getElementById("backup-input");
+        const backupStatus = document.getElementById("backup-status");
+        const chart = document.getElementById("mood-chart");
+        let entries = [];
+        let storageReady = true;
+
+        const $ = (id) => document.getElementById(id);
+        const localDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        };
+        const today = localDate(new Date());
+        const validDate = (value) => {
+          if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+          const date = new Date(`${value}T00:00:00`);
+          return !Number.isNaN(date.getTime()) && localDate(date) === value;
+        };
+        const optionalNumber = (value, min, max, integer) =>
+          value === null || (Number.isFinite(value) && value >= min && value <= max && (!integer || Number.isInteger(value)));
+        function validEntry(entry) {
+          return entry && typeof entry === "object" &&
+            validDate(entry.date) &&
+            optionalNumber(entry.mood, 1, 5, true) &&
+            optionalNumber(entry.sleep, 0, 24, false) &&
+            optionalNumber(entry.water, 0, 100, true) &&
+            entry.habits && typeof entry.habits === "object" &&
+            HABITS.every((habit) => typeof entry.habits[habit] === "boolean") &&
+            typeof entry.notes === "string" && entry.notes.length <= 1000;
+        }
+        function validBackup(data) {
+          return data && data.version === 1 && Array.isArray(data.entries) &&
+            data.entries.length <= 10000 && data.entries.every(validEntry) &&
+            new Set(data.entries.map((entry) => entry.date)).size === data.entries.length;
+        }
+        function normalizeBackup(data) {
+          if (!data || data.version !== 1 || !Array.isArray(data.entries) || data.entries.length > 10000) return null;
+          const normalized = {
+            version: 1,
+            entries: data.entries.map((entry) => {
+              if (!entry || typeof entry !== "object") return entry;
+              return {
+                date: entry.date,
+                mood: typeof entry.mood === "string" ? LEGACY_MOODS[entry.mood] ?? null : entry.mood ?? null,
+                sleep: entry.sleep ?? null,
+                water: entry.water ?? null,
+                habits: {
+                  movement: typeof entry.habits?.movement === "boolean" ? entry.habits.movement : (Number(entry.movement) || 0) > 0,
+                  outdoors: entry.habits?.outdoors === true,
+                  pause: entry.habits?.pause === true,
+                },
+                notes: entry.notes ?? "",
+              };
+            }),
+          };
+          return validBackup(normalized) ? normalized : null;
+        }
+        function say(node, message, kind) {
+          node.textContent = message;
+          node.className = `status${kind ? ` ${kind}` : ""}`;
+        }
+        function setStorage(next) {
+          try {
+            localStorage.setItem(KEY, JSON.stringify({ version: 1, entries: next }));
+          } catch (error) {
+            say(status, `Could not save data: ${error.message}`, "error");
+            return false;
+          }
+          entries = next;
+          storageReady = true;
+          render();
+          return true;
+        }
+        function readStorage() {
+          let raw;
+          try {
+            raw = localStorage.getItem(KEY);
+          } catch (error) {
+            storageReady = false;
+            say(status, `Browser storage is unavailable: ${error.message}`, "error");
+            return;
+          }
+          if (!raw) return;
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch (error) {
+            storageReady = false;
+            say(status, `Saved data could not be read: ${error.message}. Restore a backup to continue.`, "error");
+            return;
+          }
+          const normalized = normalizeBackup(data);
+          if (!normalized) {
+            storageReady = false;
+            say(status, "Saved wellness data is invalid. Restore a valid backup to continue.", "error");
+            return;
+          }
+          entries = normalized.entries;
+          const needsMigration = data.entries.some((entry) =>
+            typeof entry.mood === "string" ||
+            !entry.habits ||
+            !("water" in entry) ||
+            typeof entry.notes !== "string"
+          );
+          if (needsMigration) {
+            try {
+              localStorage.setItem(KEY, JSON.stringify(normalized));
+            } catch (error) {
+              storageReady = false;
+              say(status, `Could not update saved data: ${error.message}`, "error");
+            }
+          }
+        }
+        function dateLabel(value) {
+          return new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+            .format(new Date(`${value}T12:00:00`));
+        }
+        function average(values, suffix, digits) {
+          if (!values.length) return "—";
+          const value = values.reduce((sum, item) => sum + item, 0) / values.length;
+          return `${value.toFixed(digits)}${suffix}`;
+        }
+        function addStat(label, value) {
+          const box = document.createElement("div");
+          box.className = "stat";
+          const strong = document.createElement("b");
+          strong.textContent = value;
+          const caption = document.createElement("span");
+          caption.textContent = label;
+          box.append(strong, caption);
+          summary.appendChild(box);
+        }
+        function metricPill(label, value, suffix) {
+          const pill = document.createElement("span");
+          pill.className = "entry-pill";
+          pill.textContent = `${label}: ${value}${suffix || ""}`;
+          return pill;
+        }
+        function habitLabel(habit) {
+          return {
+            movement: "Moved",
+            outdoors: "Outdoors",
+            pause: "Mindful pause",
+          }[habit];
+        }
+        function streak(sorted) {
+          const dates = new Set(sorted.map((entry) => entry.date));
+          const cursor = new Date(`${today}T12:00:00`);
+          if (!dates.has(localDate(cursor))) cursor.setDate(cursor.getDate() - 1);
+          let count = 0;
+          while (dates.has(localDate(cursor))) {
+            count++;
+            cursor.setDate(cursor.getDate() - 1);
+          }
+          return count;
+        }
+        function renderMoodChart(week, sorted) {
+          const ns = "http://www.w3.org/2000/svg";
+          chart.replaceChildren();
+          const xAt = (index) => 62 + index * (600 / 6);
+          const yAt = (value) => 150 - (value - 1) * 30;
+          [1, 2, 3, 4, 5].forEach((value) => {
+            const y = yAt(value);
+            const line = document.createElementNS(ns, "line");
+            line.setAttribute("x1", "48");
+            line.setAttribute("x2", "680");
+            line.setAttribute("y1", y);
+            line.setAttribute("y2", y);
+            line.setAttribute("class", "gridline");
+            chart.appendChild(line);
+            const label = document.createElementNS(ns, "text");
+            label.setAttribute("x", "28");
+            label.setAttribute("y", y + 4);
+            label.textContent = value;
+            chart.appendChild(label);
+          });
+          const byDate = new Map(sorted.map((entry) => [entry.date, entry]));
+          let previous = null;
+          week.forEach((date, index) => {
+            const entry = byDate.get(date);
+            const x = xAt(index);
+            if (entry && entry.mood !== null) {
+              const y = yAt(entry.mood);
+              if (previous) {
+                const line = document.createElementNS(ns, "line");
+                line.setAttribute("x1", previous.x);
+                line.setAttribute("y1", previous.y);
+                line.setAttribute("x2", x);
+                line.setAttribute("y2", y);
+                line.setAttribute("class", "trend");
+                chart.appendChild(line);
+              }
+              const point = document.createElementNS(ns, "circle");
+              point.setAttribute("cx", x);
+              point.setAttribute("cy", y);
+              point.setAttribute("r", "5");
+              point.setAttribute("class", "point");
+              point.setAttribute("aria-label", `${dateLabel(date)}: ${MOODS[entry.mood - 1]}`);
+              chart.appendChild(point);
+              previous = { x, y };
+            } else {
+              previous = null;
+            }
+            const day = document.createElementNS(ns, "text");
+            day.setAttribute("x", x);
+            day.setAttribute("y", "178");
+            day.setAttribute("text-anchor", "middle");
+            day.textContent = new Intl.DateTimeFormat(undefined, { weekday: "short" })
+              .format(new Date(`${date}T12:00:00`));
+            chart.appendChild(day);
+          });
+        }
+        function render() {
+          const sorted = entries.slice().sort((a, b) => b.date.localeCompare(a.date));
+          const week = [];
+          const firstDay = new Date(`${today}T12:00:00`);
+          firstDay.setDate(firstDay.getDate() - 6);
+          for (let offset = 0; offset < 7; offset++) {
+            const date = new Date(firstDay);
+            date.setDate(firstDay.getDate() + offset);
+            week.push(localDate(date));
+          }
+          const recent = week.map((date) => sorted.find((entry) => entry.date === date)).filter(Boolean);
+          summary.replaceChildren();
+          addStat("days logged · last 7 days", String(recent.length));
+          const currentStreak = streak(sorted);
+          addStat("current check-in streak", `${currentStreak} ${currentStreak === 1 ? "day" : "days"}`);
+          addStat("average mood · recorded days", average(recent.map((entry) => entry.mood).filter(Number.isFinite), "", 1));
+          addStat("average sleep · recorded days", average(recent.map((entry) => entry.sleep).filter(Number.isFinite), " h", 1));
+          addStat("average water · recorded days", average(recent.map((entry) => entry.water).filter(Number.isFinite), " glasses", 1));
+          renderMoodChart(week, sorted);
+
+          history.replaceChildren();
+          if (!recent.length) {
+            const empty = document.createElement("p");
+            empty.className = "empty";
+            empty.textContent = "No logs in the last seven days. Add a check-in to start spotting your patterns.";
+            history.appendChild(empty);
+            return;
+          }
+          recent.forEach((entry) => {
+            const row = document.createElement("article");
+            row.className = "entry";
+            const top = document.createElement("div");
+            top.className = "entry-top";
+            const day = document.createElement("div");
+            day.className = "entry-date";
+            day.textContent = dateLabel(entry.date);
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.textContent = "delete";
+            remove.setAttribute("aria-label", `Delete daily log for ${dateLabel(entry.date)}`);
+            remove.addEventListener("click", () => {
+              if (!window.confirm(`Delete the daily log for ${dateLabel(entry.date)}?`)) return;
+              if (setStorage(entries.filter((item) => item.date !== entry.date))) loadFormForDate();
+            });
+            top.append(day, remove);
+            const values = document.createElement("div");
+            values.className = "entry-values";
+            if (entry.mood !== null) values.appendChild(metricPill("mood", `${MOOD_EMOJI[entry.mood - 1]} ${MOODS[entry.mood - 1]}`));
+            if (entry.sleep !== null) values.appendChild(metricPill("sleep", entry.sleep, " h"));
+            if (entry.water !== null) values.appendChild(metricPill("water", entry.water, entry.water === 1 ? " glass" : " glasses"));
+            HABITS.forEach((habit) => {
+              if (entry.habits[habit]) values.appendChild(metricPill("did", habitLabel(habit)));
+            });
+            row.append(top, values);
+            if (entry.notes) {
+              const note = document.createElement("div");
+              note.className = "entry-note";
+              note.textContent = entry.notes;
+              row.appendChild(note);
+            }
+            history.appendChild(row);
+          });
+        }
+        function loadFormForDate() {
+          const entry = entries.find((item) => item.date === dateField.value);
+          form.querySelectorAll('input[name="mood"]').forEach((input) => {
+            input.checked = !!entry && (input.value === "" ? entry.mood === null : entry.mood === Number(input.value));
+          });
+          $("sleep").value = entry && entry.sleep !== null ? entry.sleep : "";
+          const waterCount = entry && entry.water !== null ? entry.water : 0;
+          $("water-count").dataset.count = String(waterCount);
+          $("water-count").textContent = `${waterCount} glasses`;
+          $("water-remove").disabled = waterCount === 0;
+          $("water-add").disabled = waterCount >= 100;
+          form.dataset.waterTouched = entry && entry.water !== null ? "true" : "false";
+          HABITS.forEach((habit) => {
+            form.querySelector(`input[name="${habit}"]`).checked = !!entry && entry.habits[habit];
+          });
+          notesField.value = entry ? entry.notes : "";
+          $("previous-day").disabled = dateField.value <= "0001-01-02";
+          $("next-day").disabled = dateField.value >= today;
+          $("saved-date-hint").textContent = entry ? `saved for ${dateLabel(entry.date)}` : "not saved yet";
+          if (storageReady) say(status, entry ? `Editing ${dateLabel(entry.date)}.` : "", "");
+        }
+        function saveForm() {
+          if (!storageReady) {
+            say(status, "Storage is unavailable or saved data is invalid. Restore a valid backup before saving.", "error");
+            return false;
+          }
+          const moodInput = form.querySelector('input[name="mood"]:checked');
+          const waterCount = Number($("water-count").dataset.count || 0);
+          const entry = {
+            date: dateField.value,
+            mood: moodInput && moodInput.value !== "" ? Number(moodInput.value) : null,
+            sleep: $("sleep").value === "" ? null : Number($("sleep").value),
+            water: form.dataset.waterTouched === "true" ? waterCount : null,
+            habits: Object.fromEntries(HABITS.map((habit) => [
+              habit,
+              form.querySelector(`input[name="${habit}"]`).checked,
+            ])),
+            notes: notesField.value.trim(),
+          };
+          if (!validDate(entry.date) || entry.date > today || !validEntry(entry)) {
+            say(status, "Check the date and values, then try again.", "error");
+            return false;
+          }
+          const hasData = entry.mood !== null || entry.sleep !== null || entry.water !== null ||
+            HABITS.some((habit) => entry.habits[habit]) || entry.notes.length > 0;
+          const next = entries.filter((item) => item.date !== entry.date);
+          if (hasData) next.push(entry);
+          if (!setStorage(next)) return false;
+          $("saved-date-hint").textContent = hasData ? `saved for ${dateLabel(entry.date)}` : "not saved yet";
+          if (hasData) say(status, `Saved ${dateLabel(entry.date)} on this device.`, "success");
+          else say(status, "Empty day cleared.", "success");
+          return true;
+        }
+
+        const toBase64 = (bytes) => {
+          let binary = "";
+          for (let i = 0; i < bytes.length; i += 0x8000) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+          }
+          return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        };
+        const fromBase64 = (text) => {
+          let encoded = text.replace(/-/g, "+").replace(/_/g, "/").replace(/\s+/g, "");
+          while (encoded.length % 4) encoded += "=";
+          const binary = atob(encoded);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return bytes;
+        };
+        async function pipe(bytes, transform) {
+          return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(transform)).arrayBuffer());
+        }
+        async function pack() {
+          const bytes = new TextEncoder().encode(JSON.stringify({ version: 1, entries }));
+          if (typeof CompressionStream === "undefined") return `WL0.${toBase64(bytes)}`;
+          return `WL1.${toBase64(await pipe(bytes, new CompressionStream("deflate-raw")))}`;
+        }
+        async function unpack(text) {
+          let data;
+          const match = text.trim().match(/^WL([01])\.([\s\S]+)$/);
+          if (match) {
+            let bytes = fromBase64(match[2]);
+            if (match[1] === "1") {
+              if (typeof DecompressionStream === "undefined") throw new Error("This browser cannot decompress this backup.");
+              bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
+            }
+            data = JSON.parse(new TextDecoder().decode(bytes));
+          } else {
+            data = JSON.parse(text);
+          }
+          const normalized = normalizeBackup(data);
+          if (!normalized) throw new Error("unrecognized or invalid wellness backup");
+          return normalized;
+        }
+        async function openBackup() {
+          say(backupStatus, "", "");
+          backupInput.value = "";
+          backupOutput.value = "";
+          try {
+            await refreshBackup();
+            dialog.showModal();
+          } catch (error) {
+            say(backupStatus, `Could not create backup: ${error.message}`, "error");
+            dialog.showModal();
+          }
+        }
+        async function refreshBackup() {
+          const packed = await pack();
+          backupOutput.value = packed;
+          $("backup-size").textContent = `${packed.length.toLocaleString()} chars`;
+        }
+        async function importEntries(data, message) {
+          const normalized = normalizeBackup(data);
+          if (!normalized) throw new Error("unrecognized or invalid wellness backup");
+          if (!window.confirm("Replace all wellness data saved in this browser?")) return false;
+          if (!setStorage(normalized.entries)) return false;
+          loadFormForDate();
+          await refreshBackup();
+          say(backupStatus, message, "success");
+          say(status, message, "success");
+          return true;
+        }
+        function downloadJson() {
+          const blob = new Blob([JSON.stringify({ version: 1, entries }, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "wellness-backup.json";
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        $("backup-link").addEventListener("click", openBackup);
+        $("backup-copy").addEventListener("click", async () => {
+          let copied = false;
+          try {
+            await navigator.clipboard.writeText(backupOutput.value);
+            copied = true;
+          } catch (error) {
+            backupOutput.select();
+            try {
+              copied = document.execCommand("copy");
+            } catch (fallbackError) {
+              say(backupStatus, `Copy failed: ${fallbackError.message || error.message}. Select the text and copy it manually.`, "error");
+              return;
+            }
+          }
+          say(backupStatus, copied ? "Backup copied." : "Copy was blocked; select the export text and copy it manually.", copied ? "success" : "error");
+        });
+        $("backup-json-export").addEventListener("click", downloadJson);
+        $("backup-json-import").addEventListener("change", async (event) => {
+          const file = event.target.files && event.target.files[0];
+          if (!file) return;
+          try {
+            await importEntries(JSON.parse(await file.text()), "JSON backup restored.");
+          } catch (error) {
+            say(backupStatus, `Import failed: ${error.message}`, "error");
+          } finally {
+            event.target.value = "";
+          }
+        });
+        $("backup-import").addEventListener("click", async () => {
+          const text = backupInput.value.trim();
+          if (!text) {
+            say(backupStatus, "Paste a backup string first.", "error");
+            return;
+          }
+          try {
+            const data = await unpack(text);
+            await importEntries(data, "Backup restored.");
+          } catch (error) {
+            say(backupStatus, `Import failed: ${error.message}`, "error");
+          }
+        });
+        $("clear-data").addEventListener("click", () => {
+          if (!window.confirm("Permanently clear all wellness data saved in this browser? This cannot be undone unless you have a backup.")) return;
+          try {
+            localStorage.removeItem(KEY);
+          } catch (error) {
+            say(backupStatus, `Could not clear data: ${error.message}`, "error");
+            return;
+          }
+          entries = [];
+          storageReady = true;
+          form.reset();
+          dateField.value = today;
+          form.dataset.waterTouched = "false";
+          $("water-count").dataset.count = "0";
+          $("water-remove").disabled = true;
+          $("water-add").disabled = false;
+          backupInput.value = "";
+          refreshBackup().catch((error) => say(backupStatus, `Could not refresh backup: ${error.message}`, "error"));
+          render();
+          loadFormForDate();
+          say(backupStatus, "All wellness data cleared.", "success");
+          say(status, "All wellness data cleared.", "success");
+        });
+        $("backup-close").addEventListener("click", () => dialog.close());
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) dialog.close();
+        });
+
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          saveForm();
+        });
+        dateField.max = today;
+        dateField.addEventListener("change", () => {
+          if (!validDate(dateField.value) || dateField.value > today) {
+            dateField.value = today;
+          }
+          loadFormForDate();
+        });
+        function moveDate(days) {
+          const next = new Date(`${dateField.value}T12:00:00`);
+          next.setDate(next.getDate() + days);
+          dateField.value = localDate(next);
+          loadFormForDate();
+        }
+        $("previous-day").addEventListener("click", () => moveDate(-1));
+        $("next-day").addEventListener("click", () => moveDate(1));
+        $("today-button").addEventListener("click", () => {
+          dateField.value = today;
+          loadFormForDate();
+        });
+        $("water-add").addEventListener("click", () => {
+          const waterCount = $("water-count");
+          const count = Number(waterCount.dataset.count || 0);
+          if (count >= 100) return;
+          waterCount.dataset.count = String(count + 1);
+          waterCount.textContent = `${count + 1} glasses`;
+          $("water-remove").disabled = false;
+          $("water-add").disabled = count + 1 >= 100;
+          form.dataset.waterTouched = "true";
+          saveForm();
+        });
+        $("water-remove").addEventListener("click", () => {
+          const waterCount = $("water-count");
+          const count = Number(waterCount.dataset.count || 0);
+          if (count <= 0) return;
+          waterCount.dataset.count = String(count - 1);
+          waterCount.textContent = `${count - 1} glasses`;
+          $("water-remove").disabled = count - 1 === 0;
+          $("water-add").disabled = false;
+          form.dataset.waterTouched = "true";
+          saveForm();
+        });
+        form.addEventListener("change", (event) => {
+          if (event.target === dateField) return;
+          saveForm();
+        });
+
+        dateField.value = localDate(new Date());
+        readStorage();
+        render();
+        loadFormForDate();
+      })();
+    </script>
+  </body>
+</html>
