@@ -74,6 +74,7 @@
 #panel-pack .pk_item .nm{color:#fff;font-size:.85rem;overflow-wrap:anywhere}
 #panel-pack .pk_item textarea{min-height:70px}
 #panel-pack .pk_item img{max-width:100%;max-height:200px;align-self:flex-start;border:2px solid var(--line);background:#000}
+#panel-pack .pk_item audio{width:100%}
 </style>
   <script>
 if ('serviceWorker' in navigator) {
@@ -85,34 +86,11 @@ if ('serviceWorker' in navigator) {
 }
 </script>
   <script>
-//---------------------------------------------------------------------
-//
-// QR Code Generator for JavaScript
-//
-// Copyright (c) 2009 Kazuhiko Arase
-//
-// URL: http://www.d-project.com/
-//
-// Licensed under the MIT license:
-//  http://www.opensource.org/licenses/mit-license.php
-//
-// The word 'QR Code' is registered trademark of
-// DENSO WAVE INCORPORATED
-//  http://www.denso-wave.com/qrcode/faqpatent-e.html
-//
-//---------------------------------------------------------------------
-
+// QR Code Generator for JavaScript — Copyright (c) 2009 Kazuhiko Arase (MIT license)
+// http://www.d-project.com/  — "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+// (trimmed to the parts this page uses)
 var qrcode = function() {
 
-  //---------------------------------------------------------------------
-  // qrcode
-  //---------------------------------------------------------------------
-
-  /**
-   * qrcode
-   * @param typeNumber 1 to 40
-   * @param errorCorrectionLevel 'L','M','Q','H'
-   */
   var qrcode = function(typeNumber, errorCorrectionLevel) {
 
     var PAD0 = 0xEC;
@@ -429,7 +407,6 @@ var qrcode = function() {
         data.write(buffer);
       }
 
-      // calc num max data.
       var totalDataCount = 0;
       for (var i = 0; i < rsBlocks.length; i += 1) {
         totalDataCount += rsBlocks[i].dataCount;
@@ -443,17 +420,14 @@ var qrcode = function() {
           + ')';
       }
 
-      // end code
       if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
         buffer.put(0, 4);
       }
 
-      // padding
       while (buffer.getLengthInBits() % 8 != 0) {
         buffer.putBit(false);
       }
 
-      // padding
       while (true) {
 
         if (buffer.getLengthInBits() >= totalDataCount * 8) {
@@ -485,9 +459,6 @@ var qrcode = function() {
         break;
       case 'Byte' :
         newData = qr8BitByte(data);
-        break;
-      case 'Kanji' :
-        newData = qrKanji(data);
         break;
       default :
         throw 'mode:' + mode;
@@ -537,108 +508,6 @@ var qrcode = function() {
       }
 
       makeImpl(false, getBestMaskPattern() );
-    };
-
-    _this.createTableTag = function(cellSize, margin) {
-
-      cellSize = cellSize || 2;
-      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
-
-      var qrHtml = '';
-
-      qrHtml += '<table style="';
-      qrHtml += ' border-width: 0px; border-style: none;';
-      qrHtml += ' border-collapse: collapse;';
-      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
-      qrHtml += '">';
-      qrHtml += '<tbody>';
-
-      for (var r = 0; r < _this.getModuleCount(); r += 1) {
-
-        qrHtml += '<tr>';
-
-        for (var c = 0; c < _this.getModuleCount(); c += 1) {
-          qrHtml += '<td style="';
-          qrHtml += ' border-width: 0px; border-style: none;';
-          qrHtml += ' border-collapse: collapse;';
-          qrHtml += ' padding: 0px; margin: 0px;';
-          qrHtml += ' width: ' + cellSize + 'px;';
-          qrHtml += ' height: ' + cellSize + 'px;';
-          qrHtml += ' background-color: ';
-          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
-          qrHtml += ';';
-          qrHtml += '"/>';
-        }
-
-        qrHtml += '</tr>';
-      }
-
-      qrHtml += '</tbody>';
-      qrHtml += '</table>';
-
-      return qrHtml;
-    };
-
-    _this.createSvgTag = function(cellSize, margin, alt, title) {
-
-      var opts = {};
-      if (typeof arguments[0] == 'object') {
-        // Called by options.
-        opts = arguments[0];
-        // overwrite cellSize and margin.
-        cellSize = opts.cellSize;
-        margin = opts.margin;
-        alt = opts.alt;
-        title = opts.title;
-      }
-
-      cellSize = cellSize || 2;
-      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
-
-      // Compose alt property surrogate
-      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
-      alt.text = alt.text || null;
-      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
-
-      // Compose title property surrogate
-      title = (typeof title === 'string') ? {text: title} : title || {};
-      title.text = title.text || null;
-      title.id = (title.text) ? title.id || 'qrcode-title' : null;
-
-      var size = _this.getModuleCount() * cellSize + margin * 2;
-      var c, mc, r, mr, qrSvg='', rect;
-
-      rect = 'l' + cellSize + ',0 0,' + cellSize +
-        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
-
-      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
-      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
-      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
-      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
-      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
-          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
-      qrSvg += '>';
-      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
-          escapeXml(title.text) + '</title>' : '';
-      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
-          escapeXml(alt.text) + '</description>' : '';
-      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
-      qrSvg += '<path d="';
-
-      for (r = 0; r < _this.getModuleCount(); r += 1) {
-        mr = r * cellSize + margin;
-        for (c = 0; c < _this.getModuleCount(); c += 1) {
-          if (_this.isDark(r, c) ) {
-            mc = c*cellSize+margin;
-            qrSvg += 'M' + mc + ',' + mr + rect;
-          }
-        }
-      }
-
-      qrSvg += '" stroke="transparent" fill="black"/>';
-      qrSvg += '</svg>';
-
-      return qrSvg;
     };
 
     _this.createDataURL = function(cellSize, margin) {
@@ -704,122 +573,8 @@ var qrcode = function() {
       return escaped;
     };
 
-    var _createHalfASCII = function(margin) {
-      var cellSize = 1;
-      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
-
-      var size = _this.getModuleCount() * cellSize + margin * 2;
-      var min = margin;
-      var max = size - margin;
-
-      var y, x, r1, r2, p;
-
-      var blocks = {
-        '██': '█',
-        '█ ': '▀',
-        ' █': '▄',
-        '  ': ' '
-      };
-
-      var blocksLastLineNoMargin = {
-        '██': '▀',
-        '█ ': '▀',
-        ' █': ' ',
-        '  ': ' '
-      };
-
-      var ascii = '';
-      for (y = 0; y < size; y += 2) {
-        r1 = Math.floor((y - min) / cellSize);
-        r2 = Math.floor((y + 1 - min) / cellSize);
-        for (x = 0; x < size; x += 1) {
-          p = '█';
-
-          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
-            p = ' ';
-          }
-
-          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
-            p += ' ';
-          }
-          else {
-            p += '█';
-          }
-
-          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
-          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
-        }
-
-        ascii += '\n';
-      }
-
-      if (size % 2 && margin > 0) {
-        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
-      }
-
-      return ascii.substring(0, ascii.length-1);
-    };
-
-    _this.createASCII = function(cellSize, margin) {
-      cellSize = cellSize || 1;
-
-      if (cellSize < 2) {
-        return _createHalfASCII(margin);
-      }
-
-      cellSize -= 1;
-      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
-
-      var size = _this.getModuleCount() * cellSize + margin * 2;
-      var min = margin;
-      var max = size - margin;
-
-      var y, x, r, p;
-
-      var white = Array(cellSize+1).join('██');
-      var black = Array(cellSize+1).join('  ');
-
-      var ascii = '';
-      var line = '';
-      for (y = 0; y < size; y += 1) {
-        r = Math.floor( (y - min) / cellSize);
-        line = '';
-        for (x = 0; x < size; x += 1) {
-          p = 1;
-
-          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
-            p = 0;
-          }
-
-          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
-          line += p ? white : black;
-        }
-
-        for (r = 0; r < cellSize; r += 1) {
-          ascii += line + '\n';
-        }
-      }
-
-      return ascii.substring(0, ascii.length-1);
-    };
-
-    _this.renderTo2dContext = function(context, cellSize) {
-      cellSize = cellSize || 2;
-      var length = _this.getModuleCount();
-      for (var row = 0; row < length; row++) {
-        for (var col = 0; col < length; col++) {
-          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
-          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-
     return _this;
   };
-
-  //---------------------------------------------------------------------
-  // qrcode.stringToBytes
-  //---------------------------------------------------------------------
 
   qrcode.stringToBytesFuncs = {
     'default' : function(s) {
@@ -834,80 +589,6 @@ var qrcode = function() {
 
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
 
-  //---------------------------------------------------------------------
-  // qrcode.createStringToBytes
-  //---------------------------------------------------------------------
-
-  /**
-   * @param unicodeData base64 string of byte array.
-   * [16bit Unicode],[16bit Bytes], ...
-   * @param numChars
-   */
-  qrcode.createStringToBytes = function(unicodeData, numChars) {
-
-    // create conversion map.
-
-    var unicodeMap = function() {
-
-      var bin = base64DecodeInputStream(unicodeData);
-      var read = function() {
-        var b = bin.read();
-        if (b == -1) throw 'eof';
-        return b;
-      };
-
-      var count = 0;
-      var unicodeMap = {};
-      while (true) {
-        var b0 = bin.read();
-        if (b0 == -1) break;
-        var b1 = read();
-        var b2 = read();
-        var b3 = read();
-        var k = String.fromCharCode( (b0 << 8) | b1);
-        var v = (b2 << 8) | b3;
-        unicodeMap[k] = v;
-        count += 1;
-      }
-      if (count != numChars) {
-        throw count + ' != ' + numChars;
-      }
-
-      return unicodeMap;
-    }();
-
-    var unknownChar = '?'.charCodeAt(0);
-
-    return function(s) {
-      var bytes = [];
-      for (var i = 0; i < s.length; i += 1) {
-        var c = s.charCodeAt(i);
-        if (c < 128) {
-          bytes.push(c);
-        } else {
-          var b = unicodeMap[s.charAt(i)];
-          if (typeof b == 'number') {
-            if ( (b & 0xff) == b) {
-              // 1byte
-              bytes.push(b);
-            } else {
-              // 2bytes
-              bytes.push(b >>> 8);
-              bytes.push(b & 0xff);
-            }
-          } else {
-            bytes.push(unknownChar);
-          }
-        }
-      }
-      return bytes;
-    };
-  };
-
-  //---------------------------------------------------------------------
-  // QRMode
-  //---------------------------------------------------------------------
-
   var QRMode = {
     MODE_NUMBER :    1 << 0,
     MODE_ALPHA_NUM : 1 << 1,
@@ -915,20 +596,12 @@ var qrcode = function() {
     MODE_KANJI :     1 << 3
   };
 
-  //---------------------------------------------------------------------
-  // QRErrorCorrectionLevel
-  //---------------------------------------------------------------------
-
   var QRErrorCorrectionLevel = {
     L : 1,
     M : 0,
     Q : 3,
     H : 2
   };
-
-  //---------------------------------------------------------------------
-  // QRMaskPattern
-  //---------------------------------------------------------------------
 
   var QRMaskPattern = {
     PATTERN000 : 0,
@@ -940,10 +613,6 @@ var qrcode = function() {
     PATTERN110 : 6,
     PATTERN111 : 7
   };
-
-  //---------------------------------------------------------------------
-  // QRUtil
-  //---------------------------------------------------------------------
 
   var QRUtil = function() {
 
@@ -1062,8 +731,6 @@ var qrcode = function() {
 
       if (1 <= type && type < 10) {
 
-        // 1 - 9
-
         switch(mode) {
         case QRMode.MODE_NUMBER    : return 10;
         case QRMode.MODE_ALPHA_NUM : return 9;
@@ -1075,8 +742,6 @@ var qrcode = function() {
 
       } else if (type < 27) {
 
-        // 10 - 26
-
         switch(mode) {
         case QRMode.MODE_NUMBER    : return 12;
         case QRMode.MODE_ALPHA_NUM : return 11;
@@ -1087,8 +752,6 @@ var qrcode = function() {
         }
 
       } else if (type < 41) {
-
-        // 27 - 40
 
         switch(mode) {
         case QRMode.MODE_NUMBER    : return 14;
@@ -1212,16 +875,11 @@ var qrcode = function() {
     return _this;
   }();
 
-  //---------------------------------------------------------------------
-  // QRMath
-  //---------------------------------------------------------------------
-
   var QRMath = function() {
 
     var EXP_TABLE = new Array(256);
     var LOG_TABLE = new Array(256);
 
-    // initialize tables
     for (var i = 0; i < 8; i += 1) {
       EXP_TABLE[i] = 1 << i;
     }
@@ -1261,10 +919,6 @@ var qrcode = function() {
 
     return _this;
   }();
-
-  //---------------------------------------------------------------------
-  // qrPolynomial
-  //---------------------------------------------------------------------
 
   function qrPolynomial(num, shift) {
 
@@ -1324,25 +978,17 @@ var qrcode = function() {
         num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
       }
 
-      // recursive call
       return qrPolynomial(num, 0).mod(e);
     };
 
     return _this;
   };
 
-  //---------------------------------------------------------------------
-  // QRRSBlock
-  //---------------------------------------------------------------------
-
   var QRRSBlock = function() {
 
     var RS_BLOCK_TABLE = [
 
-      // L
-      // M
-      // Q
-      // H
+      // L, M, Q, H per version
 
       // 1
       [1, 26, 19],
@@ -1640,10 +1286,6 @@ var qrcode = function() {
     return _this;
   }();
 
-  //---------------------------------------------------------------------
-  // qrBitBuffer
-  //---------------------------------------------------------------------
-
   var qrBitBuffer = function() {
 
     var _buffer = [];
@@ -1686,10 +1328,6 @@ var qrcode = function() {
 
     return _this;
   };
-
-  //---------------------------------------------------------------------
-  // qrNumber
-  //---------------------------------------------------------------------
 
   var qrNumber = function(data) {
 
@@ -1743,10 +1381,6 @@ var qrcode = function() {
 
     return _this;
   };
-
-  //---------------------------------------------------------------------
-  // qrAlphaNum
-  //---------------------------------------------------------------------
 
   var qrAlphaNum = function(data) {
 
@@ -1807,10 +1441,6 @@ var qrcode = function() {
     return _this;
   };
 
-  //---------------------------------------------------------------------
-  // qr8BitByte
-  //---------------------------------------------------------------------
-
   var qr8BitByte = function(data) {
 
     var _mode = QRMode.MODE_8BIT_BYTE;
@@ -1835,80 +1465,6 @@ var qrcode = function() {
 
     return _this;
   };
-
-  //---------------------------------------------------------------------
-  // qrKanji
-  //---------------------------------------------------------------------
-
-  var qrKanji = function(data) {
-
-    var _mode = QRMode.MODE_KANJI;
-    var _data = data;
-
-    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
-    if (!stringToBytes) {
-      throw 'sjis not supported.';
-    }
-    !function(c, code) {
-      // self test for sjis support.
-      var test = stringToBytes(c);
-      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
-        throw 'sjis not supported.';
-      }
-    }('\u53cb', 0x9746);
-
-    var _bytes = stringToBytes(data);
-
-    var _this = {};
-
-    _this.getMode = function() {
-      return _mode;
-    };
-
-    _this.getLength = function(buffer) {
-      return ~~(_bytes.length / 2);
-    };
-
-    _this.write = function(buffer) {
-
-      var data = _bytes;
-
-      var i = 0;
-
-      while (i + 1 < data.length) {
-
-        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
-
-        if (0x8140 <= c && c <= 0x9FFC) {
-          c -= 0x8140;
-        } else if (0xE040 <= c && c <= 0xEBBF) {
-          c -= 0xC140;
-        } else {
-          throw 'illegal char at ' + (i + 1) + '/' + c;
-        }
-
-        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
-
-        buffer.put(c, 13);
-
-        i += 2;
-      }
-
-      if (i < data.length) {
-        throw 'illegal char at ' + (i + 1);
-      }
-    };
-
-    return _this;
-  };
-
-  //=====================================================================
-  // GIF Support etc.
-  //
-
-  //---------------------------------------------------------------------
-  // byteArrayOutputStream
-  //---------------------------------------------------------------------
 
   var byteArrayOutputStream = function() {
 
@@ -1943,25 +1499,8 @@ var qrcode = function() {
       return _bytes;
     };
 
-    _this.toString = function() {
-      var s = '';
-      s += '[';
-      for (var i = 0; i < _bytes.length; i += 1) {
-        if (i > 0) {
-          s += ',';
-        }
-        s += _bytes[i];
-      }
-      s += ']';
-      return s;
-    };
-
     return _this;
   };
-
-  //---------------------------------------------------------------------
-  // base64EncodeOutputStream
-  //---------------------------------------------------------------------
 
   var base64EncodeOutputStream = function() {
 
@@ -2014,7 +1553,6 @@ var qrcode = function() {
       }
 
       if (_length % 3 != 0) {
-        // padding
         var padlen = 3 - _length % 3;
         for (var i = 0; i < padlen; i += 1) {
           _base64 += '=';
@@ -2028,73 +1566,6 @@ var qrcode = function() {
 
     return _this;
   };
-
-  //---------------------------------------------------------------------
-  // base64DecodeInputStream
-  //---------------------------------------------------------------------
-
-  var base64DecodeInputStream = function(str) {
-
-    var _str = str;
-    var _pos = 0;
-    var _buffer = 0;
-    var _buflen = 0;
-
-    var _this = {};
-
-    _this.read = function() {
-
-      while (_buflen < 8) {
-
-        if (_pos >= _str.length) {
-          if (_buflen == 0) {
-            return -1;
-          }
-          throw 'unexpected end of file./' + _buflen;
-        }
-
-        var c = _str.charAt(_pos);
-        _pos += 1;
-
-        if (c == '=') {
-          _buflen = 0;
-          return -1;
-        } else if (c.match(/^\s$/) ) {
-          // ignore if whitespace.
-          continue;
-        }
-
-        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
-        _buflen += 6;
-      }
-
-      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
-      _buflen -= 8;
-      return n;
-    };
-
-    var decode = function(c) {
-      if (0x41 <= c && c <= 0x5a) {
-        return c - 0x41;
-      } else if (0x61 <= c && c <= 0x7a) {
-        return c - 0x61 + 26;
-      } else if (0x30 <= c && c <= 0x39) {
-        return c - 0x30 + 52;
-      } else if (c == 0x2b) {
-        return 62;
-      } else if (c == 0x2f) {
-        return 63;
-      } else {
-        throw 'c:' + c;
-      }
-    };
-
-    return _this;
-  };
-
-  //---------------------------------------------------------------------
-  // gifImage (B/W)
-  //---------------------------------------------------------------------
 
   var gifImage = function(width, height) {
 
@@ -2110,23 +1581,14 @@ var qrcode = function() {
 
     _this.write = function(out) {
 
-      //---------------------------------
-      // GIF Signature
-
       out.writeString('GIF87a');
-
-      //---------------------------------
-      // Screen Descriptor
 
       out.writeShort(_width);
       out.writeShort(_height);
 
-      out.writeByte(0x80); // 2bit
+      out.writeByte(0x80);
       out.writeByte(0);
       out.writeByte(0);
-
-      //---------------------------------
-      // Global Color Map
 
       // black
       out.writeByte(0x00);
@@ -2138,21 +1600,12 @@ var qrcode = function() {
       out.writeByte(0xff);
       out.writeByte(0xff);
 
-      //---------------------------------
-      // Image Descriptor
-
       out.writeString(',');
       out.writeShort(0);
       out.writeShort(0);
       out.writeShort(_width);
       out.writeShort(_height);
       out.writeByte(0);
-
-      //---------------------------------
-      // Local Color Map
-
-      //---------------------------------
-      // Raster Data
 
       var lzwMinCodeSize = 2;
       var raster = getLZWRaster(lzwMinCodeSize);
@@ -2171,8 +1624,6 @@ var qrcode = function() {
       out.writeBytes(raster, offset, raster.length - offset);
       out.writeByte(0x00);
 
-      //---------------------------------
-      // GIF Terminator
       out.writeString(';');
     };
 
@@ -2217,7 +1668,6 @@ var qrcode = function() {
       var endCode = (1 << lzwMinCodeSize) + 1;
       var bitLength = lzwMinCodeSize + 1;
 
-      // Setup LZWTable
       var table = lzwTable();
 
       for (var i = 0; i < clearCode; i += 1) {
@@ -2229,7 +1679,6 @@ var qrcode = function() {
       var byteOut = byteArrayOutputStream();
       var bitOut = bitOutputStream(byteOut);
 
-      // clear code
       bitOut.write(clearCode, bitLength);
 
       var dataIndex = 0;
@@ -2265,7 +1714,6 @@ var qrcode = function() {
 
       bitOut.write(table.indexOf(s), bitLength);
 
-      // end code
       bitOut.write(endCode, bitLength);
 
       bitOut.flush();
@@ -2327,91 +1775,30 @@ var qrcode = function() {
     return 'data:image/gif;base64,' + base64;
   };
 
-  //---------------------------------------------------------------------
-  // returns qrcode function.
-
   return qrcode;
 }();
 
-// multibyte support
-!function() {
-
-  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
-    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
-    function toUTF8Array(str) {
-      var utf8 = [];
-      for (var i=0; i < str.length; i++) {
-        var charcode = str.charCodeAt(i);
-        if (charcode < 0x80) utf8.push(charcode);
-        else if (charcode < 0x800) {
-          utf8.push(0xc0 | (charcode >> 6),
-              0x80 | (charcode & 0x3f));
-        }
-        else if (charcode < 0xd800 || charcode >= 0xe000) {
-          utf8.push(0xe0 | (charcode >> 12),
-              0x80 | ((charcode>>6) & 0x3f),
-              0x80 | (charcode & 0x3f));
-        }
-        // surrogate pair
-        else {
-          i++;
-          // UTF-16 encodes 0x10000-0x10FFFF by
-          // subtracting 0x10000 and splitting the
-          // 20 bits of 0x0-0xFFFFF into two halves
-          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
-            | (str.charCodeAt(i) & 0x3ff));
-          utf8.push(0xf0 | (charcode >>18),
-              0x80 | ((charcode>>12) & 0x3f),
-              0x80 | ((charcode>>6) & 0x3f),
-              0x80 | (charcode & 0x3f));
-        }
-      }
-      return utf8;
+// UTF-8 support
+qrcode.stringToBytes = function(s) {
+  var utf8 = [];
+  for (var i = 0; i < s.length; i++) {
+    var charcode = s.charCodeAt(i);
+    if (charcode < 0x80) utf8.push(charcode);
+    else if (charcode < 0x800) {
+      utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f));
     }
-    return toUTF8Array(s);
-  };
-
-}();
-
-(function (factory) {
-  if (typeof define === 'function' && define.amd) {
-      define([], factory);
-  } else if (typeof exports === 'object') {
-      module.exports = factory();
+    else if (charcode < 0xd800 || charcode >= 0xe000) {
+      utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
+    }
+    else {
+      i++;
+      charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (s.charCodeAt(i) & 0x3ff));
+      utf8.push(0xf0 | (charcode >> 18), 0x80 | ((charcode >> 12) & 0x3f),
+        0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f));
+    }
   }
-}(function () {
-    return qrcode;
-}));
-
-</script>
-  <script>
-//---------------------------------------------------------------------
-//
-// QR Code Generator for JavaScript UTF8 Support (optional)
-//
-// Copyright (c) 2011 Kazuhiko Arase
-//
-// URL: http://www.d-project.com/
-//
-// Licensed under the MIT license:
-//  http://www.opensource.org/licenses/mit-license.php
-//
-// The word 'QR Code' is registered trademark of
-// DENSO WAVE INCORPORATED
-//  http://www.denso-wave.com/qrcode/faqpatent-e.html
-//
-//---------------------------------------------------------------------
-
-!function(qrcode) {
-
-  //---------------------------------------------------------------------
-  // overwrite qrcode.stringToBytes
-  //---------------------------------------------------------------------
-
-  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
-
-}(qrcode);
-
+  return utf8;
+};
 </script>
 </head>
 <body data-page="projects">
@@ -2552,7 +1939,7 @@ var qrcode = function() {
 
     <section class="cm_panel" id="panel-pack" role="tabpanel" aria-labelledby="tab-pack" hidden>
       <h2 class="display h_md">file packer</h2>
-      <p class="muted">Turn images, audio files, or any files into short text (or PNG carriers) and decode them back again. Select several files to encode a batch. Runs locally.</p>
+      <p class="muted">Turn images, audio files, or any files into short text (or PNG carriers) and decode them back again. Select several files to encode or decode a batch. Runs locally.</p>
       <div class="pk_wrap">
 
         <div class="pk_sec" id="enc">
@@ -2600,12 +1987,11 @@ var qrcode = function() {
           </div>
           <div class="hint">png carrier is never smaller than the data inside it — use opus or original for audio.</div>
           <div class="hint">max chars: opus picks the bitrate (and trims if even 6 kbps won't fit); images shrink quality then size. text formats only.</div>
-          <div class="hint">batches: settings apply to every file. each result has its own download; zip is optional.</div>
+          <div class="hint">batches: settings apply to every file. "download all" saves every result as its own file in one click (your browser may ask once to allow multiple downloads).</div>
           <div class="stat" id="e_stat"></div>
           <div class="err" id="e_err"></div>
           <div class="row" id="e_bulk" style="display:none">
-            <button class="btn sm" type="button" id="dl_zip">download all (zip)</button>
-            <button class="btn sm" type="button" id="dl_all">download all (separate files)</button>
+            <button class="btn sm" type="button" id="dl_all">download all</button>
             <button class="btn sm" type="button" id="copy_all">copy all text</button>
           </div>
           <div class="pk_list" id="e_list"></div>
@@ -2613,15 +1999,18 @@ var qrcode = function() {
 
         <div class="pk_sec" id="dec">
           <div class="sub_t">decode</div>
-          <textarea id="d_in" placeholder="paste packed text here" spellcheck="false"></textarea>
+          <textarea id="d_in" placeholder="paste packed text here (several texts: separate with a blank line)" spellcheck="false"></textarea>
           <div class="row">
-            <input type="file" id="d_f" accept=".txt,.png,image/png,text/plain" style="flex:1">
+            <input type="file" id="d_f" multiple accept=".txt,.png,image/png,text/plain" style="flex:1">
           </div>
-          <div class="hint">paste text, or use "paste from clipboard". .txt files and png carriers work too.</div>
+          <div class="hint">paste text, or use "paste from clipboard". select several .txt files and png carriers to decode a batch; "copy all text" output can be pasted back as-is.</div>
           <div class="row"><button class="btn sm" type="button" id="dpaste">paste from clipboard</button><button class="btn sm" type="button" id="dgo">decode</button></div>
           <div class="stat" id="d_stat"></div>
           <div class="err" id="d_err"></div>
-          <div class="pv" id="d_pv"></div>
+          <div class="row" id="d_bulk" style="display:none">
+            <button class="btn sm" type="button" id="dl_dec">download all</button>
+          </div>
+          <div class="pk_list" id="d_pv"></div>
         </div>
 
       </div>
@@ -3381,7 +2770,7 @@ function oggOpus(pk, ch, rate){
 const fmtB = n => n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB';
 const fmtN = n => n.toLocaleString('en-US');
 const HAS_OPUS = typeof AudioEncoder!=='undefined' && typeof AudioDecoder!=='undefined' && typeof AudioData!=='undefined';
-let files=[], results=[], decText=null;
+let files=[], results=[], decText=null, decFiles=[], decItems=[];
 
 if(!HAS_OPUS){ $('a_codec').querySelector('option[value=opus]').remove(); }
 function syncAudio(){
@@ -3528,30 +2917,6 @@ async function encodeOne(file, kind, targetBytes, maxChars){
   return {container,note};
 }
 
-/* ---- zip (store only; payloads are already compressed) ---- */
-const CRC32=(()=>{ const t=new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let j=0;j<8;j++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[i]=c>>>0; } return t; })();
-function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC32[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
-function zipStore(entries){
-  const chunks=[], cen=[]; let off=0;
-  const d=new Date(), dt=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF, tm=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF;
-  for(const e of entries){
-    const nm=TE.encode(e.name), crc=crc32(e.data), sz=e.data.length;
-    const lh=new Uint8Array(30+nm.length), v=new DataView(lh.buffer);
-    v.setUint32(0,0x04034b50,true); v.setUint16(4,20,true); v.setUint16(6,0x0800,true); v.setUint16(8,0,true);
-    v.setUint16(10,tm,true); v.setUint16(12,dt,true); v.setUint32(14,crc,true); v.setUint32(18,sz,true); v.setUint32(22,sz,true);
-    v.setUint16(26,nm.length,true); v.setUint16(28,0,true); lh.set(nm,30);
-    chunks.push(lh,e.data);
-    const ch=new Uint8Array(46+nm.length), w=new DataView(ch.buffer);
-    w.setUint32(0,0x02014b50,true); w.setUint16(4,20,true); w.setUint16(6,20,true); w.setUint16(8,0x0800,true); w.setUint16(10,0,true);
-    w.setUint16(12,tm,true); w.setUint16(14,dt,true); w.setUint32(16,crc,true); w.setUint32(20,sz,true); w.setUint32(24,sz,true);
-    w.setUint16(28,nm.length,true); w.setUint32(42,off,true); ch.set(nm,46);
-    cen.push(ch); off+=lh.length+sz;
-  }
-  const cs=cen.reduce((a,c)=>a+c.length,0), end=new Uint8Array(22), ev=new DataView(end.buffer);
-  ev.setUint32(0,0x06054b50,true); ev.setUint16(8,entries.length,true); ev.setUint16(10,entries.length,true); ev.setUint32(12,cs,true); ev.setUint32(16,off,true);
-  return new Blob([...chunks,...cen,end],{type:'application/zip'});
-}
-
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
@@ -3637,16 +3002,7 @@ $('go').onclick = async () => {
   $('copy_all').style.display = (fmt==='png') ? 'none' : '';
 };
 
-$('dl_zip').onclick = async () => {
-  const good=results.filter(r=>!r.err);
-  if(!good.length) return;
-  const btn=$('dl_zip'); btn.disabled=true;
-  try{
-    const entries=[]; for(const r of good) entries.push({name:r.outName,data:new Uint8Array(await r.blob.arrayBuffer())});
-    download(zipStore(entries),'packed.zip');
-  }catch(e){ $('e_err').textContent='zip failed: '+e.message; }
-  finally{ btn.disabled=false; }
-};
+/* one click: every result downloaded as its own file (no zip) */
 $('dl_all').onclick = async () => {
   for(const r of results){ if(r.err) continue; download(r.blob,r.outName); await sleep(300); }
 };
@@ -3657,59 +3013,85 @@ $('copy_all').onclick = async () => {
   catch(_){ $('e_err').textContent='clipboard blocked — use download.'; }
 };
 
-/* ---- decode ---- */
+/* ---- decode (batch) ---- */
 $('d_in').oninput = () => { decText=null; };
 $('dpaste').onclick = async () => {
   $('d_err').textContent='';
   try{ const t=await navigator.clipboard.readText(); decText=null; $('d_in').value=t; $('d_stat').textContent='loaded '+fmtN(t.length)+' chars — press decode'; }
   catch(_){ $('d_err').textContent='clipboard read blocked — paste into the box instead.'; }
 };
-$('d_f').onchange = async e => {
-  const f=e.target.files[0]; if(!f) return;
-  $('d_err').textContent='';
-  if(f.type==='image/png' || /\.png$/i.test(f.name)){
-    try{
-      const bmp=await createImageBitmap(f), c=document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height;
-      const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(bmp,0,0);
-      const container=carrierRead(x.getImageData(0,0,c.width,c.height).data);
-      $('d_in').value=''; decText=null; await showDecoded(container);
-    }catch(err){ $('d_err').textContent='failed: '+err.message; }
-  } else { const t=await f.text(); decText=null; $('d_in').value=t; $('d_stat').textContent='loaded '+fmtN(t.length)+' chars — press decode'; }
+$('d_f').onchange = e => {
+  decFiles=Array.from(e.target.files);
+  $('d_stat').textContent = decFiles.length ? decFiles.length+' file(s) queued — press decode' : '';
 };
+async function pngToContainer(f){
+  const bmp=await createImageBitmap(f), c=document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height;
+  const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(bmp,0,0);
+  return carrierRead(x.getImageData(0,0,c.width,c.height).data);
+}
+const splitChunks = t => t.split(/\n\s*\n/).filter(s=>s.trim());
+
 $('dgo').onclick = async () => {
-  $('d_err').textContent='';
+  $('d_err').textContent=''; $('d_stat').textContent='';
   const btn=$('dgo'); btn.disabled=true; btn.textContent='working…';
-  try{ await showDecoded(textDecode(decText!==null?decText:$('d_in').value)); }
-  catch(e){ $('d_err').textContent='failed: '+e.message; $('d_pv').innerHTML=''; $('d_stat').textContent=''; }
+  const pv=$('d_pv'); pv.replaceChildren(); decItems=[]; $('d_bulk').style.display='none';
+  const jobs=[];
+  splitChunks(decText!==null?decText:$('d_in').value).forEach((s,i)=>jobs.push({label:'pasted '+(i+1),base:'pasted'+(i+1),get:async()=>textDecode(s)}));
+  try{
+    for(const f of decFiles){
+      const base=f.name.replace(/\.[^.]+$/,'')||'file';
+      if(f.type==='image/png'||/\.png$/i.test(f.name)) jobs.push({label:f.name,base,get:()=>pngToContainer(f)});
+      else splitChunks(await f.text()).forEach((s,i)=>jobs.push({label:f.name+(i?' #'+(i+1):''),base:base+(i?'-'+(i+1):''),get:async()=>textDecode(s)}));
+    }
+    if(!jobs.length) throw new Error('nothing to decode');
+    let ok=0;
+    for(let i=0;i<jobs.length;i++){
+      const j=jobs[i];
+      if(jobs.length>1) $('d_stat').textContent='decoding '+(i+1)+'/'+jobs.length;
+      const box=document.createElement('div'); box.className='pk_item';
+      const nm=document.createElement('div'); nm.className='nm'; nm.textContent=j.label; box.appendChild(nm);
+      pv.appendChild(box);
+      try{ await showDecoded(await j.get(), box, j.base); ok++; }
+      catch(e){ const er=document.createElement('div'); er.className='err'; er.textContent='failed: '+(e.message||e); box.appendChild(er); }
+    }
+    $('d_stat').textContent = jobs.length>1 ? ok+'/'+jobs.length+' decoded' : '';
+    $('d_bulk').style.display = decItems.length>1 ? '' : 'none';
+  }catch(e){ $('d_err').textContent='failed: '+e.message; }
   finally{ btn.disabled=false; btn.textContent='decode'; }
 };
-function audioOut(pv, chs, rate){
-  const w=wavBytes(chs,rate), blob=new Blob([w],{type:'audio/wav'}), au=document.createElement('audio'); au.controls=true; au.src=URL.createObjectURL(blob);
-  const b=document.createElement('button'); b.type='button'; b.className='btn sm'; b.textContent='download wav'; b.onclick=()=>download(blob,'decoded.wav');
-  pv.append(au,b);
-  $('d_stat').innerHTML='audio · <b>'+(chs[0].length/rate).toFixed(1)+' s</b> · '+rate+' Hz · '+chs.length+'ch · wav '+fmtB(w.length);
-}
-async function showDecoded(container){
-  const pv=$('d_pv'); pv.innerHTML='';
+/* one click: every decoded file downloaded separately (no zip) */
+$('dl_dec').onclick = async () => {
+  const used=new Set();
+  for(const it of decItems){ download(it.blob,uniqName(it.name,used)); await sleep(300); }
+};
+async function showDecoded(container, box, base){
+  const st=document.createElement('div'); st.className='stat'; box.appendChild(st);
   const r=await unseal(container);
-  if(r.kind===1){ audioOut(pv, unpackAudio(r.data,r.meta.codec,r.meta.ch,r.meta.frames), r.meta.rate); }
-  else if(r.kind===2){
+  if(r.kind===1){
+    const chs=unpackAudio(r.data,r.meta.codec,r.meta.ch,r.meta.frames), rate=r.meta.rate;
+    const w=wavBytes(chs,rate), blob=new Blob([w],{type:'audio/wav'}), au=document.createElement('audio'); au.controls=true; au.src=URL.createObjectURL(blob);
+    box.append(au, mkBtn('download wav',()=>download(blob,base+'.wav')));
+    decItems.push({blob,name:base+'.wav'});
+    st.innerHTML='audio · <b>'+(chs[0].length/rate).toFixed(1)+' s</b> · '+rate+' Hz · '+chs.length+'ch · wav '+fmtB(w.length);
+  } else if(r.kind===2){
     const pk=unpackPackets(r.data), ogg=oggOpus(pk,r.meta.ch,r.meta.rate), blob=new Blob([ogg],{type:'audio/ogg; codecs=opus'});
     const au=document.createElement('audio'); au.controls=true; au.src=URL.createObjectURL(blob);
-    const b1=document.createElement('button'); b1.type='button'; b1.className='btn sm'; b1.textContent='download .opus ('+fmtB(ogg.length)+')'; b1.onclick=()=>download(blob,'decoded.opus');
-    const b2=document.createElement('button'); b2.type='button'; b2.className='btn sm'; b2.textContent='download .wav (large)';
-    b2.onclick=async()=>{ b2.disabled=true; b2.textContent='decoding…'; try{ const o=await opusDecode(pk,r.meta.ch,r.meta.rate,r.meta.fms), w=wavBytes(o.chs,o.rate); download(new Blob([w],{type:'audio/wav'}),'decoded.wav'); b2.textContent='download .wav ('+fmtB(w.length)+')'; }catch(e){ $('d_err').textContent='failed: '+e.message; b2.textContent='download .wav (large)'; } b2.disabled=false; };
-    pv.append(au,b1,b2);
-    const secs=pk.reduce((a,p)=>a+opusSamples(p),0)/48000;
-    $('d_stat').innerHTML='audio · <b>'+secs.toFixed(1)+' s</b> · opus · '+r.meta.ch+'ch · .opus file <b>'+fmtB(ogg.length)+'</b>';
-  }
-  else {
-    const blob=new Blob([r.data],{type:r.meta.mime}), url=URL.createObjectURL(blob), name=r.meta.name||'decoded.bin';
-    if(r.meta.mime.startsWith('image/')){ const i=new Image(); i.src=url; pv.appendChild(i); }
-    else if(r.meta.mime.startsWith('audio/')){ const a=document.createElement('audio'); a.controls=true; a.src=url; pv.appendChild(a); }
-    const b=document.createElement('button'); b.type='button'; b.className='btn sm'; b.textContent='download '+name; b.onclick=()=>download(blob,name);
-    pv.appendChild(b);
-    $('d_stat').innerHTML='file · <b>'+name+'</b> · '+r.meta.mime+' · '+fmtB(r.data.length);
+    const b2=mkBtn('download .wav (large)',async()=>{
+      b2.disabled=true; b2.textContent='decoding…';
+      try{ const o=await opusDecode(pk,r.meta.ch,r.meta.rate,r.meta.fms), w=wavBytes(o.chs,o.rate); download(new Blob([w],{type:'audio/wav'}),base+'.wav'); b2.textContent='download .wav ('+fmtB(w.length)+')'; }
+      catch(e){ $('d_err').textContent='failed: '+e.message; b2.textContent='download .wav (large)'; }
+      b2.disabled=false;
+    });
+    box.append(au, mkBtn('download .opus ('+fmtB(ogg.length)+')',()=>download(blob,base+'.opus')), b2);
+    decItems.push({blob,name:base+'.opus'});
+    st.innerHTML='audio · <b>'+(pk.reduce((a,p)=>a+opusSamples(p),0)/48000).toFixed(1)+' s</b> · opus · '+r.meta.ch+'ch · .opus file <b>'+fmtB(ogg.length)+'</b>';
+  } else {
+    const blob=new Blob([r.data],{type:r.meta.mime}), url=URL.createObjectURL(blob), name=r.meta.name||base+'.bin';
+    if(r.meta.mime.startsWith('image/')){ const i=new Image(); i.src=url; box.appendChild(i); }
+    else if(r.meta.mime.startsWith('audio/')){ const a=document.createElement('audio'); a.controls=true; a.src=url; box.appendChild(a); }
+    box.appendChild(mkBtn('download '+name,()=>download(blob,name)));
+    decItems.push({blob,name});
+    st.innerHTML='file · <b>'+name+'</b> · '+r.meta.mime+' · '+fmtB(r.data.length);
   }
 }
 })();
