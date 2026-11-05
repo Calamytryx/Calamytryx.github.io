@@ -69,6 +69,11 @@
 #panel-pack .pv audio{width:100%}
 #panel-pack .opts{display:none;flex-direction:column;gap:10px}
 #panel-pack .opts.on{display:flex}
+#panel-pack .pk_list{display:flex;flex-direction:column;gap:14px}
+#panel-pack .pk_item{border:2px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}
+#panel-pack .pk_item .nm{color:#fff;font-size:.85rem;overflow-wrap:anywhere}
+#panel-pack .pk_item textarea{min-height:70px}
+#panel-pack .pk_item img{max-width:100%;max-height:200px;align-self:flex-start;border:2px solid var(--line);background:#000}
 </style>
   <script>
 if ('serviceWorker' in navigator) {
@@ -2377,6 +2382,7 @@ var qrcode = function() {
 }(function () {
     return qrcode;
 }));
+
 </script>
   <script>
 //---------------------------------------------------------------------
@@ -2405,6 +2411,7 @@ var qrcode = function() {
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
 }(qrcode);
+
 </script>
 </head>
 <body data-page="projects">
@@ -2545,13 +2552,13 @@ var qrcode = function() {
 
     <section class="cm_panel" id="panel-pack" role="tabpanel" aria-labelledby="tab-pack" hidden>
       <h2 class="display h_md">file packer</h2>
-      <p class="muted">Turn an image, audio file, or any file into short text (or a PNG carrier) and decode it back again. Runs locally.</p>
+      <p class="muted">Turn images, audio files, or any files into short text (or PNG carriers) and decode them back again. Select several files to encode a batch. Runs locally.</p>
       <div class="pk_wrap">
 
         <div class="pk_sec" id="enc">
           <div class="sub_t">encode</div>
-          <input type="file" id="f">
-          <div class="hint" id="ftype">pick an image, audio file, or anything else.</div>
+          <input type="file" id="f" multiple>
+          <div class="hint" id="ftype">pick one or more images, audio files, or anything else.</div>
 
           <div class="opts" id="o_img">
             <div class="sub_t rule">image</div>
@@ -2588,19 +2595,20 @@ var qrcode = function() {
               <option value="b64">text — base64url (ascii-safe)</option>
               <option value="png">png carrier (lossless image)</option>
             </select></label>
-            <label>max chars <input type="number" id="o_max" value="0" min="0" style="width:90px"> (0 = no limit)</label>
+            <label>max chars <input type="number" id="o_max" value="0" min="0" style="width:90px"> (0 = no limit, applied per file)</label>
             <button class="btn sm" type="button" id="go">encode</button>
           </div>
           <div class="hint">png carrier is never smaller than the data inside it — use opus or original for audio.</div>
           <div class="hint">max chars: opus picks the bitrate (and trims if even 6 kbps won't fit); images shrink quality then size. text formats only.</div>
+          <div class="hint">batches: settings apply to every file. each result has its own download; zip is optional.</div>
           <div class="stat" id="e_stat"></div>
           <div class="err" id="e_err"></div>
-          <textarea id="e_out" readonly placeholder="output appears here" spellcheck="false"></textarea>
-          <div class="pv" id="e_pv"></div>
-          <div class="row">
-            <button class="btn sm" type="button" id="copy">copy</button>
-            <button class="btn sm" type="button" id="dl">download</button>
+          <div class="row" id="e_bulk" style="display:none">
+            <button class="btn sm" type="button" id="dl_zip">download all (zip)</button>
+            <button class="btn sm" type="button" id="dl_all">download all (separate files)</button>
+            <button class="btn sm" type="button" id="copy_all">copy all text</button>
           </div>
+          <div class="pk_list" id="e_list"></div>
         </div>
 
         <div class="pk_sec" id="dec">
@@ -3373,7 +3381,7 @@ function oggOpus(pk, ch, rate){
 const fmtB = n => n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB';
 const fmtN = n => n.toLocaleString('en-US');
 const HAS_OPUS = typeof AudioEncoder!=='undefined' && typeof AudioDecoder!=='undefined' && typeof AudioData!=='undefined';
-let file=null, kindGuess='file', result=null, outText='', decText=null;
+let files=[], results=[], decText=null;
 
 if(!HAS_OPUS){ $('a_codec').querySelector('option[value=opus]').remove(); }
 function syncAudio(){
@@ -3386,14 +3394,20 @@ function syncAudio(){
 }
 $('a_codec').onchange=syncAudio; syncAudio();
 
-function setKind(f){
+function kindOf(f){
   const t=(f.type||'').toLowerCase(), n=f.name.toLowerCase();
-  kindGuess = t.startsWith('image/') ? 'image' : (t.startsWith('audio/')||/\.(wav|mp3|ogg|flac|m4a|aac|opus|mka|mkv|webm|wma|aiff?)$/.test(n)) ? 'audio' : 'file';
-  $('o_img').classList.toggle('on', kindGuess==='image');
-  $('o_aud').classList.toggle('on', kindGuess==='audio');
-  $('ftype').textContent = f.name+' · '+fmtB(f.size)+' · treated as '+kindGuess;
+  return t.startsWith('image/') ? 'image' : (t.startsWith('audio/')||/\.(wav|mp3|ogg|flac|m4a|aac|opus|mka|mkv|webm|wma|aiff?)$/.test(n)) ? 'audio' : 'file';
 }
-$('f').onchange = e => { file=e.target.files[0]||null; if(file) setKind(file); };
+function setKind(fs){
+  const ks=fs.map(kindOf);
+  $('o_img').classList.toggle('on', ks.includes('image'));
+  $('o_aud').classList.toggle('on', ks.includes('audio'));
+  const tot=fs.reduce((a,f)=>a+f.size,0);
+  $('ftype').textContent = fs.length===1
+    ? fs[0].name+' · '+fmtB(fs[0].size)+' · treated as '+ks[0]
+    : fs.length+' files · '+fmtB(tot)+' · '+['image','audio','file'].map(k=>ks.filter(x=>x===k).length+' '+k).join(', ');
+}
+$('f').onchange = e => { files=Array.from(e.target.files); if(files.length) setKind(files); };
 $('i_q').oninput = () => $('i_qv').textContent=$('i_q').value;
 $('i_mode').onchange = () => $('i_lossy').style.display = $('i_mode').value==='webp' ? '' : 'none';
 
@@ -3474,79 +3488,174 @@ async function opusDecode(pk, ch, rate, fms){
   return {chs,rate:outRate};
 }
 
-/* ---- encode ---- */
-function showText(txt){ outText=txt; $('e_out').value=txt; }
+/* ---- encode (single file -> container) ---- */
+async function encodeOne(file, kind, targetBytes, maxChars){
+  let container, note='';
+  if(kind==='audio' && $('a_codec').value==='orig'){
+    const ext=(file.name.split('.').pop()||'').toLowerCase(), M={mka:'audio/x-matroska',mkv:'video/x-matroska',webm:'audio/webm',opus:'audio/ogg',ogg:'audio/ogg',mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',flac:'audio/flac',wav:'audio/wav'};
+    container=await seal(0,{mime:file.type||M[ext]||'application/octet-stream',name:file.name},new Uint8Array(await file.arrayBuffer()));
+    note='original bytes kept — no re-encode';
+  } else if(kind==='audio'){
+    const sel=$('a_codec').value, wantCh=+$('a_ch').value, trim=+$('a_trim').value||0;
+    const ab=await decodeAB(file), ch=Math.min(wantCh,ab.numberOfChannels);
+    let secs=trim>0?Math.min(trim,ab.duration):ab.duration;
+    if(sel==='opus'){
+      let br=+$('a_kbps').value;
+      if(targetBytes){
+        br=Math.floor(targetBytes*8/secs)-140;                       // minus packet-table overhead
+        if(br<6000){ br=6000; const fit=Math.floor(targetBytes*8/6140); note+='too long for '+fmtN(maxChars)+' chars at 6 kbps — trimmed to first '+fit+' s. '; secs=Math.min(secs,fit); }
+        br=Math.min(br,64000);
+      }
+      const rate=opusRateFor(br), f32=await resampleAB(ab,rate,ch,secs);
+      const {pk,frameMs}=await opusEncode(f32,rate,br,$('a_sig').value==='voice');
+      container=await seal(2,{ch,rate,fms:frameMs},packPackets(pk));
+      note+=secs.toFixed(1)+' s · opus '+(br/1000).toFixed(1)+' kbps · '+rate+' Hz · '+ch+'ch';
+    } else {
+      const codec=+sel, rate=+$('a_rate').value, chs=(await resampleAB(ab,rate,ch,secs)).map(toI16);
+      container=await seal(1,{codec,ch,rate,frames:chs[0].length},packAudio(chs,codec));
+      note+=secs.toFixed(1)+' s · '+rate+' Hz · '+ch+'ch · '+['pcm16','pcm8','adpcm'][codec];
+      if(targetBytes) note+=' · max chars only applies to opus/images';
+    }
+  } else {
+    let bytes=new Uint8Array(await file.arrayBuffer()), mime=file.type||'application/octet-stream', name=file.name;
+    if(kind==='image' && ($('i_mode').value==='webp' || targetBytes)){
+      const r=await reencodeImage(file,+$('i_q').value/100,+$('i_max').value||640,targetBytes);
+      if(r && (r.blob.size<bytes.length || targetBytes)){ bytes=new Uint8Array(await r.blob.arrayBuffer()); mime='image/webp'; name=name.replace(/\.[^.]+$/,'')+'.webp'; note=r.note; }
+      else note='kept original (webp not smaller or unsupported)';
+    }
+    container=await seal(0,{mime,name},bytes);
+  }
+  return {container,note};
+}
+
+/* ---- zip (store only; payloads are already compressed) ---- */
+const CRC32=(()=>{ const t=new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let j=0;j<8;j++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[i]=c>>>0; } return t; })();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC32[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipStore(entries){
+  const chunks=[], cen=[]; let off=0;
+  const d=new Date(), dt=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF, tm=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF;
+  for(const e of entries){
+    const nm=TE.encode(e.name), crc=crc32(e.data), sz=e.data.length;
+    const lh=new Uint8Array(30+nm.length), v=new DataView(lh.buffer);
+    v.setUint32(0,0x04034b50,true); v.setUint16(4,20,true); v.setUint16(6,0x0800,true); v.setUint16(8,0,true);
+    v.setUint16(10,tm,true); v.setUint16(12,dt,true); v.setUint32(14,crc,true); v.setUint32(18,sz,true); v.setUint32(22,sz,true);
+    v.setUint16(26,nm.length,true); v.setUint16(28,0,true); lh.set(nm,30);
+    chunks.push(lh,e.data);
+    const ch=new Uint8Array(46+nm.length), w=new DataView(ch.buffer);
+    w.setUint32(0,0x02014b50,true); w.setUint16(4,20,true); w.setUint16(6,20,true); w.setUint16(8,0x0800,true); w.setUint16(10,0,true);
+    w.setUint16(12,tm,true); w.setUint16(14,dt,true); w.setUint32(16,crc,true); w.setUint32(20,sz,true); w.setUint32(24,sz,true);
+    w.setUint16(28,nm.length,true); w.setUint32(42,off,true); ch.set(nm,46);
+    cen.push(ch); off+=lh.length+sz;
+  }
+  const cs=cen.reduce((a,c)=>a+c.length,0), end=new Uint8Array(22), ev=new DataView(end.buffer);
+  ev.setUint32(0,0x06054b50,true); ev.setUint16(8,entries.length,true); ev.setUint16(10,entries.length,true); ev.setUint32(12,cs,true); ev.setUint32(16,off,true);
+  return new Blob([...chunks,...cen,end],{type:'application/zip'});
+}
+
+function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* ---- results list ---- */
+function clearResults(){
+  results.forEach(r=>{ if(r.url) URL.revokeObjectURL(r.url); });
+  results=[]; $('e_list').replaceChildren(); $('e_bulk').style.display='none';
+}
+function uniqName(name, used){
+  if(!used.has(name)){ used.add(name); return name; }
+  const m=name.match(/^(.*?)(\.[^.]*)?$/), base=m[1], ext=m[2]||''; let i=2;
+  while(used.has(base+' ('+i+')'+ext)) i++;
+  const n=base+' ('+i+')'+ext; used.add(n); return n;
+}
+function mkBtn(label, fn){ const b=document.createElement('button'); b.type='button'; b.className='btn sm'; b.textContent=label; b.onclick=fn; return b; }
+function renderItem(item){
+  const box=document.createElement('div'); box.className='pk_item';
+  const nm=document.createElement('div'); nm.className='nm'; nm.textContent=item.src+(item.outName?' → '+item.outName:''); box.appendChild(nm);
+  if(item.err){
+    const e=document.createElement('div'); e.className='err'; e.textContent='failed: '+item.err; box.appendChild(e);
+    $('e_list').appendChild(box); return;
+  }
+  const st=document.createElement('div'); st.className='stat'; st.innerHTML=item.stat; box.appendChild(st);
+  if(item.text!==undefined){
+    const ta=document.createElement('textarea'); ta.readOnly=true; ta.spellcheck=false; ta.value=item.text; box.appendChild(ta);
+  } else {
+    item.url=URL.createObjectURL(item.blob);
+    const img=new Image(); img.src=item.url; box.appendChild(img);
+  }
+  const row=document.createElement('div'); row.className='row';
+  if(item.text!==undefined){
+    const cb=mkBtn('copy', async()=>{
+      try{ await navigator.clipboard.writeText(item.text); cb.textContent='copied '+fmtN(item.text.length); setTimeout(()=>cb.textContent='copy',1200); }
+      catch(_){ $('e_err').textContent='clipboard blocked — use download.'; }
+    });
+    row.appendChild(cb);
+  }
+  row.appendChild(mkBtn('download', ()=>download(item.blob,item.outName)));
+  box.appendChild(row);
+  $('e_list').appendChild(box);
+}
+
 $('go').onclick = async () => {
-  $('e_err').textContent=''; $('e_stat').textContent=''; $('e_out').value=''; $('e_pv').innerHTML=''; result=null; outText='';
-  if(!file){ $('e_err').textContent='pick a file first.'; return; }
+  $('e_err').textContent=''; $('e_stat').textContent=''; clearResults();
+  if(!files.length){ $('e_err').textContent='pick a file first.'; return; }
   const btn=$('go'); btn.disabled=true; btn.textContent='working…';
+  const batch=files.slice();
+  const fmt=$('o_fmt').value, maxChars=+$('o_max').value||0, bpc = fmt==='dense'?D_BITS:6;
+  const targetBytes = (maxChars && fmt!=='png') ? Math.max(16,Math.floor(maxChars*bpc/8)-24) : 0;
+  const used=new Set(); let ok=0;
   try{
-    const fmt=$('o_fmt').value, maxChars=+$('o_max').value||0, bpc = fmt==='dense'?D_BITS:6;
-    const targetBytes = (maxChars && fmt!=='png') ? Math.max(16,Math.floor(maxChars*bpc/8)-24) : 0;
-    let container, note='';
-    if(kindGuess==='audio' && $('a_codec').value==='orig'){
-      const ext=(file.name.split('.').pop()||'').toLowerCase(), M={mka:'audio/x-matroska',mkv:'video/x-matroska',webm:'audio/webm',opus:'audio/ogg',ogg:'audio/ogg',mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',flac:'audio/flac',wav:'audio/wav'};
-      container=await seal(0,{mime:file.type||M[ext]||'application/octet-stream',name:file.name},new Uint8Array(await file.arrayBuffer()));
-      note='original bytes kept — no re-encode';
-    } else if(kindGuess==='audio'){
-      const sel=$('a_codec').value, wantCh=+$('a_ch').value, trim=+$('a_trim').value||0;
-      const ab=await decodeAB(file), ch=Math.min(wantCh,ab.numberOfChannels);
-      let secs=trim>0?Math.min(trim,ab.duration):ab.duration;
-      if(sel==='opus'){
-        let br=+$('a_kbps').value;
-        if(targetBytes){
-          br=Math.floor(targetBytes*8/secs)-140;                       // minus packet-table overhead
-          if(br<6000){ br=6000; const fit=Math.floor(targetBytes*8/6140); note+='too long for '+fmtN(maxChars)+' chars at 6 kbps — trimmed to first '+fit+' s. '; secs=Math.min(secs,fit); }
-          br=Math.min(br,64000);
+    for(let i=0;i<batch.length;i++){
+      const f=batch[i];
+      if(batch.length>1) $('e_stat').textContent='encoding '+(i+1)+'/'+batch.length+' · '+f.name;
+      const item={src:f.name};
+      try{
+        const {container,note}=await encodeOne(f,kindOf(f),targetBytes,maxChars);
+        const base=f.name.replace(/\.[^.]+$/,'')||'file', naive=Math.ceil(f.size*4/3);
+        if(fmt==='png'){
+          const {w,h,rgba}=carrierPixels(container), c=document.createElement('canvas'); c.width=w; c.height=h;
+          c.getContext('2d').putImageData(new ImageData(rgba,w,h),0,0);
+          const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+          item.blob=blob; item.outName=uniqName(base+'.pack.png',used);
+          item.stat='<b>'+fmtB(f.size)+'</b> → container <b>'+fmtB(container.length)+'</b> → png <b>'+fmtB(blob.size)+'</b> ('+w+'×'+h+')'+(note?'<br>'+note:'')+'<br>send as a file, not a screenshot.';
+        } else {
+          const txt=fmt==='dense'?denseEnc(container):b64enc(container);
+          item.text=txt; item.blob=new Blob([txt],{type:'text/plain'}); item.outName=uniqName(base+'.pack.txt',used);
+          const pct=Math.round((1-txt.length/naive)*100);
+          item.stat='<b>'+fmtB(f.size)+'</b> → container <b>'+fmtB(container.length)+'</b> → <b>'+fmtN(txt.length)+'</b> chars'
+            +(maxChars&&txt.length>maxChars?' <span class="err">(over your '+fmtN(maxChars)+' limit)</span>':'')
+            +'<br>plain base64 of the original: '+fmtN(naive)+' chars ('+(pct>=0?pct+'% shorter':(-pct)+'% longer')+')'
+            +(note?'<br>'+note:'');
         }
-        const rate=opusRateFor(br), f32=await resampleAB(ab,rate,ch,secs);
-        const {pk,frameMs}=await opusEncode(f32,rate,br,$('a_sig').value==='voice');
-        container=await seal(2,{ch,rate,fms:frameMs},packPackets(pk));
-        note+=secs.toFixed(1)+' s · opus '+(br/1000).toFixed(1)+' kbps · '+rate+' Hz · '+ch+'ch';
-      } else {
-        const codec=+sel, rate=+$('a_rate').value, chs=(await resampleAB(ab,rate,ch,secs)).map(toI16);
-        container=await seal(1,{codec,ch,rate,frames:chs[0].length},packAudio(chs,codec));
-        note+=secs.toFixed(1)+' s · '+rate+' Hz · '+ch+'ch · '+['pcm16','pcm8','adpcm'][codec];
-        if(targetBytes) note+=' · max chars only applies to opus/images';
-      }
-    } else {
-      let bytes=new Uint8Array(await file.arrayBuffer()), mime=file.type||'application/octet-stream', name=file.name;
-      if(kindGuess==='image' && ($('i_mode').value==='webp' || targetBytes)){
-        const r=await reencodeImage(file,+$('i_q').value/100,+$('i_max').value||640,targetBytes);
-        if(r && (r.blob.size<bytes.length || targetBytes)){ bytes=new Uint8Array(await r.blob.arrayBuffer()); mime='image/webp'; name=name.replace(/\.[^.]+$/,'')+'.webp'; note=r.note; }
-        else note='kept original (webp not smaller or unsupported)';
-      }
-      container=await seal(0,{mime,name},bytes);
+        ok++;
+      }catch(e){ item.err=e.message||String(e); }
+      results.push(item); renderItem(item);
     }
-    const naive=Math.ceil(file.size*4/3);
-    if(fmt==='png'){
-      const {w,h,rgba}=carrierPixels(container), c=document.createElement('canvas'); c.width=w; c.height=h;
-      c.getContext('2d').putImageData(new ImageData(rgba,w,h),0,0);
-      const blob=await new Promise(r=>c.toBlob(r,'image/png'));
-      result={blob,name:'packed.png'};
-      const img=new Image(); img.src=URL.createObjectURL(blob); $('e_pv').appendChild(img);
-      $('e_out').value='(png carrier — see preview. send as a file, not a screenshot.)';
-      $('e_stat').innerHTML='<b>'+fmtB(file.size)+'</b> → container <b>'+fmtB(container.length)+'</b> → png <b>'+fmtB(blob.size)+'</b> ('+w+'×'+h+')'+(note?'<br>'+note:'');
-    } else {
-      const txt=fmt==='dense'?denseEnc(container):b64enc(container);
-      result={blob:new Blob([txt],{type:'text/plain'}),name:'packed.txt'};
-      showText(txt);
-      const pct=Math.round((1-txt.length/naive)*100);
-      $('e_stat').innerHTML='<b>'+fmtB(file.size)+'</b> → container <b>'+fmtB(container.length)+'</b> → <b>'+fmtN(txt.length)+'</b> chars'
-        +(maxChars&&txt.length>maxChars?' <span class="err">(over your '+fmtN(maxChars)+' limit)</span>':'')
-        +'<br>plain base64 of the original: '+fmtN(naive)+' chars ('+(pct>=0?pct+'% shorter':(-pct)+'% longer')+')'
-        +(note?'<br>'+note:'');
-    }
-  }catch(e){ $('e_err').textContent='failed: '+e.message; }
-  finally{ btn.disabled=false; btn.textContent='encode'; }
+  } finally {
+    btn.disabled=false; btn.textContent='encode';
+  }
+  $('e_stat').textContent = batch.length>1 ? ok+'/'+batch.length+' encoded' : '';
+  $('e_bulk').style.display = ok>1 ? '' : 'none';
+  $('copy_all').style.display = (fmt==='png') ? 'none' : '';
 };
-$('copy').onclick = async () => {
-  if(!outText) return;
-  try{ await navigator.clipboard.writeText(outText); $('copy').textContent='copied '+fmtN(outText.length); setTimeout(()=>$('copy').textContent='copy',1200); }
+
+$('dl_zip').onclick = async () => {
+  const good=results.filter(r=>!r.err);
+  if(!good.length) return;
+  const btn=$('dl_zip'); btn.disabled=true;
+  try{
+    const entries=[]; for(const r of good) entries.push({name:r.outName,data:new Uint8Array(await r.blob.arrayBuffer())});
+    download(zipStore(entries),'packed.zip');
+  }catch(e){ $('e_err').textContent='zip failed: '+e.message; }
+  finally{ btn.disabled=false; }
+};
+$('dl_all').onclick = async () => {
+  for(const r of results){ if(r.err) continue; download(r.blob,r.outName); await sleep(300); }
+};
+$('copy_all').onclick = async () => {
+  const txt=results.filter(r=>!r.err&&r.text!==undefined).map(r=>r.text).join('\n\n');
+  if(!txt) return;
+  try{ await navigator.clipboard.writeText(txt); $('copy_all').textContent='copied'; setTimeout(()=>$('copy_all').textContent='copy all text',1200); }
   catch(_){ $('e_err').textContent='clipboard blocked — use download.'; }
 };
-function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
-$('dl').onclick = () => { if(result) download(result.blob,result.name); };
 
 /* ---- decode ---- */
 $('d_in').oninput = () => { decText=null; };
