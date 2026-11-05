@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0a0c">
-  <title>codes.mk — QR codes and barcodes</title>
+  <title>codes.mk — QR codes, barcodes and file packing</title>
   <link rel="icon" href="/assets/media/logo.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/my_css.css">
@@ -47,6 +47,28 @@
 .cm_panel button:focus-visible,.cm_panel input:focus-visible,.cm_panel select:focus-visible,.cm_panel textarea:focus-visible{outline:2px solid var(--blood);outline-offset:2px}
 @media(max-width:680px){.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}.cm_panel{padding:18px}.cm_totp_output{grid-template-columns:1fr}}
 
+/* pack subtool (scoped) */
+#panel-pack .pk_wrap{display:flex;flex-direction:column;gap:28px}
+#panel-pack .pk_sec{display:flex;flex-direction:column;gap:12px}
+#panel-pack #dec{border-top:1px solid var(--line);padding-top:24px}
+#panel-pack .sub_t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase}
+#panel-pack .sub_t.rule{border-top:1px solid var(--line);padding-top:12px}
+#panel-pack input,#panel-pack select,#panel-pack textarea{background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;font-size:.85rem;padding:8px 10px;min-width:0;border-radius:0}
+#panel-pack input:focus,#panel-pack select:focus,#panel-pack textarea:focus{border-color:var(--blood)}
+#panel-pack textarea{width:100%;min-height:150px;resize:vertical;word-break:break-all}
+#panel-pack input[type=file]{width:100%}
+#panel-pack input[type=range]{padding:0;accent-color:var(--blood)}
+#panel-pack .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#panel-pack .row label{color:var(--dim);font-size:.85rem;display:flex;gap:6px;align-items:center}
+#panel-pack .hint{color:var(--dim);font-size:.8rem}
+#panel-pack .stat{font-size:.85rem;line-height:1.7;border-left:3px solid var(--blood);padding-left:10px;min-height:20px;overflow-wrap:anywhere}
+#panel-pack .stat b{color:#fff}
+#panel-pack .err{color:#ff7373;font-size:.85rem;overflow-wrap:anywhere}
+#panel-pack .pv{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+#panel-pack .pv img{max-width:100%;max-height:340px;border:2px solid var(--line);background:#000}
+#panel-pack .pv audio{width:100%}
+#panel-pack .opts{display:none;flex-direction:column;gap:10px}
+#panel-pack .opts.on{display:flex}
 </style>
   <script>
 if ('serviceWorker' in navigator) {
@@ -57,8 +79,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-  <!-- qrcode-generator 1.4.4, Copyright (c) 2009 Kazuhiko Arase and Copyright (c) 2011 Kazuhiko Arase. MIT License: Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. -->
-<script>
+  <script>
 //---------------------------------------------------------------------
 //
 // QR Code Generator for JavaScript
@@ -2356,7 +2377,6 @@ var qrcode = function() {
 }(function () {
     return qrcode;
 }));
-
 </script>
   <script>
 //---------------------------------------------------------------------
@@ -2385,9 +2405,7 @@ var qrcode = function() {
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
 }(qrcode);
-
 </script>
-  
 </head>
 <body data-page="projects">
   <header class="toolbar">
@@ -2396,13 +2414,14 @@ var qrcode = function() {
     <a href="/pages/projects/index.html">← projects</a>
   </header>
   <main class="wrap cm_main">
-    <p class="lead cm_intro">Generate QR codes for common uses, Wi-Fi join codes, authenticator-compatible TOTP codes, and printable barcodes locally. No contents or secrets are uploaded.</p>
+    <p class="lead cm_intro">Generate QR codes for common uses, Wi-Fi join codes, authenticator-compatible TOTP codes, and printable barcodes locally, and pack files into compact text and back. No contents or secrets are uploaded.</p>
 
     <div class="cm_tabs" role="tablist" aria-label="Code tools">
       <button class="cm_tab active" type="button" role="tab" id="tab-qr" aria-controls="panel-qr" aria-selected="true">QR</button>
       <button class="cm_tab" type="button" role="tab" id="tab-wifi" aria-controls="panel-wifi" aria-selected="false" tabindex="-1">Wi-Fi QR</button>
       <button class="cm_tab" type="button" role="tab" id="tab-totp" aria-controls="panel-totp" aria-selected="false" tabindex="-1">TOTP</button>
       <button class="cm_tab" type="button" role="tab" id="tab-barcode" aria-controls="panel-barcode" aria-selected="false" tabindex="-1">barcodes</button>
+      <button class="cm_tab" type="button" role="tab" id="tab-pack" aria-controls="panel-pack" aria-selected="false" tabindex="-1">pack</button>
     </div>
 
     <section class="cm_panel" id="panel-qr" role="tabpanel" aria-labelledby="tab-qr">
@@ -2522,6 +2541,82 @@ var qrcode = function() {
         <button id="downloadBarcode" class="btn ghost" type="button" hidden>download SVG</button>
       </div>
       <p id="barcodeStatus" class="cm_status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="cm_panel" id="panel-pack" role="tabpanel" aria-labelledby="tab-pack" hidden>
+      <h2 class="display h_md">file packer</h2>
+      <p class="muted">Turn an image, audio file, or any file into short text (or a PNG carrier) and decode it back again. Runs locally.</p>
+      <div class="pk_wrap">
+
+        <div class="pk_sec" id="enc">
+          <div class="sub_t">encode</div>
+          <input type="file" id="f">
+          <div class="hint" id="ftype">pick an image, audio file, or anything else.</div>
+
+          <div class="opts" id="o_img">
+            <div class="sub_t rule">image</div>
+            <div class="row">
+              <label>mode <select id="i_mode"><option value="webp">re-encode webp (smaller)</option><option value="orig">keep original bytes</option></select></label>
+            </div>
+            <div class="row" id="i_lossy">
+              <label>quality <input type="range" id="i_q" min="10" max="100" value="75"> <span id="i_qv">75</span></label>
+              <label>max side px <input type="number" id="i_max" value="640" min="16" max="8192" style="width:80px"></label>
+            </div>
+          </div>
+
+          <div class="opts" id="o_aud">
+            <div class="sub_t rule">audio</div>
+            <div class="row">
+              <label>codec <select id="a_codec"><option value="opus">opus (smallest)</option><option value="orig">original file, untouched</option><option value="2">adpcm 4-bit</option><option value="1">pcm 8-bit</option><option value="0">pcm 16-bit</option></select></label>
+              <label>channels <select id="a_ch"><option value="1">mono</option><option value="2">stereo</option></select></label>
+              <label>first <input type="number" id="a_trim" value="0" min="0" style="width:64px"> s (0 = all)</label>
+            </div>
+            <div class="row" id="a_opus">
+              <label>bitrate <select id="a_kbps"><option value="6000">6 kbps</option><option value="8000" selected>8 kbps</option><option value="12000">12 kbps</option><option value="16000">16 kbps</option><option value="24000">24 kbps</option><option value="32000">32 kbps</option><option value="48000">48 kbps</option></select></label>
+              <label>content <select id="a_sig"><option value="voice">voice</option><option value="music">music</option></select></label>
+            </div>
+            <div class="row" id="a_pcm" style="display:none">
+              <label>rate <select id="a_rate"><option>8000</option><option>11025</option><option selected>16000</option><option>22050</option><option>44100</option></select></label>
+            </div>
+            <div class="hint" id="a_warn"></div>
+          </div>
+
+          <div class="sub_t rule">output</div>
+          <div class="row">
+            <label>as <select id="o_fmt">
+              <option value="dense">text — dense (cjk, fewest chars)</option>
+              <option value="b64">text — base64url (ascii-safe)</option>
+              <option value="png">png carrier (lossless image)</option>
+            </select></label>
+            <label>max chars <input type="number" id="o_max" value="0" min="0" style="width:90px"> (0 = no limit)</label>
+            <button class="btn sm" type="button" id="go">encode</button>
+          </div>
+          <div class="hint">png carrier is never smaller than the data inside it — use opus or original for audio.</div>
+          <div class="hint">max chars: opus picks the bitrate (and trims if even 6 kbps won't fit); images shrink quality then size. text formats only.</div>
+          <div class="stat" id="e_stat"></div>
+          <div class="err" id="e_err"></div>
+          <textarea id="e_out" readonly placeholder="output appears here" spellcheck="false"></textarea>
+          <div class="pv" id="e_pv"></div>
+          <div class="row">
+            <button class="btn sm" type="button" id="copy">copy</button>
+            <button class="btn sm" type="button" id="dl">download</button>
+          </div>
+        </div>
+
+        <div class="pk_sec" id="dec">
+          <div class="sub_t">decode</div>
+          <textarea id="d_in" placeholder="paste packed text here" spellcheck="false"></textarea>
+          <div class="row">
+            <input type="file" id="d_f" accept=".txt,.png,image/png,text/plain" style="flex:1">
+          </div>
+          <div class="hint">paste text, or use "paste from clipboard". .txt files and png carriers work too.</div>
+          <div class="row"><button class="btn sm" type="button" id="dpaste">paste from clipboard</button><button class="btn sm" type="button" id="dgo">decode</button></div>
+          <div class="stat" id="d_stat"></div>
+          <div class="err" id="d_err"></div>
+          <div class="pv" id="d_pv"></div>
+        </div>
+
+      </div>
     </section>
   </main>
   <script>
@@ -3035,7 +3130,481 @@ var qrcode = function() {
     window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1000);
   });
 })();
+</script>
+  <script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
 
+// ==CORE==
+const TE = new TextEncoder(), TD = new TextDecoder();
+
+/* ---- varint ---- */
+function varint(n){ const o=[]; while(n>=128){ o.push((n&127)|128); n=Math.floor(n/128); } o.push(n); return o; }
+function readVar(u,p){ let n=0,m=1,b; do{ if(p.i>=u.length) throw new Error('truncated'); b=u[p.i++]; n+=(b&127)*m; m*=128; }while(b&128); return n; }
+
+/* ---- deflate (CompressionStream) ---- */
+async function pipeBytes(u8, stream){
+  const r = new Blob([u8]).stream().pipeThrough(stream);
+  return new Uint8Array(await new Response(r).arrayBuffer());
+}
+const hasCS = typeof CompressionStream !== 'undefined';
+const deflate = u8 => pipeBytes(u8, new CompressionStream('deflate-raw'));
+const inflate = u8 => pipeBytes(u8, new DecompressionStream('deflate-raw'));
+
+/* ---- text encodings ---- */
+function b64enc(u8){
+  let bin=''; for(let i=0;i<u8.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64dec(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='=';
+  const bin=atob(s), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u;
+}
+// 15 bits per char from three NFC-stable blocks: CJK ext-A (6592) + CJK unified (20992) + hangul syllables (5184)
+const D_BITS=15, D_MASK=(1<<D_BITS)-1, R1=6592, R2=20992, R3=32768-R1-R2;
+const dChar = v => v<R1 ? 0x3400+v : v<R1+R2 ? 0x4E00+v-R1 : 0xAC00+v-R1-R2;
+const dVal = c => (c>=0x3400&&c<0x3400+R1) ? c-0x3400 : (c>=0x4E00&&c<0x4E00+R2) ? R1+c-0x4E00 : (c>=0xAC00&&c<0xAC00+R3) ? R1+R2+c-0xAC00 : -1;
+function denseEnc(u8){
+  const out=[]; let acc=0,n=0;
+  for(let i=0;i<u8.length;i++){
+    acc=(acc<<8)|u8[i]; n+=8;
+    while(n>=D_BITS){ n-=D_BITS; out.push(dChar((acc>>n)&D_MASK)); }
+    acc&=(1<<n)-1;
+  }
+  if(n>0) out.push(dChar((acc<<(D_BITS-n))&D_MASK));
+  let s=''; for(let i=0;i<out.length;i+=0x8000) s+=String.fromCharCode.apply(null,out.slice(i,i+0x8000));
+  return s;
+}
+function denseDec(s){
+  const out=[]; let acc=0,n=0;
+  for(let i=0;i<s.length;i++){
+    const v=dVal(s.charCodeAt(i)); if(v<0) throw new Error('bad char at '+i);
+    acc=(acc<<D_BITS)|v; n+=D_BITS;
+    while(n>=8){ n-=8; out.push((acc>>n)&255); }
+    acc&=(1<<n)-1;
+  }
+  return Uint8Array.from(out);
+}
+function textDecode(s){
+  s=s.replace(/\s+/g,'');
+  if(!s) throw new Error('nothing to decode');
+  for(let i=0;i<s.length;i++) if(s.charCodeAt(i)>=0x3400) return denseDec(s);
+  return b64dec(s);
+}
+
+/* ---- container ----
+   b0: kind (bit0-6) | deflated (bit7)
+   kind 0 file : varint mimeLen, mime, varint nameLen, name
+   kind 1 audio: codec(0 pcm16,1 pcm8,2 adpcm), channels, varint rate, varint frames
+   kind 2 opus : channels, varint rate, varint frameMs; payload = packet table + packets
+   then varint payloadLen, payload */
+function build(kind, meta, payload, deflated){
+  const h=[kind|(deflated?128:0)];
+  if(kind===0){
+    const m=TE.encode(meta.mime||'application/octet-stream'), nm=TE.encode((meta.name||'').slice(0,80));
+    h.push(...varint(m.length),...m,...varint(nm.length),...nm);
+  } else if(kind===1){
+    h.push(meta.codec, meta.ch, ...varint(meta.rate), ...varint(meta.frames));
+  } else {
+    h.push(meta.ch, ...varint(meta.rate), ...varint(meta.fms));
+  }
+  h.push(...varint(payload.length));
+  const out=new Uint8Array(h.length+payload.length); out.set(h); out.set(payload,h.length); return out;
+}
+function parse(u){
+  const p={i:0}, b0=u[p.i++], kind=b0&127, def=!!(b0&128), meta={};
+  if(kind===0){
+    let l=readVar(u,p); meta.mime=TD.decode(u.subarray(p.i,p.i+l)); p.i+=l;
+    l=readVar(u,p); meta.name=TD.decode(u.subarray(p.i,p.i+l)); p.i+=l;
+  } else if(kind===1){
+    meta.codec=u[p.i++]; meta.ch=u[p.i++]; meta.rate=readVar(u,p); meta.frames=readVar(u,p);
+  } else if(kind===2){
+    meta.ch=u[p.i++]; meta.rate=readVar(u,p); meta.fms=readVar(u,p);
+  } else throw new Error('not a pack.mk payload');
+  const len=readVar(u,p), payload=u.subarray(p.i,p.i+len);
+  if(payload.length!==len) throw new Error('payload truncated');
+  return {kind,def,meta,payload};
+}
+async function seal(kind, meta, raw){
+  if(hasCS){
+    const z=await deflate(raw);
+    if(z.length<raw.length) return build(kind,meta,z,true);
+  }
+  return build(kind,meta,raw,false);
+}
+async function unseal(c){
+  const x=parse(c);
+  const data = x.def ? await inflate(x.payload) : x.payload;
+  return {kind:x.kind, meta:x.meta, data};
+}
+
+/* ---- ima adpcm ---- */
+const IDX=[-1,-1,-1,-1,2,4,6,8];
+const STEP=[7,8,9,10,11,12,13,14,16,17,19,21,23,25,28,31,34,37,41,45,50,55,60,66,73,80,88,97,107,118,130,143,157,173,190,209,230,253,279,307,337,371,408,449,494,544,598,658,724,796,876,963,1060,1166,1282,1411,1552,1707,1878,2066,2272,2499,2749,3024,3327,3660,4026,4428,4871,5358,5894,6484,7132,7845,8630,9493,10442,11487,12635,13899,15289,16818,18500,20350,22385,24623,27086,29794,32767];
+const adpcmLen = n => 3+Math.ceil(n/2);
+function adpcmEnc(pcm){
+  const n=pcm.length, out=new Uint8Array(adpcmLen(n));
+  let pred=pcm[0]||0, idx=0, o=3, hi=false, cur=0;
+  out[0]=pred&255; out[1]=(pred>>8)&255; out[2]=0;
+  for(let i=0;i<n;i++){
+    let step=STEP[idx], diff=pcm[i]-pred, code=0;
+    if(diff<0){ code=8; diff=-diff; }
+    let dq=step>>3;
+    if(diff>=step){ code|=4; diff-=step; dq+=step; }
+    step>>=1; if(diff>=step){ code|=2; diff-=step; dq+=step; }
+    step>>=1; if(diff>=step){ code|=1; dq+=step; }
+    pred+=(code&8)?-dq:dq; pred=Math.max(-32768,Math.min(32767,pred));
+    idx=Math.max(0,Math.min(88,idx+IDX[code&7]));
+    if(!hi){ cur=code; hi=true; } else { out[o++]=cur|(code<<4); hi=false; }
+  }
+  if(hi) out[o++]=cur;
+  return out;
+}
+function adpcmDec(u8,n){
+  const out=new Int16Array(n);
+  let pred=((u8[0]|(u8[1]<<8))<<16)>>16, idx=u8[2], o=3, hi=false, cur=0;
+  for(let i=0;i<n;i++){
+    let code;
+    if(!hi){ cur=u8[o++]; code=cur&15; hi=true; } else { code=cur>>4; hi=false; }
+    const step=STEP[idx]; let dq=step>>3;
+    if(code&4) dq+=step; if(code&2) dq+=step>>1; if(code&1) dq+=step>>2;
+    pred+=(code&8)?-dq:dq; pred=Math.max(-32768,Math.min(32767,pred));
+    idx=Math.max(0,Math.min(88,idx+IDX[code&7]));
+    out[i]=pred;
+  }
+  return out;
+}
+
+/* ---- audio payload: planar channels (Int16Array[]) <-> bytes ---- */
+function packAudio(chs, codec){
+  const parts=chs.map(c=>{
+    if(codec===2) return adpcmEnc(c);
+    if(codec===1){ const b=new Uint8Array(c.length); for(let i=0;i<c.length;i++) b[i]=(c[i]>>8)+128; return b; }
+    const b=new Uint8Array(c.length*2), v=new DataView(b.buffer); for(let i=0;i<c.length;i++) v.setInt16(i*2,c[i],true); return b;
+  });
+  const out=new Uint8Array(parts.reduce((a,p)=>a+p.length,0)); let o=0; for(const p of parts){ out.set(p,o); o+=p.length; } return out;
+}
+function unpackAudio(data, codec, ch, frames){
+  const size = codec===2 ? adpcmLen(frames) : codec===1 ? frames : frames*2, chs=[];
+  for(let k=0;k<ch;k++){
+    const s=data.subarray(k*size,(k+1)*size);
+    if(s.length<size) throw new Error('audio data truncated');
+    if(codec===2) chs.push(adpcmDec(s,frames));
+    else if(codec===1){ const c=new Int16Array(frames); for(let i=0;i<frames;i++) c[i]=(s[i]-128)<<8; chs.push(c); }
+    else { const c=new Int16Array(frames), v=new DataView(s.buffer,s.byteOffset,s.byteLength); for(let i=0;i<frames;i++) c[i]=v.getInt16(i*2,true); chs.push(c); }
+  }
+  return chs;
+}
+function wavBytes(chs, rate){
+  const n=chs[0].length, c=chs.length, dlen=n*c*2, buf=new ArrayBuffer(44+dlen), v=new DataView(buf);
+  const w=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4,36+dlen,true); w(8,'WAVE'); w(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,c,true);
+  v.setUint32(24,rate,true); v.setUint32(28,rate*c*2,true); v.setUint16(32,c*2,true); v.setUint16(34,16,true);
+  w(36,'data'); v.setUint32(40,dlen,true);
+  let o=44; for(let i=0;i<n;i++) for(let k=0;k<c;k++){ v.setInt16(o,chs[k][i],true); o+=2; }
+  return new Uint8Array(buf);
+}
+
+/* ---- png carrier layout: 'mk' + u32 len + container, 3 bytes per pixel ---- */
+function carrierPixels(c){
+  const total=6+c.length, px=Math.ceil(total/3), w=Math.max(1,Math.ceil(Math.sqrt(px))), h=Math.ceil(px/w);
+  const rgba=new Uint8ClampedArray(w*h*4);
+  const bytes=new Uint8Array(w*h*3); bytes[0]=0x6d; bytes[1]=0x6b;
+  new DataView(bytes.buffer).setUint32(2,c.length,false); bytes.set(c,6);
+  for(let i=0,j=0;i<w*h;i++){ rgba[i*4]=bytes[j++]; rgba[i*4+1]=bytes[j++]; rgba[i*4+2]=bytes[j++]; rgba[i*4+3]=255; }
+  return {w,h,rgba};
+}
+function carrierRead(rgba){
+  const n=rgba.length/4, bytes=new Uint8Array(n*3);
+  for(let i=0,j=0;i<n;i++){ bytes[j++]=rgba[i*4]; bytes[j++]=rgba[i*4+1]; bytes[j++]=rgba[i*4+2]; }
+  if(bytes[0]!==0x6d||bytes[1]!==0x6b) throw new Error('not a pack.mk carrier png');
+  const len=new DataView(bytes.buffer).getUint32(2,false);
+  if(6+len>bytes.length) throw new Error('carrier png damaged');
+  return bytes.subarray(6,6+len);
+}
+/* ---- opus packet framing + OpusHead ---- */
+function packPackets(chunks){
+  const h=[...varint(chunks.length)]; for(const c of chunks) h.push(...varint(c.length));
+  const out=new Uint8Array(h.length+chunks.reduce((a,c)=>a+c.length,0)); out.set(h); let o=h.length;
+  for(const c of chunks){ out.set(c,o); o+=c.length; } return out;
+}
+function unpackPackets(u){
+  const p={i:0}, n=readVar(u,p), lens=[]; for(let i=0;i<n;i++) lens.push(readVar(u,p));
+  const out=[]; let o=p.i; for(const l of lens){ out.push(u.subarray(o,o+l)); o+=l; } return out;
+}
+function opusHead(ch, rate){
+  const b=new Uint8Array(19), v=new DataView(b.buffer); b.set(TE.encode('OpusHead')); b[8]=1; b[9]=ch;
+  v.setUint16(10,312,true); v.setUint32(12,rate,true); v.setInt16(16,0,true); b[18]=0; return b;
+}
+/* ---- ogg opus muxer (small playable .opus instead of a huge wav) ---- */
+const CRC_T=(()=>{ const t=new Uint32Array(256); for(let i=0;i<256;i++){ let r=(i<<24)>>>0; for(let j=0;j<8;j++) r=((r&0x80000000)?((r<<1)^0x04c11db7):(r<<1))>>>0; t[i]=r; } return t; })();
+function oggCrc(b){ let c=0; for(let i=0;i<b.length;i++) c=(((c<<8)^CRC_T[((c>>>24)^b[i])&255])>>>0); return c; }
+const catBytes = parts => { const o=new Uint8Array(parts.reduce((a,p)=>a+p.length,0)); let k=0; for(const p of parts){ o.set(p,k); k+=p.length; } return o; };
+const lacing = L => { const a=[]; for(let i=0;i<Math.floor(L/255);i++) a.push(255); a.push(L%255); return a; };
+const u32le = n => { const b=new Uint8Array(4); new DataView(b.buffer).setUint32(0,n,true); return b; };
+function opusSamples(p){
+  const t=p[0], c=t>>3, k=t&3;
+  const ms = c<12 ? [10,20,40,60][c&3] : c<16 ? [10,20][c&1] : [2.5,5,10,20][c&3];
+  return Math.round((k===0?1:k===3?(p[1]&63):2)*ms*48);
+}
+function oggPage(flags,gran,serial,seq,lens,parts){
+  const body=catBytes(parts), out=new Uint8Array(27+lens.length+body.length), v=new DataView(out.buffer);
+  out.set([0x4f,0x67,0x67,0x53,0,flags]); v.setUint32(6,gran%4294967296,true); v.setUint32(10,Math.floor(gran/4294967296),true);
+  v.setUint32(14,serial,true); v.setUint32(18,seq,true); out[26]=lens.length; out.set(lens,27); out.set(body,27+lens.length);
+  v.setUint32(22,oggCrc(out),true); return out;
+}
+function oggOpus(pk, ch, rate){
+  const serial=0x504b4d4b, pages=[]; let seq=0, gran=0, i=0;
+  pages.push(oggPage(2,0,serial,seq++,[19],[opusHead(ch,rate)]));
+  const tags=catBytes([TE.encode('OpusTags'),u32le(7),TE.encode('pack.mk'),u32le(0)]);
+  pages.push(oggPage(0,0,serial,seq++,lacing(tags.length),[tags]));
+  while(i<pk.length){
+    const lens=[], parts=[];
+    while(i<pk.length){ const l=lacing(pk[i].length); if(lens.length+l.length>255) break; lens.push(...l); parts.push(pk[i]); gran+=opusSamples(pk[i]); i++; }
+    pages.push(oggPage(i>=pk.length?4:0,gran,serial,seq++,lens,parts));
+  }
+  return catBytes(pages);
+}
+// ==/CORE==
+
+/* ================= UI ================= */
+const fmtB = n => n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB';
+const fmtN = n => n.toLocaleString('en-US');
+const HAS_OPUS = typeof AudioEncoder!=='undefined' && typeof AudioDecoder!=='undefined' && typeof AudioData!=='undefined';
+let file=null, kindGuess='file', result=null, outText='', decText=null;
+
+if(!HAS_OPUS){ $('a_codec').querySelector('option[value=opus]').remove(); }
+function syncAudio(){
+  const v=$('a_codec').value, o=v==='opus', raw=v==='orig';
+  $('a_opus').style.display=o?'':'none'; $('a_pcm').style.display=(o||raw)?'none':'';
+  $('a_warn').textContent = HAS_OPUS ? '' : 'opus needs webcodecs (chrome/edge/firefox 130+).';
+  if(raw) $('a_warn').textContent+=' original bytes: output is about as big as your file, decode returns it exactly.';
+  else if(v==='1'||v==='0') $('a_warn').textContent+=' uncompressed: ~'+(v==='0'?'10':'5')+' MB per minute at 44.1 kHz stereo. not what you want.';
+  else if(v==='2') $('a_warn').textContent+=' adpcm: ~4:1 vs pcm16, still far bigger than opus.';
+}
+$('a_codec').onchange=syncAudio; syncAudio();
+
+function setKind(f){
+  const t=(f.type||'').toLowerCase(), n=f.name.toLowerCase();
+  kindGuess = t.startsWith('image/') ? 'image' : (t.startsWith('audio/')||/\.(wav|mp3|ogg|flac|m4a|aac|opus|mka|mkv|webm|wma|aiff?)$/.test(n)) ? 'audio' : 'file';
+  $('o_img').classList.toggle('on', kindGuess==='image');
+  $('o_aud').classList.toggle('on', kindGuess==='audio');
+  $('ftype').textContent = f.name+' · '+fmtB(f.size)+' · treated as '+kindGuess;
+}
+$('f').onchange = e => { file=e.target.files[0]||null; if(file) setKind(file); };
+$('i_q').oninput = () => $('i_qv').textContent=$('i_q').value;
+$('i_mode').onchange = () => $('i_lossy').style.display = $('i_mode').value==='webp' ? '' : 'none';
+
+/* ---- image ---- */
+async function webpAt(bmp, side, q){
+  const s=Math.min(1,side/Math.max(bmp.width,bmp.height));
+  const w=Math.max(1,Math.round(bmp.width*s)), h=Math.max(1,Math.round(bmp.height*s));
+  const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(bmp,0,0,w,h);
+  const blob=await new Promise(r=>c.toBlob(r,'image/webp',q));
+  return blob && blob.type==='image/webp' ? blob : null;
+}
+// returns {blob,note}; targetBytes>0 => shrink to fit
+async function reencodeImage(f, q, maxSide, targetBytes){
+  if(!/^image\/(png|jpeg|webp|bmp|avif)$/.test(f.type)) return null;
+  const bmp=await createImageBitmap(f);
+  if(!targetBytes){ const b=await webpAt(bmp,maxSide,q); return b&&{blob:b,note:'webp q'+Math.round(q*100)+' · '+maxSide+'px max'}; }
+  for(const m of [1,.75,.5,.35,.25,.18]){
+    const side=Math.max(16,Math.round(maxSide*m));
+    let lo=.05, hi=.95, best=null;
+    const floor=await webpAt(bmp,side,lo); if(!floor) return null;
+    if(floor.size>targetBytes) continue;
+    best=floor;
+    for(let i=0;i<6;i++){ const mid=(lo+hi)/2, b=await webpAt(bmp,side,mid); if(b&&b.size<=targetBytes){ best=b; lo=mid; } else hi=mid; }
+    return {blob:best,note:'fit: webp q'+Math.round(lo*100)+' · '+side+'px max'};
+  }
+  const b=await webpAt(bmp,16,.05); return b&&{blob:b,note:'could not fit — smallest possible'};
+}
+
+/* ---- audio ---- */
+async function decodeAB(f){
+  const AC=window.AudioContext||window.webkitAudioContext, ctx=new AC();
+  try{ return await ctx.decodeAudioData(await f.arrayBuffer()); } finally { ctx.close(); }
+}
+async function resampleAB(ab, rate, ch, secs){
+  const off=new OfflineAudioContext(ch,Math.max(1,Math.round(secs*rate)),rate);
+  const src=off.createBufferSource(); src.buffer=ab; src.connect(off.destination); src.start(0);
+  const r=await off.startRendering(); return Array.from({length:ch},(_,k)=>r.getChannelData(k));
+}
+const toI16 = f32 => { const p=new Int16Array(f32.length); for(let i=0;i<p.length;i++) p[i]=Math.round(Math.max(-1,Math.min(1,f32[i]))*32767); return p; };
+const opusRateFor = br => br<=16000 ? 16000 : br<=32000 ? 24000 : 48000;
+
+async function opusEncode(f32, rate, bitrate, voice){
+  const ch=f32.length; let cfg=null, frameMs=0;
+  for(const fm of [60,20]){
+    const c={codec:'opus',sampleRate:rate,numberOfChannels:ch,bitrate,opus:{frameDuration:fm*1000,application:voice?'voip':'audio',signal:voice?'voice':'music',complexity:10}};
+    if((await AudioEncoder.isConfigSupported(c)).supported){ cfg=c; frameMs=fm; break; }
+  }
+  if(!cfg) throw new Error('opus encoder rejected '+rate+' Hz/'+ch+'ch');
+  const pk=[]; let err=null;
+  const enc=new AudioEncoder({output:c=>{ const b=new Uint8Array(c.byteLength); c.copyTo(b); pk.push(b); }, error:e=>{ err=e; }});
+  enc.configure(cfg);
+  const total=f32[0].length, step=rate;
+  for(let o=0;o<total;o+=step){
+    const n=Math.min(step,total-o), data=new Float32Array(n*ch);
+    for(let k=0;k<ch;k++) data.set(f32[k].subarray(o,o+n),k*n);
+    const ad=new AudioData({format:'f32-planar',sampleRate:rate,numberOfFrames:n,numberOfChannels:ch,timestamp:Math.round(o/rate*1e6),data});
+    enc.encode(ad); ad.close();
+    if(err) throw err;
+    while(enc.encodeQueueSize>6) await new Promise(r=>setTimeout(r,0));
+  }
+  await enc.flush(); enc.close(); if(err) throw err;
+  return {pk,frameMs};
+}
+async function opusDecode(pk, ch, rate, fms){
+  const cfg={codec:'opus',sampleRate:rate,numberOfChannels:ch,description:opusHead(ch,rate)};
+  if(!(await AudioDecoder.isConfigSupported(cfg)).supported) throw new Error('this browser cannot decode opus via webcodecs');
+  const outs=[]; let err=null, outRate=rate;
+  const dec=new AudioDecoder({output:a=>{
+    outRate=a.sampleRate; const n=a.numberOfFrames, cs=[];
+    for(let k=0;k<a.numberOfChannels;k++){ const f=new Float32Array(n); a.copyTo(f,{planeIndex:k,format:'f32-planar'}); cs.push(f); }
+    outs.push(cs); a.close();
+  }, error:e=>{ err=e; }});
+  dec.configure(cfg);
+  for(let i=0;i<pk.length;i++) dec.decode(new EncodedAudioChunk({type:'key',timestamp:i*fms*1000,data:pk[i]}));
+  await dec.flush(); dec.close(); if(err) throw err;
+  const nch=outs[0]?outs[0].length:ch, total=outs.reduce((a,c)=>a+c[0].length,0), chs=[];
+  for(let k=0;k<nch;k++){ const p=new Int16Array(total); let o=0; for(const c of outs){ for(let i=0;i<c[k].length;i++) p[o+i]=Math.round(Math.max(-1,Math.min(1,c[k][i]))*32767); o+=c[k].length; } chs.push(p); }
+  return {chs,rate:outRate};
+}
+
+/* ---- encode ---- */
+function showText(txt){ outText=txt; $('e_out').value=txt; }
+$('go').onclick = async () => {
+  $('e_err').textContent=''; $('e_stat').textContent=''; $('e_out').value=''; $('e_pv').innerHTML=''; result=null; outText='';
+  if(!file){ $('e_err').textContent='pick a file first.'; return; }
+  const btn=$('go'); btn.disabled=true; btn.textContent='working…';
+  try{
+    const fmt=$('o_fmt').value, maxChars=+$('o_max').value||0, bpc = fmt==='dense'?D_BITS:6;
+    const targetBytes = (maxChars && fmt!=='png') ? Math.max(16,Math.floor(maxChars*bpc/8)-24) : 0;
+    let container, note='';
+    if(kindGuess==='audio' && $('a_codec').value==='orig'){
+      const ext=(file.name.split('.').pop()||'').toLowerCase(), M={mka:'audio/x-matroska',mkv:'video/x-matroska',webm:'audio/webm',opus:'audio/ogg',ogg:'audio/ogg',mp3:'audio/mpeg',m4a:'audio/mp4',aac:'audio/aac',flac:'audio/flac',wav:'audio/wav'};
+      container=await seal(0,{mime:file.type||M[ext]||'application/octet-stream',name:file.name},new Uint8Array(await file.arrayBuffer()));
+      note='original bytes kept — no re-encode';
+    } else if(kindGuess==='audio'){
+      const sel=$('a_codec').value, wantCh=+$('a_ch').value, trim=+$('a_trim').value||0;
+      const ab=await decodeAB(file), ch=Math.min(wantCh,ab.numberOfChannels);
+      let secs=trim>0?Math.min(trim,ab.duration):ab.duration;
+      if(sel==='opus'){
+        let br=+$('a_kbps').value;
+        if(targetBytes){
+          br=Math.floor(targetBytes*8/secs)-140;                       // minus packet-table overhead
+          if(br<6000){ br=6000; const fit=Math.floor(targetBytes*8/6140); note+='too long for '+fmtN(maxChars)+' chars at 6 kbps — trimmed to first '+fit+' s. '; secs=Math.min(secs,fit); }
+          br=Math.min(br,64000);
+        }
+        const rate=opusRateFor(br), f32=await resampleAB(ab,rate,ch,secs);
+        const {pk,frameMs}=await opusEncode(f32,rate,br,$('a_sig').value==='voice');
+        container=await seal(2,{ch,rate,fms:frameMs},packPackets(pk));
+        note+=secs.toFixed(1)+' s · opus '+(br/1000).toFixed(1)+' kbps · '+rate+' Hz · '+ch+'ch';
+      } else {
+        const codec=+sel, rate=+$('a_rate').value, chs=(await resampleAB(ab,rate,ch,secs)).map(toI16);
+        container=await seal(1,{codec,ch,rate,frames:chs[0].length},packAudio(chs,codec));
+        note+=secs.toFixed(1)+' s · '+rate+' Hz · '+ch+'ch · '+['pcm16','pcm8','adpcm'][codec];
+        if(targetBytes) note+=' · max chars only applies to opus/images';
+      }
+    } else {
+      let bytes=new Uint8Array(await file.arrayBuffer()), mime=file.type||'application/octet-stream', name=file.name;
+      if(kindGuess==='image' && ($('i_mode').value==='webp' || targetBytes)){
+        const r=await reencodeImage(file,+$('i_q').value/100,+$('i_max').value||640,targetBytes);
+        if(r && (r.blob.size<bytes.length || targetBytes)){ bytes=new Uint8Array(await r.blob.arrayBuffer()); mime='image/webp'; name=name.replace(/\.[^.]+$/,'')+'.webp'; note=r.note; }
+        else note='kept original (webp not smaller or unsupported)';
+      }
+      container=await seal(0,{mime,name},bytes);
+    }
+    const naive=Math.ceil(file.size*4/3);
+    if(fmt==='png'){
+      const {w,h,rgba}=carrierPixels(container), c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').putImageData(new ImageData(rgba,w,h),0,0);
+      const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+      result={blob,name:'packed.png'};
+      const img=new Image(); img.src=URL.createObjectURL(blob); $('e_pv').appendChild(img);
+      $('e_out').value='(png carrier — see preview. send as a file, not a screenshot.)';
+      $('e_stat').innerHTML='<b>'+fmtB(file.size)+'</b> → container <b>'+fmtB(container.length)+'</b> → png <b>'+fmtB(blob.size)+'</b> ('+w+'×'+h+')'+(note?'<br>'+note:'');
+    } else {
+      const txt=fmt==='dense'?denseEnc(container):b64enc(container);
+      result={blob:new Blob([txt],{type:'text/plain'}),name:'packed.txt'};
+      showText(txt);
+      const pct=Math.round((1-txt.length/naive)*100);
+      $('e_stat').innerHTML='<b>'+fmtB(file.size)+'</b> → container <b>'+fmtB(container.length)+'</b> → <b>'+fmtN(txt.length)+'</b> chars'
+        +(maxChars&&txt.length>maxChars?' <span class="err">(over your '+fmtN(maxChars)+' limit)</span>':'')
+        +'<br>plain base64 of the original: '+fmtN(naive)+' chars ('+(pct>=0?pct+'% shorter':(-pct)+'% longer')+')'
+        +(note?'<br>'+note:'');
+    }
+  }catch(e){ $('e_err').textContent='failed: '+e.message; }
+  finally{ btn.disabled=false; btn.textContent='encode'; }
+};
+$('copy').onclick = async () => {
+  if(!outText) return;
+  try{ await navigator.clipboard.writeText(outText); $('copy').textContent='copied '+fmtN(outText.length); setTimeout(()=>$('copy').textContent='copy',1200); }
+  catch(_){ $('e_err').textContent='clipboard blocked — use download.'; }
+};
+function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
+$('dl').onclick = () => { if(result) download(result.blob,result.name); };
+
+/* ---- decode ---- */
+$('d_in').oninput = () => { decText=null; };
+$('dpaste').onclick = async () => {
+  $('d_err').textContent='';
+  try{ const t=await navigator.clipboard.readText(); decText=null; $('d_in').value=t; $('d_stat').textContent='loaded '+fmtN(t.length)+' chars — press decode'; }
+  catch(_){ $('d_err').textContent='clipboard read blocked — paste into the box instead.'; }
+};
+$('d_f').onchange = async e => {
+  const f=e.target.files[0]; if(!f) return;
+  $('d_err').textContent='';
+  if(f.type==='image/png' || /\.png$/i.test(f.name)){
+    try{
+      const bmp=await createImageBitmap(f), c=document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height;
+      const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(bmp,0,0);
+      const container=carrierRead(x.getImageData(0,0,c.width,c.height).data);
+      $('d_in').value=''; decText=null; await showDecoded(container);
+    }catch(err){ $('d_err').textContent='failed: '+err.message; }
+  } else { const t=await f.text(); decText=null; $('d_in').value=t; $('d_stat').textContent='loaded '+fmtN(t.length)+' chars — press decode'; }
+};
+$('dgo').onclick = async () => {
+  $('d_err').textContent='';
+  const btn=$('dgo'); btn.disabled=true; btn.textContent='working…';
+  try{ await showDecoded(textDecode(decText!==null?decText:$('d_in').value)); }
+  catch(e){ $('d_err').textContent='failed: '+e.message; $('d_pv').innerHTML=''; $('d_stat').textContent=''; }
+  finally{ btn.disabled=false; btn.textContent='decode'; }
+};
+function audioOut(pv, chs, rate){
+  const w=wavBytes(chs,rate), blob=new Blob([w],{type:'audio/wav'}), au=document.createElement('audio'); au.controls=true; au.src=URL.createObjectURL(blob);
+  const b=document.createElement('button'); b.type='button'; b.className='btn sm'; b.textContent='download wav'; b.onclick=()=>download(blob,'decoded.wav');
+  pv.append(au,b);
+  $('d_stat').innerHTML='audio · <b>'+(chs[0].length/rate).toFixed(1)+' s</b> · '+rate+' Hz · '+chs.length+'ch · wav '+fmtB(w.length);
+}
+async function showDecoded(container){
+  const pv=$('d_pv'); pv.innerHTML='';
+  const r=await unseal(container);
+  if(r.kind===1){ audioOut(pv, unpackAudio(r.data,r.meta.codec,r.meta.ch,r.meta.frames), r.meta.rate); }
+  else if(r.kind===2){
+    const pk=unpackPackets(r.data), ogg=oggOpus(pk,r.meta.ch,r.meta.rate), blob=new Blob([ogg],{type:'audio/ogg; codecs=opus'});
+    const au=document.createElement('audio'); au.controls=true; au.src=URL.createObjectURL(blob);
+    const b1=document.createElement('button'); b1.type='button'; b1.className='btn sm'; b1.textContent='download .opus ('+fmtB(ogg.length)+')'; b1.onclick=()=>download(blob,'decoded.opus');
+    const b2=document.createElement('button'); b2.type='button'; b2.className='btn sm'; b2.textContent='download .wav (large)';
+    b2.onclick=async()=>{ b2.disabled=true; b2.textContent='decoding…'; try{ const o=await opusDecode(pk,r.meta.ch,r.meta.rate,r.meta.fms), w=wavBytes(o.chs,o.rate); download(new Blob([w],{type:'audio/wav'}),'decoded.wav'); b2.textContent='download .wav ('+fmtB(w.length)+')'; }catch(e){ $('d_err').textContent='failed: '+e.message; b2.textContent='download .wav (large)'; } b2.disabled=false; };
+    pv.append(au,b1,b2);
+    const secs=pk.reduce((a,p)=>a+opusSamples(p),0)/48000;
+    $('d_stat').innerHTML='audio · <b>'+secs.toFixed(1)+' s</b> · opus · '+r.meta.ch+'ch · .opus file <b>'+fmtB(ogg.length)+'</b>';
+  }
+  else {
+    const blob=new Blob([r.data],{type:r.meta.mime}), url=URL.createObjectURL(blob), name=r.meta.name||'decoded.bin';
+    if(r.meta.mime.startsWith('image/')){ const i=new Image(); i.src=url; pv.appendChild(i); }
+    else if(r.meta.mime.startsWith('audio/')){ const a=document.createElement('audio'); a.controls=true; a.src=url; pv.appendChild(a); }
+    const b=document.createElement('button'); b.type='button'; b.className='btn sm'; b.textContent='download '+name; b.onclick=()=>download(blob,name);
+    pv.appendChild(b);
+    $('d_stat').innerHTML='file · <b>'+name+'</b> · '+r.meta.mime+' · '+fmtB(r.data.length);
+  }
+}
+})();
+if (location.hash === '#pack') document.getElementById('tab-pack').click();
 </script>
 </body>
 </html>
