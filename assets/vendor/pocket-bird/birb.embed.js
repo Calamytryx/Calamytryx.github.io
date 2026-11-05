@@ -8,7 +8,7 @@
 		RIGHT: 1,
 	};
 
-	let debugMode = location.hostname === "127.0.0.1";
+	let debugMode = location.hostname === "https://calamytryx.github.io/";
 	/** @type {import('./context.js').Context|null} */
 	let context = null;
 	/** @type {ShadowRoot|undefined} */
