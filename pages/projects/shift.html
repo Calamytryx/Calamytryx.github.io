@@ -84,7 +84,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:12px;width:max-c
 
 <header class="toolbar">
 <h1>shift<span>.</span>mk</h1>
-<span class="tbsub" id="tbsub">tickets per hour · quotas · sheets export — saved in this browser</span>
+<span class="tbsub" id="tbsub">tickets per hour · quotas · sheet view — saved in this browser</span>
 <div class="toolbar-end">
   <a href="#" data-data title="backup / restore">data</a>
   <a href="tally.html">tally.mk →</a>
@@ -107,8 +107,7 @@ const tph = (t,h) => h > 0 ? t/h : 0;
 
 /* ---------- unit: what you count (shared with tally.mk through shift.v1 cfg.unit) ---------- */
 const U = () => { const u = (S && S.cfg && S.cfg.unit) || {}; return {one: u.one || 'ticket', many: u.many || 'tickets'}; };
-const slug = s => String(s).trim().replace(/\s+/g,'_');
-function applyUnit(){ const e = $('tbsub'); if(e) e.textContent = U().many+' per hour · quotas · sheets export — saved in this browser'; }
+function applyUnit(){ const e = $('tbsub'); if(e) e.textContent = U().many+' per hour · quotas · sheet view — saved in this browser'; }
 
 /* ---------- dates / times ---------- */
 const ymd = d => d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
@@ -125,10 +124,9 @@ function range(view, s){
 const tm = s => { const [a,b] = s.split(':').map(Number); return a*60+b; };
 const ft = m => { m = ((m % 1440) + 1440) % 1440; return p2(Math.floor(m/60))+':'+p2(m%60); };
 
-/* ---------- workbook themes ---------- */
+/* ---------- themes ---------- */
 const rgb = h => [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));
 const mix = (a,b,t) => { const x = rgb(a), y = rgb(b); return x.map((v,i)=>Math.round(v*(1-t)+y[i]*t).toString(16).padStart(2,'0')).join(''); };
-const lum = h => { const [r,g,b] = rgb(h).map(v=>v/255); return .2126*r+.7152*g+.0722*b; };
 const hex6 = (v,d) => /^[0-9a-f]{6}$/i.test(v||'') ? v.toLowerCase() : d;
 const PRESETS = [
   {id:'site',  name:'shift.mk', bg:'0b0b0c', panel:'141416', txt:'e6e6e6', acc:'e11d2e'},
@@ -204,14 +202,14 @@ function loadUi(){
   }catch(_){}
   return {};
 }
-const ui = Object.assign({tab:'overview', view:'day', date:ymd(new Date()), xmode:'logged'}, loadUi());
-if(!['overview','track','sheet','setup','export'].includes(ui.tab)) ui.tab = 'overview';
+const ui = Object.assign({tab:'overview', view:'day', date:ymd(new Date())}, loadUi());
+if(!['overview','track','sheet','setup'].includes(ui.tab)) ui.tab = 'overview';
 if(!['day','week','month'].includes(ui.view)) ui.view = 'day';
 if(!/^\d{4}-\d{2}-\d{2}$/.test(ui.date || '')) ui.date = ymd(new Date());
 function saveUi(){
   try{
-    const {tab, view, date, xmode, smode, sa, xa, xb} = ui;
-    localStorage.setItem(UI_KEY, JSON.stringify({tab, view, date, xmode, smode, sa, xa, xb}));
+    const {tab, view, date, smode, sa} = ui;
+    localStorage.setItem(UI_KEY, JSON.stringify({tab, view, date, smode, sa}));
   }catch(_){}
 }
 const save = () => { if(window.__mkSkip) return; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} };
@@ -364,7 +362,6 @@ function autoBreakMigrate(){
 }
 
 /* ---------- views ---------- */
-const autoLbl = bo => bo && bo.length ? bo.map(b=>esc(b.name)).join(' + ')+' (auto)' : '';
 function tagOpt(sel, bo){
   /* Full-break slots use the scheduled break as their default tag. */
   const cur = sel || (bo && bo.length ? 'brk:'+bo[0].name : '');
@@ -378,8 +375,8 @@ function tagOpt(sel, bo){
 
 function render(){
   saveUi();
-  const body = {overview:vOverview, track:vTrack, sheet:vSheet, setup:vSetup, export:vExport}[ui.tab]();
-  $('main').innerHTML = '<div class="bar"><div class="seg">'+['overview','track','sheet','setup','export'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
+  const body = {overview:vOverview, track:vTrack, sheet:vSheet, setup:vSetup}[ui.tab]();
+  $('main').innerHTML = '<div class="bar"><div class="seg">'+['overview','track','sheet','setup'].map(t=>'<button data-tab="'+t+'" class="'+(ui.tab===t?'on':'')+'">'+t+'</button>').join('')+'</div></div>'+body;
   if(ui.tab==='track') calc(); else if(ui.tab==='sheet') sheetCalc(); else if(ui.tab==='overview') ovCalc();
   applyUnit();
 }
@@ -482,30 +479,38 @@ const UNITS = ['ticket','call','order','page','task','rep','item','chat','email'
 /* preset: [name, productive(1/0), quota/h, auto-minutes]  ·  breaks: [name, start, mins]
    Breaks and lunches live only in the breaks list; they show up as automatic tags, so they are not tags here. */
 const TEMPLATES = [
-  {id:'callcenter', name:'Call center', desc:'Calls per hour, 9–6, two short breaks and a lunch',
-    unit:['call','calls'], cfg:{start:'09:00', end:'18:00', interval:30},
-    tags:[['Inbound calls',1,12],['Callbacks / email',1,8],['Coaching / training',0],['Idle / waiting',0]],
-    breaks:[['Break','11:00',15],['Lunch','13:00',60],['Break','15:30',15]]},
-  {id:'support', name:'Ticket support', desc:'Tickets per hour across two tiers',
-    unit:['ticket','tickets'], cfg:{start:'09:00', end:'18:00', interval:30},
-    tags:[['Tier 1',1,10],['Tier 2',1,6],['Meeting / training',0],['Idle',0]],
-    breaks:[['Break','11:00',15],['Lunch','13:00',60],['Break','15:30',15]]},
-  {id:'delivery', name:'Delivery', desc:'Orders per hour, hourly slots, one lunch',
-    unit:['order','orders'], cfg:{start:'08:00', end:'17:00', interval:60},
-    tags:[['Deliveries',1,3],['Pickup / waiting',0],['Vehicle / admin',0]],
-    breaks:[['Lunch','12:00',60]]},
-  {id:'freelance', name:'Freelancer hours', desc:'Billable vs non-billable time, no quota',
-    unit:['task','tasks'], cfg:{start:'09:00', end:'17:00', interval:60},
-    tags:[['Client work',1,null],['Admin / invoicing',0],['Outreach / pitching',0]],
+  {id:'retail', name:'Retail cashier', desc:'Customers served per hour, front-of-store shift',
+    unit:['customer','customers'], cfg:{start:'10:00', end:'19:00', interval:60},
+    tags:[['Checkout',1,18],['Restocking',1,null],['Floor / cleaning',0],['Idle',0]],
+    breaks:[['Break','12:30',15],['Lunch','14:00',45],['Break','16:30',15]]},
+  {id:'warehouse', name:'Warehouse picking', desc:'Items picked per hour with packing time',
+    unit:['item','items'], cfg:{start:'07:00', end:'16:00', interval:60},
+    tags:[['Picking',1,120],['Packing',1,60],['Loading / cleanup',0],['Waiting',0]],
+    breaks:[['Break','09:30',15],['Lunch','12:00',45]]},
+  {id:'cafe', name:'Cafe barista', desc:'Drinks made per hour, rush and prep time',
+    unit:['drink','drinks'], cfg:{start:'06:00', end:'14:00', interval:30},
+    tags:[['Bar',1,30],['Register',1,25],['Prep / restock',0],['Cleaning',0]],
+    breaks:[['Break','09:30',15],['Meal','11:30',30]]},
+  {id:'housekeeping', name:'Housekeeping', desc:'Rooms cleaned per hour',
+    unit:['room','rooms'], cfg:{start:'08:00', end:'16:30', interval:60},
+    tags:[['Rooms',1,2],['Laundry',1,null],['Restocking cart',0],['Walking / waiting',0]],
+    breaks:[['Break','10:30',15],['Lunch','12:30',30]]},
+  {id:'dataentry', name:'Data entry', desc:'Records typed per hour',
+    unit:['record','records'], cfg:{start:'09:00', end:'17:00', interval:30},
+    tags:[['Typing',1,80],['Checking',1,120],['Meeting',0],['Idle',0]],
+    breaks:[['Break','11:00',15],['Lunch','13:00',45],['Break','15:15',15]]},
+  {id:'writing', name:'Writing sessions', desc:'Words written per hour, no breaks scheduled',
+    unit:['word','words'], cfg:{start:'19:00', end:'22:00', interval:30},
+    tags:[['Drafting',1,500],['Editing',1,null],['Research',0],['Stuck',0]],
+    breaks:[]},
+  {id:'workout', name:'Workout', desc:'Reps per hour in a gym session',
+    unit:['rep','reps'], cfg:{start:'18:00', end:'19:30', interval:15},
+    tags:[['Lifting',1,150],['Cardio',1,null],['Warm-up / stretch',0],['Resting',0]],
     breaks:[]},
   {id:'study', name:'Study sessions', desc:'Pages per hour in an evening block',
     unit:['page','pages'], cfg:{start:'18:00', end:'21:00', interval:30},
     tags:[['Reading',1,15],['Notes / recall',1,null],['Review',0]],
     breaks:[['Break','19:30',10]]},
-  {id:'moderation', name:'Content moderation', desc:'Items per hour with wellness breaks',
-    unit:['item','items'], cfg:{start:'09:00', end:'18:00', interval:30},
-    tags:[['Queue review',1,60],['Escalations',1,10],['Training',0]],
-    breaks:[['Wellness break','11:00',15],['Lunch','13:00',60],['Wellness break','15:30',15]]},
   {id:'blank', name:'Blank', desc:'Start from scratch: one productive tag, idle',
     unit:['ticket','tickets'], cfg:{start:'09:00', end:'18:00', interval:30},
     tags:[['Work',1,null],['Idle',0]], breaks:[]}
@@ -516,7 +521,7 @@ function unitRow(){
     '<div class="row2"><span class="hint">one</span><input data-unit="one" list="unitList" value="'+esc(u.one)+'" style="width:110px">'+
     '<span class="hint">many</span><input data-unit="many" value="'+esc(u.many)+'" style="width:110px">'+
     '<datalist id="unitList">'+UNITS.map(x=>'<option value="'+x+'">').join('')+'</datalist></div>'+
-    '<p class="hint">Labels, quotas, the sheet copy, csv and xlsx all follow this, and tally.mk reads it too. Type your own if the list does not have it.</p>';
+    '<p class="hint">Labels, quotas and the sheet copy all follow this, and tally.mk reads it too. Type your own if the list does not have it.</p>';
 }
 function tplPanel(){
   return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">start from a preset</div>'+
@@ -557,43 +562,6 @@ function vSetup(){
     '<div><button class="btn sm" data-add="breaks">+ break</button></div></div>';
 }
 
-function pvHtml(p){
-  const c = x => '#'+x;
-  const rows = [['2026-10-28','Task 1','14','7.00'],['2026-10-28','Task 2','9','4.50'],['2026-10-29','Task 1','16','8.00']];
-  return '<div style="background:'+c(p.bg)+';border:2px solid '+c(p.line)+';max-width:480px;font-family:Consolas,var(--mono),monospace;font-size:11px;color:'+c(p.txt)+'">'+
-    '<div style="background:'+c(p.panel)+';padding:10px 14px;border-bottom:2px solid '+c(p.acc)+';font-size:16px;font-weight:700">shift<span style="color:'+c(p.acc)+'">.</span>mk <span style="color:'+c(p.dim)+';font-size:10px;font-weight:400">/ productivity</span></div>'+
-    '<div style="display:flex;padding:8px 14px 6px;color:'+c(p.dim)+';font-size:8px;letter-spacing:1.5px"><span style="flex:1">PRODUCTIVE HRS</span><span style="flex:1">'+U().many.toUpperCase()+' / HR</span><span style="flex:1">ATTAINMENT</span></div>'+
-    '<div style="display:flex;padding:0 14px 10px;font-size:18px;font-weight:700"><span style="flex:1">6.00</span><span style="flex:1;color:'+c(p.acc)+'">6.50</span><span style="flex:1">108%</span></div>'+
-    '<div style="display:flex;background:'+c(p.bg)+';border-bottom:2px solid '+c(p.acc)+';padding:7px 14px;color:'+c(p.acc)+';font-size:9px;letter-spacing:1.5px;font-weight:700"><span style="flex:1">DATE</span><span style="flex:1">TAG</span><span style="flex:1;text-align:center">'+U().many.toUpperCase()+'</span><span style="flex:1;text-align:center;color:'+c(p.dim)+'">'+U().many.toUpperCase()+' / HR</span></div>'+
-    rows.map((r,i)=>'<div style="display:flex;background:'+c(i%2?p.panel2:p.panel)+';border-bottom:1px solid '+c(p.line)+';padding:7px 14px"><span style="flex:1">'+r[0]+'</span><span style="flex:1">'+r[1]+'</span><span style="flex:1;text-align:center">'+r[2]+'</span><span style="flex:1;text-align:center;color:'+c(p.acc)+';font-weight:700">'+r[3]+'</span></div>').join('')+'</div>';
-}
-
-function vExport(){
-  const m = range('month', ui.date); ui.xa = ui.xa || m[0]; ui.xb = ui.xb || m[m.length-1];
-  const cur = thm(S.theme);
-  const chip = t => '<span style="display:inline-flex"><i style="background:#'+t.bg+'"></i><i style="background:#'+t.acc+'"></i><i style="background:#'+t.txt+'"></i></span>';
-  const sw = t => '<button class="btn sm ghost th'+(t.id===cur.id?' on':'')+'" data-th="'+t.id+'">'+chip(pal(t))+t.name+'</button>';
-  const cp2 = [['bg','background'],['panel','rows'],['txt','text'],['acc','accent']];
-  return '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">range</div>'+
-    '<div class="row2"><input type="date" id="xa" value="'+ui.xa+'"><span class="hint">to</span><input type="date" id="xb" value="'+ui.xb+'">'+
-    ['day','week','month'].map(v=>'<button class="btn sm ghost" data-xr="'+v+'">'+(v==='day'?'selected day':'that '+v)+'</button>').join('')+'</div>'+
-    '<div class="row2"><label class="hint" for="xmode">interval rows</label><select id="xmode">'+[['logged','Only intervals that already have a tag'],['range','Every interval in the selected range'],['months','Full calendar month(s) containing the range']].map(([v,l])=>'<option value="'+v+'"'+(ui.xmode===v?' selected':'')+'>'+l+'</option>').join('')+'</select></div>'+
-    '<div class="sub_t">theme — applies to this site and the export</div>'+
-    '<div class="row2">'+PRESETS.map(sw).join('')+sw({id:'custom',name:'Custom',bg:S.custom.bg,panel:S.custom.panel,txt:S.custom.txt,acc:S.custom.acc})+'</div>'+
-    '<div class="row2"><span class="hint">custom colors</span>'+cp2.map(([k,l])=>'<label class="hint cc2">'+l+'<input type="color" data-cc="'+k+'" value="#'+S.custom[k]+'"></label>').join('')+
-    '<button class="btn sm ghost" data-cr>reset</button></div>'+
-    '<div id="pv">'+pvHtml(cur)+'</div>'+
-    '<div class="sub_t">google sheets — live formulas, real tables</div>'+
-    '<div class="row2"><button class="btn sm" data-x="xlsx">workbook .xlsx</button></div>'+
-    '<p class="hint">Three tabs. <b>Daily</b> is one interval table per day — pick a tag on each row, type '+U().many+' and minutes, and hours, deductions, '+U().many+' per hour and the day’s totals are formulas you never touch. Overtime intervals appear as normal rows alongside the base shift. Scheduled breaks are split into their own timed rows in the exported workbook. <b>Summary</b> reads whatever falls between its FROM / TO from Daily. <b>Setup</b> holds the tags, the productive flags and the quotas. Upload to Drive and open with Sheets (or File → Import); everything recalculates there without this page.</p>'+
-    '<div class="sub_t">plain data</div>'+
-    '<div class="row2"><button class="btn sm ghost" data-x="dcsv">daily summary .csv</button><button class="btn sm ghost" data-x="scsv">intervals .csv</button><button class="btn sm ghost" data-x="dtsv">copy daily</button><button class="btn sm ghost" data-x="stsv">copy intervals</button></div>'+
-    '<p class="hint">CSV and copied text are static values. Daily CSV now includes <code>pre_ot_hours</code> and <code>post_ot_hours</code> columns. Dates are yyyy-mm-dd and hours are plain decimals.</p>'+
-    '<div class="sub_t">backup — data lives in this browser only</div>'+
-    '<div class="row2"><button class="btn sm" data-data>compact backup (copy / paste)</button><button class="btn sm ghost" data-x="bak">download backup .json</button><label class="btn sm ghost">restore<input type="file" id="xr" accept=".json" hidden></label></div>'+
-    '<span class="hint" id="xs"></span></div>';
-}
-
 /* ---------- overview (live dashboard) ---------- */
 const hms = min => { let t = Math.max(0, Math.floor(min*60)); const h = Math.floor(t/3600); t %= 3600; return h+':'+p2(Math.floor(t/60))+':'+p2(t%60); };
 /* the shift that is running right now (a 23:00 -> 08:00 shift is still "yesterday's" at 02:00) */
@@ -622,7 +590,20 @@ function ovModel(){
   if(!prim) prim = Tq.slice().sort((a,b) => ((St.task[b.id]||{}).h||0) - ((St.task[a.id]||{}).h||0))[0] || null;
   const target = soFar + (prim ? prim.quota * hRem : 0);
   const remaining = Tq.length ? Math.max(0, Math.ceil(target - done - 1e-9)) : null;
-  return {d, rel, now, sp, cur, St, hRem, openSlots, Tq, done, soFar, prim, target, remaining};
+  /* per task: what is left if all the open time went to that task */
+  const perTask = Tq.map(t => { const o = St.task[t.id] || {tk:0,h:0};
+    return {t, tk:o.tk, h:o.h, left:Math.max(0, Math.ceil(t.quota*(o.h+hRem) - o.tk - 1e-9))}; });
+  /* what the current slot needs on its own (tag's quota, or the primary task if the slot is untagged) */
+  let slotNeed = null;
+  if(cur){
+    const sg = ctag && ctag.prod && +ctag.quota > 0 ? ctag : prim;
+    if(sg){
+      const x = slot(d,cur.k), v = sl(d,cur), eh = v ? v.h : effMin(d,cur)/60, have = +x.tickets || 0;
+      const tgt = Math.ceil(sg.quota*eh - 1e-9);
+      slotNeed = {tag:sg, target:tgt, need:Math.max(0, tgt - have)};
+    }
+  }
+  return {d, rel, now, sp, cur, St, hRem, openSlots, Tq, done, soFar, prim, target, remaining, perTask, slotNeed};
 }
 function vOverview(){
   const c = (title, inner) => '<div class="panel mod"><div class="sub_t" style="border:0;padding:0">'+title+'</div>'+inner+'</div>';
@@ -630,8 +611,8 @@ function vOverview(){
     '<div class="panel mod"><div class="ovbig" id="ov-clock">--:--:--</div><div class="hint" id="ov-date"></div></div>'+
     '<div class="ovgrid">'+
     c('shift','<div class="hint" id="ov-shift-day"></div><div class="ovmid" id="ov-shift-range"></div><div class="hint" id="ov-shift-lab"></div><div class="ovbig2" id="ov-shift-left">-</div><div class="ovbar"><i id="ov-shift-bar"></i></div>')+
-    c('current slot','<div class="ovmid" id="ov-slot-range">\u2014</div><div class="hint">time left</div><div class="ovbig2" id="ov-slot-left">\u2014</div><div class="hint" id="ov-slot-tag"></div><div class="hint">'+U().many+' this slot: <b id="ov-slot-tk">0</b></div>')+
-    c('quota \u2014 '+U().many+' still needed','<div class="ovbig2" id="ov-q-remaining">\u2014</div><div class="hint" id="ov-q-prog"></div><div class="hint" id="ov-q-need"></div><div class="hint" id="ov-q-slot"></div><div class="hint" id="ov-q-diff"></div><div class="hint" id="ov-q-note"></div>')+
+    c('current slot','<div class="ovmid" id="ov-slot-range">\u2014</div><div class="hint">time left</div><div class="ovbig2" id="ov-slot-left">\u2014</div><div class="hint" id="ov-slot-tag"></div><div class="hint">'+U().many+' this slot: <b id="ov-slot-tk">0</b></div><div class="hint" id="ov-slot-need"></div>')+
+    c('quota \u2014 '+U().many+' still needed','<div class="ovbig2" id="ov-q-remaining">\u2014</div><div class="hint" id="ov-q-prog"></div><div class="hint" id="ov-q-need"></div><div class="hint" id="ov-q-slot"></div><div class="hint" id="ov-q-diff"></div><div class="hint" id="ov-q-note"></div><div id="ov-q-tasks"></div>')+
     c('today so far','<div class="ovmid"><b id="ov-day-tk">0</b> '+U().many+'</div><div class="hint">productive hours <b id="ov-day-ph">0.00</b></div><div class="hint">'+U().many+' / hr <b id="ov-day-tp">\u2014</b></div>')+
     '</div></div>';
 }
@@ -639,6 +620,7 @@ function ovCalc(){
   if(!$('ov')) return;
   const M = ovModel(), n = M.now, sp = M.sp, d = M.d;
   const set = (id, v) => { const e = $('ov-'+id); if(e && e.textContent !== String(v)) e.textContent = v; };
+  const setH = (id, v) => { const e = $('ov-'+id); if(e && e.dataset.h !== v){ e.dataset.h = v; e.innerHTML = v; } };
   set('clock', p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds()));
   set('date', n.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'}));
   /* shift */
@@ -656,12 +638,13 @@ function ovCalc(){
     set('slot-left', hms(M.cur.e - M.rel));
     set('slot-tag', tag && !tag.auto ? 'tag: '+tag.name+(tag.prod ? '' : ' (not productive)') : (brs.length ? 'auto: '+brs.map(b=>b.name).join(' + ') : 'no tag yet'));
     set('slot-tk', +x.tickets || 0);
+    set('slot-need', M.slotNeed ? 'need this slot: '+M.slotNeed.need+' of '+M.slotNeed.target+' '+U().many+' ('+M.slotNeed.tag.name+' '+M.slotNeed.tag.quota+'/h)' : '');
   } else {
-    set('slot-range','\u2014'); set('slot-left','\u2014'); set('slot-tag','outside the shift'); set('slot-tk', 0);
+    set('slot-range','\u2014'); set('slot-left','\u2014'); set('slot-tag','outside the shift'); set('slot-tk', 0); set('slot-need','');
   }
   /* quota */
   if(M.remaining === null){
-    set('q-remaining','\u2014'); set('q-prog',''); set('q-need',''); set('q-slot',''); set('q-diff','');
+    set('q-remaining','\u2014'); set('q-prog',''); set('q-need',''); set('q-slot',''); set('q-diff',''); setH('q-tasks','');
     set('q-note','No quota set. Give a productive tag a quota/h in setup.');
   } else {
     set('q-remaining', M.remaining);
@@ -674,6 +657,9 @@ function ovCalc(){
     const diff = M.done - M.soFar;
     set('q-diff', (diff >= 0 ? '+' : '\u2212')+Math.abs(Math.round(diff))+' vs quota for the hours logged so far');
     set('q-note', M.prim ? 'assumes '+M.prim.name+' ('+M.prim.quota+'/h) for the open time' : '');
+    const ct = M.cur && tagOf(slot(d, M.cur.k).tag);
+    setH('q-tasks', '<div class="hint" style="margin-top:6px">per task, if the open time goes to it:</div>'+
+      M.perTask.map(r => '<div class="hint">'+(ct && ct.id === r.t.id ? '\u25b6 ' : '')+esc(r.t.name)+' ('+r.t.quota+'/h): <b>'+r.left+'</b> left \u00b7 '+r.tk+' done \u00b7 '+f2(r.h)+' h</div>').join(''));
   }
   /* today */
   set('day-tk', M.St.tk); set('day-ph', f2(M.St.ph)); set('day-tp', M.St.ph ? f2(M.St.tk / M.St.ph) : '\u2014');
@@ -868,318 +854,15 @@ async function copySheet(kind){
   say(ok ? 'copied '+(data.length-1)+' rows — paste into Sheets / Excel' : 'copy blocked');
 }
 
-/* ---------- export ---------- */
+/* ---------- clipboard helpers (used by the sheet copy buttons) ---------- */
 const cell = (v,sep) => { v = String(v ?? ''); if(/^[=+\-@]/.test(v) && isNaN(v)) v = "'"+v;
   return v.includes(sep) || /["\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
 const toTxt = (rows,sep) => rows.map(r=>r.map(c=>cell(c,sep)).join(sep)).join('\n');
-function slotRows(ds, empty){
-  const r = [['date','slot_start','slot_end','tag','counts_as_productive',slug(U().many),'minutes','hours','hours_deducted',slug(U().many)+'_per_hour','zone']];
-  for(const d of ds) for(const g of grid(d)){
-    const v = sl(d,g); if(!v && !empty) continue;
-    const def = effMin(d, g);
-    r.push(v ? [d,g.k,ft(g.e),v.tag.name,v.pr?'Y':'N',v.tk,v.m,+f2(v.h),+f2(v.ded),v.pr&&v.h?+f2(v.tk/v.h):'',g.zone||''] : [d,g.k,ft(g.e),'','','',def,'','','',g.zone||'']);
-  }
-  return r;
-}
-function dayRows(ds){
-  const T = prodTags(), G = S.tags;
-  const r = [['date','shift_start','shift_end','pre_ot_hours','post_ot_hours','scheduled_hours','logged_hours','productive_hours','deducted_hours',slug(U().many),slug(U().many)+'_per_hour',
-    ...T.map(t=>t.name+' '+U().many), ...T.map(t=>t.name+' quota %'), ...G.map(g=>g.name+' hours')]];
-  for(const d of ds){ const R = stats(d); if(!R.lh) continue;
-    const sp = shiftSpan(d);
-    r.push([d, sp.baseStart, sp.baseEnd, +(sp.preOT/60).toFixed(2), +(sp.postOT/60).toFixed(2), +f2(R.sh), +f2(R.lh), +f2(R.ph), +f2(R.dh), R.tk, +f2(tph(R.tk,R.ph)),
-      ...T.map(t=>(R.task[t.id]||{}).tk||0),
-      ...T.map(t=>{ const o = R.task[t.id]; return t.quota && o && o.h ? +f2(o.tk/(t.quota*o.h)*100) : ''; }),
-      ...G.map(g=>+f2(R.tag[g.id]||0))]);
-  }
-  return r;
-}
-function dl(name, text, type){
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text],{type})); a.download = name; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-}
 async function cp(text){
   try{ await navigator.clipboard.writeText(text); return true; }
   catch(_){ const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); const ok = document.execCommand('copy'); t.remove(); return ok; }
 }
 const say = m => { const s = $('xs'); if(s) s.textContent = m; };
-function restore(f){
-  if(!f) return;
-  f.text().then(t=>{ try{ const o = JSON.parse(t); if(!o.days || !o.tags) throw 0;
-    S = hydrate(o); autoBreakMigrate(); save(); applyTheme(); renderThemebar(); render(); if(window.CalamytryxTheme) window.CalamytryxTheme.set(S.theme, S.custom); say('restored'); }
-    catch(_){ say('not a valid backup file'); } });
-}
-
-/* ---------- xlsx ---------- */
-let EXJ;
-const loadEx = () => EXJ ? Promise.resolve(EXJ) : new Promise((ok,no)=>{
-  if(window.ExcelJS) return ok(EXJ = window.ExcelJS);
-  const u = ['https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js','https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'];
-  const next = () => { const src = u.shift(); if(!src) return no(new Error('could not load exceljs'));
-    const s = document.createElement('script'); s.src = src; s.onload = () => ok(EXJ = window.ExcelJS); s.onerror = () => { s.remove(); next(); }; document.head.append(s); };
-  next();
-});
-
-function workbookIntervalRows(d,g){
-  const v = sl(d,g), raw = slot(d,g.k), bo = breaksInInterval(d,g);
-  if(!bo.length) return [{g,v,raw,eff:effMin(d,g),bo}];
-  const breaks = [];
-  let used = v ? Math.min(breakOverlap(d,g), Math.max(0,g.def-v.m)) : breakOverlap(d,g);
-  for(const b of bo.slice().sort((a,b)=>a.start-b.start)){
-    const take = Math.min(b.overlap, used); used -= take;
-    if(take > 0) breaks.push({start:b.start,end:b.start+take,name:b.name});
-  }
-  const segments = [], addWork = (start,end) => {
-    if(end > start) segments.push({start,end,brk:false});
-  };
-  let cursor = g.s;
-  for(const b of breaks){
-    const start = Math.max(cursor,b.start), end = Math.min(g.e,b.end);
-    addWork(cursor,start);
-    if(end > start) segments.push({start,end,brk:true,name:b.name});
-    cursor = Math.max(cursor,end);
-  }
-  addWork(cursor,g.e);
-  if(!v) return segments.filter(s=>s.brk).map(s=>{
-    const def = s.end-s.start, sg = {k:ft(s.start),s:s.start,e:s.end,def,zone:g.zone};
-    return {g:sg,v:null,raw:{mins:def},eff:def,bo:[{name:s.name,overlap:def}],autoBrk:true};
-  });
-  let workLeft = v.m, ticketLeft = v.tk;
-  return segments.map(s=>{
-    const def = s.end-s.start, sg = {k:ft(s.start),s:s.start,e:s.end,def,zone:g.zone};
-    if(s.brk) return {g:sg,v:null,raw:{mins:def},eff:def,bo:[{name:s.name,overlap:def}],autoBrk:true};
-    const mins = Math.min(def,workLeft); workLeft -= mins;
-    const part = Object.assign({},v,{m:mins,h:mins/60,ded:(def-mins)/60,tk:ticketLeft});
-    ticketLeft = 0;
-    return {g:sg,v:part,raw:{mins:raw.mins==null?null:mins},eff:def,bo:[]};
-  });
-}
-
-function buildWb(E, ds, empty){
-  const P = thm(S.theme), A = x => 'FF'+x.toUpperCase(), dark = lum(P.bg) < .5;
-  const GOOD = dark ? 'FF34D399' : 'FF15803D', BAD = dark ? 'FFF87171' : 'FFB91C1C';
-  const wb = new E.Workbook();wb.calcProperties = {calcMode: 'auto',fullCalcOnLoad: true,forceFullCalc: true};wb.creator = 'shift.mk';
-  const wsU = wb.addWorksheet('Summary'), wsD = wb.addWorksheet('Daily'), wsP = wb.addWorksheet('Setup');
-  const FONT = 'Consolas';
-  const fnt = o => Object.assign({name:FONT, size:10, color:{argb:A(P.txt)}}, o);
-  const fill = x => ({type:'pattern', pattern:'solid', fgColor:{argb:A(x)}});
-  const cfill = x => ({type:'pattern', pattern:'solid', bgColor:{argb:A(x)}});
-  const ln = {style:'thin', color:{argb:A(P.line)}}, accB = {style:'medium', color:{argb:A(P.acc)}};
-  const serial = s => { const [a,b,c] = s.split('-').map(Number); return Math.round((Date.UTC(a,b-1,c) - Date.UTC(1899,11,30))/864e5); };
-  const fx = formula => ({  formula: formula.replace(/^=/, ''),result: 0});
-  const cl = n => { let s = ''; while(n > 0){ const m = (n-1) % 26; s = String.fromCharCode(65+m) + s; n = (n-m-1) / 26; } return s; };
-  /* scheduled breaks are added to the Setup tag list as non-productive tags so Summary can total their time */
-  const bnames = [...new Set(S.breaks.filter(b=>b.name && (+b.mins||0) > 0).map(b=>b.name))].filter(n=>!S.tags.some(t=>t.name.toLowerCase()===n.toLowerCase()));
-  const G = S.tags.concat(bnames.map(n=>({id:'brk:'+n, name:n, prod:false, quota:null}))), Pr = G.filter(t=>t.prod), nG = G.length, nP = Pr.length;
-  const gi = t => G.indexOf(t) + 2;
-  const DATE = 'yyyy-mm-dd', H2 = '0.00', PCT = '0%';
-  const SPARE = 3;
-  const paint = (ws, n) => { for(let i=1; i<=n; i++) ws.getColumn(i).style = {fill:fill(P.bg), font:fnt()}; ws.properties.tabColor = {argb:A(P.acc)}; };
-  const mkTable = (ws, name, headers, rows) => {
-    ws.addTable({name, ref:'A1', headerRow:true, totalsRow:false, style:{theme:'TableStyleLight1', showRowStripes:false},
-      columns:headers.map(h=>({name:h, filterButton:true})), rows: rows.length ? rows : [headers.map(()=>null)]});
-  };
-  const dress = (ws, nc, last, calc, nfs, widths, o={}) => {
-    const left = o.left || new Set([1]);
-    for(let c=1; c<=nc; c++){ const x = ws.getRow(1).getCell(c), cc = calc.has(c);
-      x.font = fnt({bold:true, size:9, color:{argb:A(cc ? P.dim : P.acc)}}); x.fill = fill(P.bg);
-      x.border = {bottom:cc ? ln : accB};
-      x.alignment = {vertical:'middle', horizontal:left.has(c)?'left':'center', wrapText:true, indent:left.has(c)?1:0}; }
-    ws.getRow(1).height = 30;
-    for(let r=2; r<=last; r++){ const f = fill(r%2===0 ? P.panel : P.panel2);
-      for(let c=1; c<=nc; c++){ const x = ws.getCell(r,c);
-        x.font = fnt(c===o.hi ? {bold:true, color:{argb:A(P.acc)}} : {});
-        if(nfs[c-1]) x.numFmt = nfs[c-1];
-        x.fill = f; x.border = {bottom:ln};
-        x.alignment = {vertical:'middle', horizontal:left.has(c)?'left':'center', indent:left.has(c)?1:0}; } }
-    widths.forEach((w,i)=>{ ws.getColumn(i+1).width = w; });
-    ws.views = [Object.assign({state:'frozen', ySplit:1, showGridLines:false}, o.view||{})];
-  };
-
-  paint(wsP, 12);
-  const sRows = G.map(g=>[g.name, g.prod?'Y':'N', g.prod && g.quota!=null ? g.quota : null]);
-  for(let i=0; i<SPARE; i++) sRows.push([null,null,null]);
-  mkTable(wsP, 'tblSetup', ['TAG','PRODUCTIVE (Y/N)','QUOTA / HR'], sRows);
-  dress(wsP, 3, sRows.length+1, new Set(), [null,null,'0.##'], [26,18,13]);
-  for(let r=2; r<=sRows.length+1; r++) wsP.getCell(r,2).dataValidation = {type:'list', allowBlank:true, formulae:['"Y,N"'], showErrorMessage:true, errorStyle:'stop', errorTitle:'Y or N', error:'Pick Y (productive) or N.'};
-  const lg = [['HOW THIS WORKBOOK WORKS', {bold:true, size:9, color:{argb:A(P.acc)}}],
-    ['Accent headers are inputs you type into. Dim headers are formulas — leave them alone.'],
-    ['Setup: mark a tag Y to make it a task. It counts toward '+U().many+'/hr and can carry a quota per hour.'],
-    ['Daily: one interval table per day. Pick a tag on each row, then type '+U().many+' and MINUTES WORKED.'],
-    ['Overtime intervals appear as normal rows before/after the base shift — tag them the same way.'],
-    ['Leave minutes blank for the full interval — scheduled breaks are split into their own timed rows, with any remaining work shown separately.'],
-    ['HOURS, DEDUCTED, PROD HRS, '+U().many.toUpperCase()+' and PER HR are formulas. Each day closes with its own TOTAL row.'],
-    ['New tags go in the blank rows under the tag list on this sheet. Re-export to pick up break / OT changes.']];
-  lg.forEach((x,i)=>{ const c = wsP.getCell(i+1,5); c.value = x[0]; c.font = fnt(Object.assign({color:{argb:A(P.dim)}}, x[1]||{})); c.alignment = {vertical:'middle', wrapText:true}; });
-  wsP.getColumn(4).width = 3; wsP.getColumn(5).width = 95;
-
-  paint(wsD, 11);
-  wsD.views = [{showGridLines:false}];
-  const NC = 10;
-  [10,15,20,9,8,9,10,12,12,11,10].forEach((w,i)=>{ wsD.getColumn(i+1).width = w; });
-  wsD.getColumn(1).hidden = true;
-  wsD.getColumn(11).hidden = true;
-
-  const tagRange = `Setup!$A$2:$A$${nG+1+SPARE}`;
-  let r = 1, cfP = 10;
-  for(const d of ds){
-    const rows = grid(d).flatMap(g=>workbookIntervalRows(d,g)).filter(o => empty || o.v || o.bo.length);
-    if(!rows.length) continue;
-    const sh = shift(d), sp = shiftSpan(d);
-    const len = (sp.b - sp.a)/60;
-    const hasBreaks = rows.some(o => o.bo.length > 0);
-    const otText = (sp.preOT || sp.postOT) ? '   ·   OT '+(sp.preOT?'-'+f2(sp.preOT/60)+'h pre':'')+(sp.preOT && sp.postOT?' ':'')+(sp.postOT?'+'+f2(sp.postOT/60)+'h post':'') : '';
-
-    wsD.mergeCells(r,2,r,4);
-    wsD.mergeCells(r,5,r,NC);
-    const bc = wsD.getCell(r,2);
-    bc.value = serial(d); bc.numFmt = 'ddd, mmm d, yyyy';
-    bc.font = fnt({bold:true, size:12, color:{argb:A(P.acc)}});
-    bc.alignment = {vertical:'middle', indent:1};
-    const sc = wsD.getCell(r,5);
-    sc.value = 'shift '+sh.start+' → '+sh.end+'   ·   '+f2(len)+' h   ·   '+rows.length+' rows'+otText+(hasBreaks ? '   ·   breaks auto-deducted' : '');
-    sc.font = fnt({size:9, color:{argb:A(P.dim)}});
-    sc.alignment = {vertical:'middle', horizontal:'right', indent:1};
-    for(let c=2; c<=NC; c++){ const x = wsD.getCell(r,c); x.fill = fill(P.panel); x.border = {bottom:accB}; }
-    wsD.getRow(r).height = 26;
-    r++;
-
-    const HH = [['SLOT',0],['TAG',0],[U().many.toUpperCase(),1],['MINS',1],['HOURS',2],['DEDUCTED',2],['PROD HRS',2],[U().many.toUpperCase(),2],['PER HR',2]];
-    HH.forEach(([h,k],i)=>{ const x = wsD.getCell(r, i+2);
-      x.value = h;
-      x.font = fnt({bold:true, size:8, color:{argb:A(k===2 ? P.dim : P.acc)}});
-      x.alignment = {horizontal: i<2 ? 'left' : 'center', vertical:'middle', indent: i<2 ? 1 : 0};
-      x.fill = fill(P.bg);
-      x.border = {bottom: k===2 ? ln : {style:'thin', color:{argb:A(P.acc)}}};
-    });
-    wsD.getRow(r).height = 18;
-    r++;
-
-    const first = r;
-    for(let i=0; i<rows.length; i++){
-      const o = rows[i], g = o.g, v = o.v, raw = o.raw, rr = r + i, eff = o.eff;
-      const isOT = !!g.zone;
-      const autoBrk = !v && o.bo.length > 0;
-      const bg = i%2 ? P.panel : P.panel2;
-      const put = (c, val, s) => { const x = wsD.getCell(rr,c);
-        if(val !== undefined) x.value = val;
-        x.font = fnt(s && s.f || {size:9});
-        x.fill = fill(bg);
-        x.border = {bottom:ln};
-        if(s && s.nf) x.numFmt = s.nf;
-        x.alignment = Object.assign({vertical:'middle'}, s && s.al || {});
-        return x; };
-      put(1, serial(d), {nf:DATE, f:{size:8, color:{argb:A(P.dim)}}});
-      put(2, g.k+'–'+ft(g.e)+(isOT?'  ·  '+g.zone.toUpperCase():''), {f:{size:9, color:{argb:A(isOT?P.acc:P.dim)}}, al:{indent:1}});
-      put(3, v ? v.tag.name : (autoBrk ? o.bo[0].name : null), {f:{size:9}, al:{indent:1}});
-      put(4, v && v.pr && v.tk ? v.tk : null, {nf:'0', f:{size:9}, al:{horizontal:'center'}});
-      put(5, v && raw.mins != null ? +raw.mins : (autoBrk ? o.bo.reduce((a,b)=>a+b.overlap,0) : null), {nf:'0', f:{size:9}, al:{horizontal:'center'}});
-      put(6, fx(`IF($C${rr}="","",IF($E${rr}="",${eff},$E${rr})/60)`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
-      put(7, fx(`IF($C${rr}="","",(${g.def}-IF($E${rr}="",${eff},$E${rr}))/60)`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
-      put(8, fx(`IF($C${rr}="",0,IF(IFERROR(VLOOKUP($C${rr},Setup!$A$2:$B$60,2,FALSE),"N")="Y",$F${rr},0))`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
-      put(9, fx(`IF($C${rr}="",0,IF(IFERROR(VLOOKUP($C${rr},Setup!$A$2:$B$60,2,FALSE),"N")="Y",N($D${rr}),0))`), {nf:'0', f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
-      put(10, fx(`IF($H${rr}>0,$I${rr}/$H${rr},"")`), {nf:H2, f:{size:9, color:{argb:A(P.dim)}}, al:{horizontal:'center'}});
-    }
-    r += rows.length;
-    const last = r-1, tot = r;
-
-    for(let c=2; c<=NC; c++){ const x = wsD.getCell(tot,c);
-      x.fill = fill(P.panel);
-      x.border = {top:{style:'thin', color:{argb:A(P.acc)}}, bottom:ln};
-      x.font = fnt({bold:true, size:9, color:{argb:A(c===2 ? P.acc : P.txt)}});
-      x.alignment = {vertical:'middle', horizontal: c===2 ? 'left' : 'center', indent: c===2 ? 1 : 0}; }
-    wsD.getCell(tot,2).value = 'TOTAL';
-    wsD.getCell(tot,6).value = fx(`SUM(F${first}:F${last})`); wsD.getCell(tot,6).numFmt = H2;
-    wsD.getCell(tot,7).value = fx(`SUM(G${first}:G${last})`); wsD.getCell(tot,7).numFmt = H2;
-    wsD.getCell(tot,8).value = fx(`SUM(H${first}:H${last})`); wsD.getCell(tot,8).numFmt = H2;
-    wsD.getCell(tot,10).value = fx(`IF(H${tot}>0,SUM(I${first}:I${last})/H${tot},"")`); wsD.getCell(tot,10).numFmt = H2;
-
-    wsD.getCell(first,11).value = fx(`IF($F${tot}>0,${+len.toFixed(4)},0)`);
-    wsD.getCell(first,11).numFmt = H2;
-
-    for(let i=first; i<=last; i++){
-      wsD.getCell(i,3).dataValidation = {type:'list', allowBlank:true, formulae:[tagRange], showErrorMessage:false};
-      wsD.getCell(i,5).dataValidation = {type:'decimal', operator:'between', allowBlank:true, formulae:[0, rows[i-first].g.def]};
-    }
-    wsD.addConditionalFormatting({ref:`D${first}:D${last}`, rules:[
-      {type:'expression', priority:cfP++, formulae:[`$H${first}=0`], style:{font:{color:{argb:A(P.dim)}}}}]});
-
-    r = tot + 2;
-  }
-  if(r === 1){
-    wsD.getCell(1,2).value = 'nothing to export in this range';
-    wsD.getCell(1,2).font = fnt({size:10, color:{argb:A(P.dim)}});
-  }
-
-  paint(wsU, 12);
-  const DR = 'Daily!$A:$A,">="&$B$3,Daily!$A:$A,"<="&$B$4';
-  const sm = c => `SUMIFS(Daily!$${c}:$${c},${DR})`;
-  const put = (a, v, o={}) => { const x = wsU.getCell(a); x.value = v; x.font = fnt(o.f); if(o.nf) x.numFmt = o.nf; if(o.fill) x.fill = fill(o.fill); if(o.al) x.alignment = o.al; if(o.bd) x.border = o.bd; return x; };
-  wsU.views = [{showGridLines:false}];
-  [26,16,16,16,16,16,16].forEach((w,i)=>{ wsU.getColumn(i+1).width = w; });
-  wsU.mergeCells('A1:G1');
-  const f0 = {name:FONT, size:18, bold:true};
-  put('A1', {richText:[{text:'shift', font:Object.assign({color:{argb:A(P.txt)}}, f0)}, {text:'.', font:Object.assign({color:{argb:A(P.acc)}}, f0)}, {text:'mk', font:Object.assign({color:{argb:A(P.txt)}}, f0)},
-    {text:'  / productivity', font:{name:FONT, size:10, color:{argb:A(P.dim)}}}]}, {fill:P.panel, al:{vertical:'middle', indent:1}});
-  for(let c=1; c<=7; c++){ const x = wsU.getCell(1,c); x.fill = fill(P.panel); x.border = {bottom:accB}; }
-  wsU.getRow(1).height = 42;
-  wsU.mergeCells('A2:G2');
-  put('A2',U().many.toUpperCase()+' PER HOUR  ·  QUOTAS  ·  SET FROM / TO TO REPORT ANY DAY, WEEK OR MONTH',{f:{size:8,color:{argb:A(P.dim)}}, al:{vertical:'middle', indent:1}}); wsU.getRow(2).height = 24;
-  const lab = {size:9, bold:true, color:{argb:A(P.dim)}}, inb = {top:{style:'thin',color:{argb:A(P.acc)}}, bottom:{style:'thin',color:{argb:A(P.acc)}}, left:{style:'thin',color:{argb:A(P.acc)}}, right:{style:'thin',color:{argb:A(P.acc)}}};
-  put('A3','FROM',{f:lab, al:{indent:1, vertical:'middle'}}); put('B3', serial(ds[0]), {nf:DATE, f:{bold:true, color:{argb:A(P.acc)}}, fill:P.panel2, al:{horizontal:'center'}, bd:inb});
-  put('A4','TO',{f:lab, al:{indent:1, vertical:'middle'}});   put('B4', serial(ds[ds.length-1]), {nf:DATE, f:{bold:true, color:{argb:A(P.acc)}}, fill:P.panel2, al:{horizontal:'center'}, bd:inb});
-  wsU.getRow(3).height = 22; wsU.getRow(4).height = 22;
-  wsU.mergeCells('A6:G6');
-  put('A6',U().many+' / hr = '+U().many+' ÷ productive hours, after deductions. Ranges sum the daily totals, so they are weighted by hours, not an average of averages.',{f:{size:8,color:{argb:A(P.dim)}}, al:{indent:1, vertical:'middle'}});
-
-  const secHead = (row, text, n) => { put('A'+row, text, {f:{bold:true,size:9,color:{argb:A(P.acc)}}, al:{vertical:'bottom',indent:1}});
-    for(let c=1; c<=n; c++) wsU.getCell(row,c).border = {top:ln}; wsU.getRow(row).height = 28; };
-  const colHead = (row, arr) => { arr.forEach((h,i)=>put(cl(i+1)+row, h, {f:{bold:true,size:9,color:{argb:A(P.acc)}}, fill:P.bg, al:{horizontal:i?'center':'left',vertical:'middle',indent:i?0:1}, bd:{bottom:accB}})); wsU.getRow(row).height = 24; };
-  const band = (ref, first) => wsU.addConditionalFormatting({ref, rules:[
-    {type:'expression', priority:3, formulae:[`AND($A${first}<>"",MOD(ROW(),2)=1)`], style:{fill:cfill(P.panel2), border:{bottom:ln}}},
-    {type:'expression', priority:4, formulae:[`AND($A${first}<>"",MOD(ROW(),2)=0)`], style:{fill:cfill(P.panel), border:{bottom:ln}}}]});
-
-  const taskRows = [...Pr.map(gi)]; for(let i=0; i<4; i++) taskRows.push(nG+2+i);
-  const t0 = 9, tN = t0 + taskRows.length;
-  secHead(8, 'TASKS VS QUOTA  (PRODUCTIVE TAGS)', 7);
-  colHead(9-1, ['TASK',U().many.toUpperCase(),'HOURS','PER HR','QUOTA / H','EXPECTED','ATTAINMENT']);
-  taskRows.forEach((so,i)=>{ const rr = t0+i, a = `Setup!$A$${so}`, ctr = {horizontal:'center'};
-    put('A'+rr, fx(`IF(AND(${a}<>"",Setup!$B$${so}="Y"),${a},"")`), {al:{indent:1}});
-    put('B'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$I:$I,${DR},Daily!$C:$C,$A${rr}))`), {nf:'0', al:ctr});
-    put('C'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$H:$H,${DR},Daily!$C:$C,$A${rr}))`), {nf:H2, al:ctr});
-    put('D'+rr, fx(`IF($A${rr}="","",IF(C${rr}>0,B${rr}/C${rr},0))`), {nf:H2, al:ctr, f:{bold:true,color:{argb:A(P.acc)}}});
-    put('E'+rr, fx(`IF($A${rr}="","",IF(N(Setup!$C$${so})>0,Setup!$C$${so},""))`), {nf:'0.##', al:ctr});
-    put('F'+rr, fx(`IF($A${rr}="","",IF(AND(N(E${rr})>0,C${rr}>0),E${rr}*C${rr},""))`), {nf:H2, al:ctr});
-    put('G'+rr, fx(`IF($A${rr}="","",IF(F${rr}="","",B${rr}/F${rr}))`), {nf:PCT, al:ctr}); });
-  band(`A${t0}:G${tN-1}`, t0);
-  wsU.addConditionalFormatting({ref:`G${t0}:G${tN-1}`, rules:[
-    {type:'expression', priority:1, formulae:[`AND(ISNUMBER($G${t0}),$G${t0}>=1)`], style:{font:{bold:true,color:{argb:GOOD}}}},
-    {type:'expression', priority:2, formulae:[`AND(ISNUMBER($G${t0}),$G${t0}<1)`], style:{font:{bold:true,color:{argb:BAD}}}}]});
-
-  const g0 = tN + 3, nGR = nG + 4;
-  secHead(tN+1, 'TIME BY TAG', 3);
-  colHead(tN+2, ['TAG','HOURS','% OF LOGGED']);
-  for(let i=0; i<nGR; i++){ const rr = g0+i, a = `Setup!$A$${i+2}`, ctr = {horizontal:'center'};
-    put('A'+rr, fx(`IF(${a}="","",${a})`), {al:{indent:1}});
-    put('B'+rr, fx(`IF($A${rr}="","",SUMIFS(Daily!$F:$F,${DR},Daily!$C:$C,$A${rr}))`), {nf:H2, al:ctr});
-    put('C'+rr, fx(`IF($A${rr}="","",IF(${sm('F')}>0,B${rr}/${sm('F')},0))`), {nf:PCT, al:ctr}); }
-  band(`A${g0}:C${g0+nGR-1}`, g0);
-  return wb;
-}
-
-function exportDates(a, z, mode){
-  if(mode !== 'months') return span(a,z);
-  const first = pd(a); first.setDate(1);
-  const last = pd(z); last.setMonth(last.getMonth()+1,0);
-  return span(ymd(first), ymd(last));
-}
-async function xlsx(ds, empty){
-  if(!empty && !ds.some(d=>stats(d).lh)) return null;
-  const wb = buildWb(await loadEx(), ds, empty);
-  const nm = 'productivity_'+ds[0]+'_'+ds[ds.length-1]+'_'+thm(S.theme).id+'.xlsx';
-  dl(nm, await wb.xlsx.writeBuffer(), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  return nm;
-}
 
 /* ---------- events ---------- */
 document.addEventListener('click', async e=>{
@@ -1196,8 +879,6 @@ document.addEventListener('click', async e=>{
     ui.date = ymd(d); render();
   }
   else if(D.today!==undefined){ ui.date = ymd(new Date()); render(); }
-  else if(D.th){ S.theme = D.th; save(); applyTheme(); renderThemebar(); render(); if(window.CalamytryxTheme) window.CalamytryxTheme.set(S.theme, S.custom); }
-  else if(D.cr!==undefined){ S.custom = Object.assign({}, DEF.custom); S.theme = 'custom'; save(); applyTheme(); renderThemebar(); render(); if(window.CalamytryxTheme) window.CalamytryxTheme.set(S.theme, S.custom); }
   else if(D.ot){
     const d = ui.date;
     if(D.ot==='pre-add') setOT(d, 'preOT', (+D.h || 4) * 60);
@@ -1215,25 +896,6 @@ document.addEventListener('click', async e=>{
     const [l,id] = D.del.split(':');
     if(confirm('Remove this? Logged slots that use it will stop being counted.')){ S[l] = S[l].filter(x=>x.id!==id); save(); render(); }
   }
-  else if(D.xr){ const m = range(D.xr, ui.date); ui.xa = m[0]; ui.xb = m[m.length-1]; render(); }
-  else if(D.x){
-    if(D.x==='bak'){ dl('shift-backup.json', JSON.stringify(S), 'application/json'); return; }
-    const a = ui.xa, z = ui.xb;
-    if(!a || !z || a>z) return say('check the date range');
-    const ds = exportDates(a,z,ui.xmode); if(ds.length>800) return say('range too long (800 days max)');
-    const empty = ui.xmode !== 'logged';
-    if(D.x==='xlsx'){
-      say('building…');
-      try{ const nm = await xlsx(ds, empty); say(nm ? 'downloaded '+nm : 'nothing to export in that range'); }
-      catch(err){ say('xlsx failed ('+err.message+'), use the .csv'); }
-      return;
-    }
-    const slots = D.x[0]==='s', rows = slots ? slotRows(ds, empty) : dayRows(ds);
-    if(rows.length<2) return say('nothing to export in that range');
-    const nm = 'productivity-'+(slots?'intervals':'daily')+'_'+a+'_'+z;
-    if(D.x.endsWith('csv')){ dl(nm+'.csv', '\ufeff'+toTxt(rows,','), 'text/csv'); say('downloaded '+nm+'.csv'); }
-    else say((await cp(toTxt(rows,'\t'))) ? 'copied — click a cell in sheets and paste' : 'copy blocked, use the .csv instead');
-  }
 });
 
 window.addEventListener('calamytryx:themechange', e=>{
@@ -1243,25 +905,13 @@ window.addEventListener('calamytryx:themechange', e=>{
   save(); applyTheme(); renderThemebar(); render();
 });
 
-document.addEventListener('input', e=>{
-  const t = e.target; if(!t.dataset || !t.dataset.cc) return;
-  S.custom[t.dataset.cc] = hex6(t.value.slice(1), S.custom[t.dataset.cc]); S.theme = 'custom';
-  applyTheme();
-  if(window.CalamytryxTheme) window.CalamytryxTheme.set(S.theme, S.custom);
-  const pv = $('pv'); if(pv) pv.innerHTML = pvHtml(thm('custom'));
-});
-
 document.addEventListener('change', e=>{
   const t = e.target, D = t.dataset;
-  if(D.cc){ S.custom[D.cc] = hex6(t.value.slice(1), S.custom[D.cc]); S.theme = 'custom'; save(); applyTheme(); renderThemebar(); render(); if(window.CalamytryxTheme) window.CalamytryxTheme.set(S.theme, S.custom); return; }
   if(t.id==='dt'){ if(t.value){ ui.date = t.value; render(); } return; }
   if(t.id==='ss' || t.id==='se'){ const o = S.days[ui.date] || (S.days[ui.date] = {slots:{}}); o[t.id==='ss'?'start':'end'] = t.value || undefined; save(); render(); return; }
   if(t.id==='preOT'){ setOT(ui.date, 'preOT', parseFloat(t.value||0) * 60); render(); return; }
   if(t.id==='postOT'){ setOT(ui.date, 'postOT', parseFloat(t.value||0) * 60); render(); return; }
   if(t.id==='sa'){ ui.sa = t.value; return; }
-  if(t.id==='xa' || t.id==='xb'){ ui[t.id] = t.value; return; }
-  if(t.id==='xmode'){ ui.xmode = t.value; return; }
-  if(t.id==='xr'){ restore(t.files[0]); return; }
   if(D.unit){
     const old = U(), v = (t.value || '').trim().toLowerCase();
     const nx = {one: old.one, many: old.many};
@@ -1368,8 +1018,7 @@ document.addEventListener('paste', e=>{
   }
 });
 
-/* ---------- shared backup: identical in tally + shift ---------- */
-window.mkBackupAdvanced = () => { ui.tab = 'export'; render(); window.scrollTo(0,0); };
+/* ---------- shared backup: identical in tally + shift (the "data" button) ---------- */
 (function(){
   const KEYS = {t:'tally.v1', s:'shift.v1'};
   const HAS = typeof CompressionStream !== 'undefined';
@@ -1433,7 +1082,6 @@ window.mkBackupAdvanced = () => { ui.tab = 'export'; render(); window.scrollTo(0
     '<div class="t">import</div>'+
     '<textarea id="mki" spellcheck="false" placeholder="paste backup here…"></textarea>'+
     '<div class="r"><button class="btn sm" id="mkgo">import &amp; reload</button>'+
-    '<button class="btn sm ghost" id="mkadv" style="display:none">advanced</button>'+
     '<button class="btn sm ghost" id="mkclose" style="margin-left:auto">close</button></div>'+
     '<div class="st" id="mkst"></div>';
   document.body.append(dlg);
@@ -1465,7 +1113,6 @@ window.mkBackupAdvanced = () => { ui.tab = 'export'; render(); window.scrollTo(0
     setTimeout(()=>location.reload(), 300);
   };
   $$('mkclose').onclick = () => dlg.close();
-  if(window.mkBackupAdvanced){ const a=$$('mkadv'); a.style.display=''; a.onclick=()=>{ dlg.close(); window.mkBackupAdvanced(); }; }
   dlg.addEventListener('click', e => { if(e.target===dlg) dlg.close(); });
 
   document.addEventListener('click', async e => {
