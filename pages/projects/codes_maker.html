@@ -1992,6 +1992,7 @@ qrcode.stringToBytes = function(s) {
           <div class="err" id="e_err"></div>
           <div class="row" id="e_bulk" style="display:none">
             <button class="btn sm" type="button" id="dl_all">download all</button>
+            <button class="btn sm" type="button" id="dl_zip">download zip</button>
             <button class="btn sm" type="button" id="copy_all">copy all text</button>
           </div>
           <div class="pk_list" id="e_list"></div>
@@ -2707,6 +2708,9 @@ function wavBytes(chs, rate){
 /* ---- png carrier layout: 'mk' + u32 len + container, 3 bytes per pixel ---- */
 function carrierPixels(c){
   const total=6+c.length, px=Math.ceil(total/3), w=Math.max(1,Math.ceil(Math.sqrt(px))), h=Math.ceil(px/w);
+  if(!Number.isSafeInteger(total) || w>16384 || h>16384 || w*h>16777216) {
+    throw new Error('PNG carrier is too large for browser canvas. Choose a text output format instead.');
+  }
   const rgba=new Uint8ClampedArray(w*h*4);
   const bytes=new Uint8Array(w*h*3); bytes[0]=0x6d; bytes[1]=0x6b;
   new DataView(bytes.buffer).setUint32(2,c.length,false); bytes.set(c,6);
@@ -2770,7 +2774,7 @@ function oggOpus(pk, ch, rate){
 const fmtB = n => n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB';
 const fmtN = n => n.toLocaleString('en-US');
 const HAS_OPUS = typeof AudioEncoder!=='undefined' && typeof AudioDecoder!=='undefined' && typeof AudioData!=='undefined';
-let files=[], results=[], decText=null, decFiles=[], decItems=[];
+let files=[], results=[], decText=null, decFiles=[], decPastedPngs=[], decItems=[];
 
 if(!HAS_OPUS){ $('a_codec').querySelector('option[value=opus]').remove(); }
 function syncAudio(){
@@ -2920,6 +2924,52 @@ async function encodeOne(file, kind, targetBytes, maxChars){
 function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
+/* ---- streaming CRC and ZIP32 writer (stored entries; no large archive buffer) ---- */
+const ZIP_CRC_TABLE=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1); t[n]=c>>>0; } return t; })();
+async function blobCrc32(blob){
+  let crc=0xffffffff;
+  for(let offset=0;offset<blob.size;offset+=16*1024*1024){
+    const bytes=new Uint8Array(await blob.slice(offset,offset+16*1024*1024).arrayBuffer());
+    for(let i=0;i<bytes.length;i++) crc=ZIP_CRC_TABLE[(crc^bytes[i])&255]^(crc>>>8);
+  }
+  return (crc^0xffffffff)>>>0;
+}
+function zipHeader(signature, name, crc, size, offset){
+  const header=new Uint8Array(signature===0x04034b50?30:46+name.length), view=new DataView(header.buffer);
+  view.setUint32(0,signature,true);
+  if(signature===0x04034b50){
+    view.setUint16(4,20,true); view.setUint16(6,0x0800,true); view.setUint16(8,0,true);
+    view.setUint16(10,0,true); view.setUint16(12,0x21,true);
+    view.setUint32(14,crc,true); view.setUint32(18,size,true); view.setUint32(22,size,true);
+    view.setUint16(26,name.length,true); header.set(name,30);
+  } else {
+    view.setUint16(4,20,true); view.setUint16(6,20,true); view.setUint16(8,0x0800,true); view.setUint16(10,0,true);
+    view.setUint16(12,0,true); view.setUint16(14,0x21,true);
+    view.setUint32(16,crc,true); view.setUint32(20,size,true); view.setUint32(24,size,true);
+    view.setUint16(28,name.length,true); view.setUint16(30,0,true); view.setUint16(32,0,true);
+    view.setUint16(34,0,true); view.setUint16(36,0,true); view.setUint32(38,0,true); view.setUint32(42,offset,true);
+    header.set(name,46);
+  }
+  return header;
+}
+async function makeZip(items){
+  const parts=[], central=[]; let offset=0;
+  for(const item of items){
+    const blob=item.blob, name=new TextEncoder().encode(item.outName);
+    if(blob.size>0xffffffff || offset>0xffffffff || name.length>65535) throw new Error('ZIP32 supports files and archive offsets up to 4 GB.');
+    const crc=await blobCrc32(blob), local=zipHeader(0x04034b50,name,crc,blob.size,0);
+    parts.push(local,blob); offset+=local.length+blob.size;
+    central.push(zipHeader(0x02014b50,name,crc,blob.size,offset-local.length-blob.size));
+  }
+  const centralSize=central.reduce((total,part)=>total+part.length,0);
+  if(offset+centralSize>0xffffffff || items.length>65535) throw new Error('ZIP32 archive size or file count limit exceeded.');
+  parts.push(...central);
+  const end=new Uint8Array(22), view=new DataView(end.buffer);
+  view.setUint32(0,0x06054b50,true); view.setUint16(8,items.length,true); view.setUint16(10,items.length,true);
+  view.setUint32(12,centralSize,true); view.setUint32(16,offset,true); parts.push(end);
+  return new Blob(parts,{type:'application/zip'});
+}
+
 /* ---- results list ---- */
 function clearResults(){
   results.forEach(r=>{ if(r.url) URL.revokeObjectURL(r.url); });
@@ -3006,6 +3056,14 @@ $('go').onclick = async () => {
 $('dl_all').onclick = async () => {
   for(const r of results){ if(r.err) continue; download(r.blob,r.outName); await sleep(300); }
 };
+$('dl_zip').onclick = async () => {
+  const btn=$('dl_zip'), items=results.filter(r=>!r.err&&r.blob&&r.outName);
+  if(!items.length) return;
+  btn.disabled=true; btn.textContent='building zip…'; $('e_err').textContent='';
+  try{ download(await makeZip(items),'packed-files.zip'); }
+  catch(e){ $('e_err').textContent='ZIP failed: '+(e.message||e); }
+  finally{ btn.disabled=false; btn.textContent='download zip'; }
+};
 $('copy_all').onclick = async () => {
   const txt=results.filter(r=>!r.err&&r.text!==undefined).map(r=>r.text).join('\n\n');
   if(!txt) return;
@@ -3015,6 +3073,15 @@ $('copy_all').onclick = async () => {
 
 /* ---- decode (batch) ---- */
 $('d_in').oninput = () => { decText=null; };
+$('d_in').addEventListener('paste', e => {
+  const pasted=Array.from(e.clipboardData && e.clipboardData.items || [])
+    .filter(item=>item.kind==='file'&&item.type==='image/png')
+    .map((item,index)=>item.getAsFile()).filter(Boolean);
+  if(!pasted.length) return;
+  e.preventDefault();
+  pasted.forEach((file,index)=>decPastedPngs.push(new File([file],file.name||'pasted-image-'+(decPastedPngs.length+index+1)+'.png',{type:'image/png'})));
+  $('d_stat').textContent=pasted.length+' PNG image(s) pasted · '+decPastedPngs.length+' queued — press decode';
+});
 $('dpaste').onclick = async () => {
   $('d_err').textContent='';
   try{ const t=await navigator.clipboard.readText(); decText=null; $('d_in').value=t; $('d_stat').textContent='loaded '+fmtN(t.length)+' chars — press decode'; }
@@ -3043,6 +3110,7 @@ $('dgo').onclick = async () => {
       if(f.type==='image/png'||/\.png$/i.test(f.name)) jobs.push({label:f.name,base,get:()=>pngToContainer(f)});
       else splitChunks(await f.text()).forEach((s,i)=>jobs.push({label:f.name+(i?' #'+(i+1):''),base:base+(i?'-'+(i+1):''),get:async()=>textDecode(s)}));
     }
+      decPastedPngs.forEach((f,i)=>jobs.push({label:f.name,base:'pasted-image-'+(i+1),get:()=>pngToContainer(f)}));
     if(!jobs.length) throw new Error('nothing to decode');
     let ok=0;
     for(let i=0;i<jobs.length;i++){
