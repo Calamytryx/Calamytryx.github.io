@@ -2015,7 +2015,7 @@ qrcode.stringToBytes = function(s) {
             <input type="text" id="fd_base" value="/assets/Test_png/" spellcheck="false" style="flex:1 1 240px">
             <button class="btn sm" type="button" id="fd_scan">scan folder</button>
           </div>
-          <div class="hint">scan reads the folder's directory index (plain HTML, no JSON) and lists every .png. if the server has no directory index, type filenames below (relative to the folder) and add them.</div>
+          <div class="hint">scan reads the folder's directory index and lists every .png. on GitHub Pages (no directory index) it falls back to the GitHub API. you can also type filenames below (relative to the folder) and add them.</div>
           <textarea id="fd_names" placeholder="a.pack.png&#10;b.pack.png (one per line or comma-separated)" spellcheck="false"></textarea>
           <div class="row"><button class="btn sm" type="button" id="fd_add">add names</button></div>
           <div class="row" id="fd_tools" style="display:none">
@@ -3172,7 +3172,7 @@ $('dgo').onclick = async () => {
   await runJobs(jobs);
 };
 
-/* ---- test folder: relative path, directory index (no JSON) ---- */
+/* ---- test folder: directory index first, GitHub API fallback ---- */
 let folder=[]; // {name,url,on}
 const natural = (a,b) => a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});
 function folderBase(){
@@ -3226,18 +3226,35 @@ $('fd_scan').onclick = async () => {
   const btn=$('fd_scan'); btn.disabled=true;
   try{
     const base=folderBase();
-    const r=await fetch(base.href,{cache:'no-cache'});
-    if(!r.ok) throw new Error('HTTP '+r.status+' for '+base.pathname);
-    const doc=new DOMParser().parseFromString(await r.text(),'text/html'), names=[];
-    doc.querySelectorAll('a[href]').forEach(a=>{
-      let u; try{ u=new URL(a.getAttribute('href'),base); }catch(_){ return; }
-      if(u.origin!==base.origin || !u.pathname.startsWith(base.pathname)) return;
-      let rel=u.pathname.slice(base.pathname.length);
-      try{ rel=decodeURIComponent(rel); }catch(_){}
-      if(!rel||rel.includes('/')||!/\.png$/i.test(rel)) return;
-      names.push(rel);
-    });
-    if(!names.length) throw new Error('no .png links found in '+base.pathname+' — server may have no directory index. type filenames below and use "add names".');
+    let names=[];
+    // 1) plain directory index (works on servers that expose one)
+    try{
+      const r=await fetch(base.href,{cache:'no-cache'});
+      if(r.ok){
+        const doc=new DOMParser().parseFromString(await r.text(),'text/html');
+        doc.querySelectorAll('a[href]').forEach(a=>{
+          let u; try{ u=new URL(a.getAttribute('href'),base); }catch(_){ return; }
+          if(u.origin!==base.origin || !u.pathname.startsWith(base.pathname)) return;
+          let rel=u.pathname.slice(base.pathname.length);
+          try{ rel=decodeURIComponent(rel); }catch(_){}
+          if(!rel||rel.includes('/')||!/\.png$/i.test(rel)) return;
+          names.push(rel);
+        });
+      }
+    }catch(_){}
+    // 2) GitHub Pages has no directory index: ask the GitHub contents API instead
+    if(!names.length && /\.github\.io$/i.test(location.hostname)){
+      const owner=location.hostname.split('.')[0];
+      const first=location.pathname.split('/').filter(Boolean)[0];
+      const isRoot=base.pathname.startsWith('/'+(first||'')+'/') && first && !/\.[a-z0-9]+$/i.test(first) && false;
+      const repo=location.hostname; // user site: owner.github.io
+      const path=base.pathname.replace(/^\/|\/$/g,'');
+      const g=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path.split('/').map(encodeURIComponent).join('/'));
+      if(!g.ok) throw new Error('GitHub API HTTP '+g.status+' for '+path+' — check folder name/case, or type filenames below and use "add names".');
+      const list=await g.json();
+      names=(Array.isArray(list)?list:[]).filter(x=>x.type==='file'&&/\.png$/i.test(x.name)).map(x=>x.name);
+    }
+    if(!names.length) throw new Error('no .png files found in '+base.pathname+' — type filenames below and use "add names".');
     const n=addFolder(names);
     $('fd_err').textContent = n ? '' : 'nothing new — all files already listed.';
   }catch(e){ $('fd_err').textContent='scan failed: '+(e.message||e); }
