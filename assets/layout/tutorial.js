@@ -14,9 +14,16 @@
   const last = (s) => { const a = qa(s); return a[a.length - 1] || null; };
   const after = (s, t) => () => { const e = byText(s, t); return e && e.nextElementSibling; };
   const parentOf = (s) => () => { const e = q(s); return e && e.parentElement; };
-   
+
   /* ---------- steps: {t,x,sel,on:[event,selector],opt} ---------- */
   const T = {};
+
+  /* ===== data backup (same dialog on both pages) ===== */
+  const DATA = [
+    { t: "Data: back up and restore", x: "The 'data' link in the navbar opens the backup box. It covers tally.mk and shift.mk together and works from either page. Use it before big changes, or to move everything to another browser or device. (The box opens on top of the tutorial, so try it after this lesson.)", sel: "[data-data]", opt: 1 },
+    { t: "Export and import", x: "EXPORT: the box shows one long code. Press 'copy' and save it anywhere. Tick 'include history' to keep every counter's change log (the code gets longer). IMPORT: paste a code into the lower box and press 'import & reload'. It asks to confirm, then replaces the current data in this browser.", sel: "[data-data]", opt: 1 },
+  ];
+  T.data = DATA;
 
   /* ===== tally.mk ===== */
   T.overview = [
@@ -24,7 +31,8 @@
     { t: "Add things here", x: "Each button creates one item. Counter and notepad ask for a name; a time slot names itself from shift.mk.", sel: ".addrow", opt: 1 },
     { t: "Grid or list", x: "Switch how your items are shown.", sel: ".seg", opt: 1 },
     { t: "Open an item", x: "Click any card to open it. Then press the tutorial button again to get the lesson for that item.", sel: ".items", opt: 1 },
-    { t: "Simple view and data", x: "'simple view' is a big ticket display for fast tallying. 'data' backs up or restores everything, including shift.mk.", sel: "[data-simple]", opt: 1 },
+    { t: "Simple view", x: "A big ticket display for fast tallying, with nothing else on screen.", sel: "[data-simple]", opt: 1 },
+    { t: "Data backup", x: "'data' exports or imports everything, including shift.mk. The 'data' lesson explains it step by step.", sel: "[data-data]", opt: 1 },
   ];
   T.counter = [
     { t: "Counter", x: "A counter keeps one number and a full history of every change.", sel: ".detail .val" },
@@ -69,6 +77,22 @@
     { t: "Step size", x: "Change how much the big buttons move. When it is 1, the extra ±1 buttons hide.", sel: ".sx input.num", opt: 1 },
     { t: "Back to full view", x: "Use 'full view' in the navbar to leave.", sel: "#simple-link", opt: 1 },
   ];
+
+  /* full rundown: every lesson in order, no forced actions, jumps to your existing items */
+  const strip = (a, label) => a.map((s) => Object.assign({}, s, { on: undefined, opt: 1, t: label + " · " + s.t }));
+  const sect = (k, label) => {
+    const a = strip(T[k], label);
+    a[0] = Object.assign({}, a[0], { go: () => navTo(k) });
+    return a;
+  };
+  T.rundown = [
+    { t: "Full rundown", x: "A tour of everything in tally.mk, in order: overview, counter, notepad, timer, time slot, simple view and data backup. Nothing here forces an action. It jumps to items you already have; for a type you have not created, you get the explanation only." },
+  ].concat(
+    sect("overview", "Overview"), sect("counter", "Counter"), sect("notepad", "Notepad"),
+    sect("timer", "Timer"), sect("slot", "Time slot"), sect("simple", "Simple view"),
+    strip(DATA, "Data"),
+    [{ t: "That is everything", x: "You are back on the overview. Press ? tutorial any time for a lesson on whatever is open.", go: () => navTo("overview") }]
+  );
 
   /* ===== shift.mk ===== */
   const SETUP = [
@@ -118,10 +142,10 @@
   const END = [
     { t: "You are set", x: "Open tally.mk for fast tallying: its time slot card writes straight into this tracker. Press ? tutorial any time to replay." },
   ];
-  T.flow = [].concat(SETUP, TRACK, QUOTA, OVERVIEW, SHEET, END);
+  T.flow = [].concat(SETUP, TRACK, QUOTA, OVERVIEW, SHEET, DATA, END);
   T.setup = [].concat(SETUP.slice(1), END);
   T.quota = [].concat(TRACK.slice(0, 1), QUOTA, OVERVIEW.slice(0, 1), OVERVIEW.slice(4, 5));
-  T.views = [].concat(TRACK, OVERVIEW, SHEET, END);
+  T.views = [].concat(TRACK, OVERVIEW, SHEET, DATA, END);
 
   /* ---------- styles ---------- */
   const css = document.createElement("style");
@@ -160,10 +184,12 @@
   function show() {
     hit = false; adv = false; scrolled = false;
     const st = lesson[i], pending = st.on && !st.opt;
+    let body = st.x;
+    if (st.go && st.go() === false) body += " (You have no such item yet, so there is nothing to point at. Add one from the overview to try it.)";
     card.replaceChildren(
       mk("div", "p", "step " + (i + 1) + " / " + lesson.length),
       mk("h3", "", st.t),
-      mk("div", "x", st.x),
+      mk("div", "x", body),
       pending ? mk("div", "w", "▶ do it in the highlighted box to continue") : mk("div"),
       (() => {
         const r = mk("div", "r");
@@ -227,24 +253,28 @@
     } catch (_) { return "overview"; }
   }
   const NAMES = { overview: "Overview", counter: "Counter", notepad: "Notepad", timer: "Timer", slot: "Time slots (shift.mk)", simple: "Simple view" };
-  function goTo(k, msg) {
+  /* open the page for a kind of item; false when you have none of that type */
+  function navTo(k) {
     try {
-      if (k === "simple") { if (!S.simple) { S.simple = true; save(); render(); } }
-      else {
-        if (S.simple) { S.simple = false; save(); }
-        if (k === "overview") go(null);
-        else {
-          const it = S.items.find((x) => x.type === k && !x.parent) || S.items.find((x) => x.type === k);
-          if (it) go(it.id); else { go(null); k = "overview"; msg = "Add a " + (msg || "") + " with the + buttons first, then open this lesson again."; }
-        }
-      }
+      if (k === "simple") { if (!S.simple) { S.simple = true; save(); render(); } return true; }
+      if (S.simple) { S.simple = false; save(); }
+      if (k === "overview") { go(null); return true; }
+      const it = S.items.find((x) => x.type === k && !x.parent) || S.items.find((x) => x.type === k);
+      if (it) { go(it.id); return true; }
+      go(null);
     } catch (_) {}
+    return false;
+  }
+  function goTo(k, msg) {
+    if (!navTo(k)) { k = "overview"; msg = "Add a " + (msg || "") + " with the + buttons first, then open this lesson again."; }
     setTimeout(() => { open(T[k]); if (msg && k === "overview") lesson[0] = Object.assign({}, lesson[0], { x: msg }); show(); }, 150);
   }
   function tallyMenu() {
     const k = tallyKind();
     menu("tally.mk tutorials", "Currently open: " + NAMES[k] + ". Pick a lesson, or start the one for what is open.",
-      [["▶ " + NAMES[k] + " (what is open now)", () => open(T[k])]]
+      [["▶ " + NAMES[k] + " (what is open now)", () => open(T[k])],
+       ["Full rundown (everything, in order)", () => open(T.rundown)],
+       ["Data: export / import", () => open(T.data)]]
         .concat(Object.keys(NAMES).filter((x) => x !== k).map((x) => [NAMES[x], () => goTo(x, x)])));
   }
 
@@ -255,6 +285,7 @@
       ["Setup only (times, tags, quota, breaks)", () => open(T.setup)],
       ["How to see quota per hour", () => open(T.quota)],
       ["Tour of track, overview and sheet", () => open(T.views)],
+      ["Data: export / import backup", () => open(T.data)],
     ]);
   }
 
