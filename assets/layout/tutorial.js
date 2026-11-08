@@ -169,9 +169,10 @@
     "#tut-card .r .sp{margin-left:auto}" +
     "#tut-link,#split-link{font-size:12px}" +
     "#mk-split{position:fixed;inset:0;z-index:10000;background:var(--bg);color:var(--txt);display:flex;flex-direction:column;font-family:var(--mono)}" +
-    "#mk-split .sb{display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:2px solid var(--line);font-size:12px}" +
+    "#mk-split .sb{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:2px solid var(--line);font-size:12px}" +
     "#mk-split .sb b{font-family:var(--display);letter-spacing:1px}" +
-    "#mk-split .sb .sp{margin-left:auto;display:flex;gap:8px}" +
+    "#mk-split .sb .sp{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}" +
+    "#mk-split .rb{position:absolute;left:8px;bottom:8px;z-index:3;display:none}" +
     "#mk-split .fr{flex:1;min-height:0;display:flex;flex-direction:row}" +
     "#mk-split .fr.col{flex-direction:column}" +
     "#mk-split iframe{flex:1;min-width:0;min-height:0;border:0;background:var(--bg)}" +
@@ -352,8 +353,16 @@
     ]);
   }
 
-  /* ---------- split screen: tally.mk and shift.mk side by side ---------- */
+  /* ---------- split screen: tally.mk and shift.mk as two isolated panes ----------
+     Both apps declare the same globals (S, render, save, KEY...), so they cannot share one
+     document. Each pane is a same-origin frame with the site chrome stripped out. */
   const SPLIT_KEY = "mk.split.v1";
+  const FRAME_CSS =
+    ".mk-hide-nav .toolbar{display:none!important}" +
+    ".mk-hide-extra [data-mk-extra]{display:none!important}" +
+    ".mk-framed .toolbar-end a[href$='index.html'],.mk-framed .toolbar-end a[href$='shift.html'],.mk-framed .toolbar-end a[href$='tally.html']{display:none!important}";
+  const ownEl = (el) => /^(SCRIPT|STYLE|LINK|DIALOG|MAIN|HEADER|NOSCRIPT)$/.test(el.tagName) || /^(break-screen|tut-hl|tut-card|mkdlg)$/.test(el.id);
+
   function closeSplit() {
     const s = q("#mk-split");
     if (s) s.remove();
@@ -361,26 +370,70 @@
     document.removeEventListener("keydown", splitKey, true);
   }
   function splitKey(e) { if (e.key === "Escape" && !lesson) closeSplit(); }
+
   function openSplit() {
     if (q("#mk-split")) return closeSplit();
     close();
-    let layout = "";
-    try { layout = localStorage.getItem(SPLIT_KEY) || ""; } catch (_) {}
-    if (layout !== "row" && layout !== "col") layout = innerWidth < 800 ? "col" : "row";
+    const st = { layout: innerWidth < 800 ? "col" : "row", swap: false, hideNav: true, hideExt: true };
+    try { Object.assign(st, JSON.parse(localStorage.getItem(SPLIT_KEY) || "{}")); } catch (_) {}
+    const persist = () => { try { localStorage.setItem(SPLIT_KEY, JSON.stringify(st)); } catch (_) {} };
+
     const wrap = mk("div"); wrap.id = "mk-split";
-    const fr = mk("div", "fr" + (layout === "col" ? " col" : ""));
+    const fr = mk("div", "fr");
     const mkFrame = (file) => { const f = mk("iframe"); f.src = new URL(file, location.href).href; f.title = file; return f; };
-    fr.append(mkFrame("tally.html"), mkFrame("shift.html"));
-    const lay = btn(layout === "col" ? "side by side" : "stacked", () => {
-      layout = layout === "col" ? "row" : "col";
-      fr.classList.toggle("col", layout === "col");
-      lay.textContent = layout === "col" ? "side by side" : "stacked";
-      try { localStorage.setItem(SPLIT_KEY, layout); } catch (_) {}
-    }, "ghost");
-    const bar = mk("div", "sb", "");
-    const right = mk("div", "sp"); right.append(lay, btn("exit split", closeSplit));
-    bar.append(mk("b", "", "split view"), mk("span", "", "tally.mk + shift.mk, always in sync"), right);
-    wrap.append(bar, fr);
+    const fTally = mkFrame("tally.html"), fShift = mkFrame("shift.html");
+    fr.append(fTally, fShift);
+
+    const bottomFrame = () => (st.swap ? fTally : fShift);
+    function chrome() {
+      /* order via CSS so a swap never reloads a pane */
+      fTally.style.order = st.swap ? 1 : 0;
+      fShift.style.order = st.swap ? 0 : 1;
+      [fTally, fShift].forEach((f) => {
+        try {
+          const r = f.contentDocument.documentElement, second = f === bottomFrame();
+          r.classList.toggle("mk-hide-nav", second && st.hideNav);
+          r.classList.toggle("mk-hide-extra", second && st.hideExt);
+        } catch (_) {}
+      });
+    }
+    function setupFrame(f) {
+      try {
+        const d = f.contentDocument;
+        if (!d || !d.body) return;
+        d.documentElement.classList.add("mk-framed");
+        const s = d.createElement("style"); s.textContent = FRAME_CSS; d.head.append(s);
+        /* theme button, hamburger, cursor pet... anything the site adds to the page that is not the app */
+        const sweep = () => [...d.body.children].forEach((el) => { if (!ownEl(el)) el.setAttribute("data-mk-extra", ""); });
+        sweep();
+        new MutationObserver(sweep).observe(d.body, { childList: true });
+        chrome();
+      } catch (_) {}
+    }
+    fTally.addEventListener("load", () => setupFrame(fTally));
+    fShift.addEventListener("load", () => setupFrame(fShift));
+
+    const swapB = btn("", () => { st.swap = !st.swap; persist(); paint(); chrome(); }, "ghost");
+    const layB = btn("", () => { st.layout = st.layout === "col" ? "row" : "col"; persist(); paint(); }, "ghost");
+    const navB = btn("", () => { st.hideNav = !st.hideNav; persist(); paint(); chrome(); }, "ghost");
+    const extB = btn("", () => { st.hideExt = !st.hideExt; persist(); paint(); chrome(); }, "ghost");
+    const restore = btn("split bar", () => { bar.style.display = ""; restore.style.display = "none"; });
+    restore.classList.add("rb");
+    const hideB = btn("hide bar", () => { bar.style.display = "none"; restore.style.display = "block"; }, "ghost");
+    function paint() {
+      fr.classList.toggle("col", st.layout === "col");
+      swapB.textContent = "swap · " + (st.swap ? "shift" : "tally") + " first";
+      swapB.title = "change who is on top (or left)";
+      layB.textContent = st.layout === "col" ? "side by side" : "stacked";
+      navB.textContent = "2nd navbar: " + (st.hideNav ? "hidden" : "shown");
+      extB.textContent = "2nd theme: " + (st.hideExt ? "hidden" : "shown");
+    }
+
+    const bar = mk("div", "sb");
+    const right = mk("div", "sp"); right.append(swapB, layB, navB, extB, hideB, btn("exit split", closeSplit));
+    bar.append(mk("b", "", "split view"), right);
+    wrap.append(bar, fr, restore);
+    paint(); chrome();
     document.body.append(wrap);
     document.documentElement.style.overflow = "hidden";
     document.addEventListener("keydown", splitKey, true);
