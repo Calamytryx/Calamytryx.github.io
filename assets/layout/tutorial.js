@@ -176,8 +176,8 @@
     "#mk-split .fr{flex:1;min-height:0;display:flex;flex-direction:row}" +
     "#mk-split .fr.col{flex-direction:column}" +
     "#mk-split iframe{flex:1;min-width:0;min-height:0;border:0;background:var(--bg)}" +
-    "#mk-split iframe+iframe{border-left:2px solid var(--blood)}" +
-    "#mk-split .fr.col iframe+iframe{border-left:0;border-top:2px solid var(--blood)}";
+    "#mk-split iframe.second{border-left:2px solid var(--blood)}" +
+    "#mk-split .fr.col iframe.second{border-left:0;border-top:2px solid var(--blood)}";
   document.head.append(css);
 
   /* ---------- engine ---------- */
@@ -389,6 +389,9 @@
       /* order via CSS so a swap never reloads a pane */
       fTally.style.order = st.swap ? 1 : 0;
       fShift.style.order = st.swap ? 0 : 1;
+      /* the divider border belongs to whichever pane is visually second */
+      fTally.classList.toggle("second", fTally === bottomFrame());
+      fShift.classList.toggle("second", fShift === bottomFrame());
       [fTally, fShift].forEach((f) => {
         try {
           const r = f.contentDocument.documentElement, second = f === bottomFrame();
