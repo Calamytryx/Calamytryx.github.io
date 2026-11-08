@@ -20,8 +20,13 @@
 
   /* ===== data backup (same dialog on both pages) ===== */
   const DATA = [
-    { t: "Data: back up and restore", x: "The 'data' link in the navbar opens the backup box. It covers tally.mk and shift.mk together and works from either page. Use it before big changes, or to move everything to another browser or device. (The box opens on top of the tutorial, so try it after this lesson.)", sel: "[data-data]", opt: 1 },
-    { t: "Export and import", x: "EXPORT: the box shows one long code. Press 'copy' and save it anywhere. Tick 'include history' to keep every counter's change log (the code gets longer). IMPORT: paste a code into the lower box and press 'import & reload'. It asks to confirm, then replaces the current data in this browser.", sel: "[data-data]", opt: 1 },
+    { t: "Data: back up and restore", x: "The 'data' link is in the navbar of both tally.mk and shift.mk and opens the same box. One backup covers both pages together. Use it before big changes, or to move everything to another browser or device. The next steps open the box and point at each part.", sel: "[data-data]", opt: 1 },
+    { t: "Export code", x: "EXPORT: this box holds your whole backup (tally + shift) as one long code. The number underneath is its length.", sel: "#mkx", dlg: 1, opt: 1 },
+    { t: "Copy", x: "Press 'copy' and paste the code somewhere safe: a note, a message to yourself, a file.", sel: "#mkcp", dlg: 1, opt: 1 },
+    { t: "Include history", x: "Tick this to keep every counter's change log in the backup. The code gets longer. Leave it off for a compact backup of your settings, shifts and values.", sel: () => { const c = q("#mkh"); return c && c.parentElement; }, dlg: 1, opt: 1 },
+    { t: "Import box", x: "IMPORT: on the other browser or device, open 'data' and paste the code here.", sel: "#mki", dlg: 1, opt: 1 },
+    { t: "Import & reload", x: "This asks you to confirm, then REPLACES the current tally and shift data in this browser with the backup and reloads. Export first if you are not sure.", sel: "#mkgo", dlg: 1, opt: 1 },
+    { t: "Same on both pages", x: "Importing from tally.mk or from shift.mk does exactly the same thing, since both are backed up together.", sel: "#mkclose", dlg: 1, opt: 1 },
   ];
   T.data = DATA;
 
@@ -173,7 +178,16 @@
     if (!card) { card = mk("div"); card.id = "tut-card"; document.body.append(card); }
     hl.style.display = card.style.display = "";
   }
+  /* the backup box is a modal dialog: the tutorial opens it for 'dlg' steps and lives inside it while open */
+  function syncDlg(st) {
+    const d = q("#mkdlg");
+    if (!d) return;
+    if (st.dlg) { if (!d.open) { const a = q("[data-data]"); if (a) a.click(); } }
+    else if (d.open) { if (hl && card) document.body.append(hl, card); d.close(); }
+  }
   function close() {
+    const d = q("#mkdlg");
+    if (d && d.open) { if (hl && card) document.body.append(hl, card); d.close(); }
     lesson = null; clearInterval(tickId); tickId = null;
     if (hl) hl.remove(); if (card) card.remove(); hl = card = null;
   }
@@ -184,6 +198,7 @@
   function show() {
     hit = false; adv = false; scrolled = false;
     const st = lesson[i], pending = st.on && !st.opt;
+    syncDlg(st);
     let body = st.x;
     if (st.go && st.go() === false) body += " (You have no such item yet, so there is nothing to point at. Add one from the overview to try it.)";
     card.replaceChildren(
@@ -210,7 +225,9 @@
   function tick() {
     if (!lesson || !hl) return;
     const st = lesson[i], t = targetOf(st);
-    if (t && t.getBoundingClientRect) {
+    const dlgEl = q("#mkdlg"), host = dlgEl && dlgEl.open ? dlgEl : document.body;
+    if (card.parentNode !== host) host.append(hl, card);
+    if (t && t.getBoundingClientRect && t.getClientRects().length) {
       if (!scrolled) { scrolled = true; try { t.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_) {} }
       const r = t.getBoundingClientRect();
       hl.style.cssText = "top:" + (r.top - 6) + "px;left:" + (r.left - 6) + "px;width:" + (r.width + 12) + "px;height:" + (r.height + 12) + "px";
