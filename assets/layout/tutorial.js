@@ -167,7 +167,16 @@
     "#tut-card .w{color:var(--blood);font-size:11px}" +
     "#tut-card .r{display:flex;gap:8px;flex-wrap:wrap;align-items:center}" +
     "#tut-card .r .sp{margin-left:auto}" +
-    "#tut-link{font-size:12px}";
+    "#tut-link,#split-link{font-size:12px}" +
+    "#mk-split{position:fixed;inset:0;z-index:10000;background:var(--bg);color:var(--txt);display:flex;flex-direction:column;font-family:var(--mono)}" +
+    "#mk-split .sb{display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:2px solid var(--line);font-size:12px}" +
+    "#mk-split .sb b{font-family:var(--display);letter-spacing:1px}" +
+    "#mk-split .sb .sp{margin-left:auto;display:flex;gap:8px}" +
+    "#mk-split .fr{flex:1;min-height:0;display:flex;flex-direction:row}" +
+    "#mk-split .fr.col{flex-direction:column}" +
+    "#mk-split iframe{flex:1;min-width:0;min-height:0;border:0;background:var(--bg)}" +
+    "#mk-split iframe+iframe{border-left:2px solid var(--blood)}" +
+    "#mk-split .fr.col iframe+iframe{border-left:0;border-top:2px solid var(--blood)}";
   document.head.append(css);
 
   /* ---------- engine ---------- */
@@ -343,10 +352,52 @@
     ]);
   }
 
+  /* ---------- split screen: tally.mk and shift.mk side by side ---------- */
+  const SPLIT_KEY = "mk.split.v1";
+  function closeSplit() {
+    const s = q("#mk-split");
+    if (s) s.remove();
+    document.documentElement.style.overflow = "";
+    document.removeEventListener("keydown", splitKey, true);
+  }
+  function splitKey(e) { if (e.key === "Escape" && !lesson) closeSplit(); }
+  function openSplit() {
+    if (q("#mk-split")) return closeSplit();
+    close();
+    let layout = "";
+    try { layout = localStorage.getItem(SPLIT_KEY) || ""; } catch (_) {}
+    if (layout !== "row" && layout !== "col") layout = innerWidth < 800 ? "col" : "row";
+    const wrap = mk("div"); wrap.id = "mk-split";
+    const fr = mk("div", "fr" + (layout === "col" ? " col" : ""));
+    const mkFrame = (file) => { const f = mk("iframe"); f.src = new URL(file, location.href).href; f.title = file; return f; };
+    fr.append(mkFrame("tally.html"), mkFrame("shift.html"));
+    const lay = btn(layout === "col" ? "side by side" : "stacked", () => {
+      layout = layout === "col" ? "row" : "col";
+      fr.classList.toggle("col", layout === "col");
+      lay.textContent = layout === "col" ? "side by side" : "stacked";
+      try { localStorage.setItem(SPLIT_KEY, layout); } catch (_) {}
+    }, "ghost");
+    const bar = mk("div", "sb", "");
+    const right = mk("div", "sp"); right.append(lay, btn("exit split", closeSplit));
+    bar.append(mk("b", "", "split view"), mk("span", "", "tally.mk + shift.mk, always in sync"), right);
+    wrap.append(bar, fr);
+    document.body.append(wrap);
+    document.documentElement.style.overflow = "hidden";
+    document.addEventListener("keydown", splitKey, true);
+  }
+
   /* ---------- navbar link ---------- */
   function mount() {
     const end = q(".toolbar-end");
     if (!end || q("#tut-link")) return;
+    let framed = false;
+    try { framed = window.top !== window; } catch (_) { framed = true; }
+    if (!framed) {
+      const sp = mk("a", "", "split");
+      sp.id = "split-link"; sp.href = "#"; sp.title = "tally.mk and shift.mk side by side";
+      sp.addEventListener("click", (e) => { e.preventDefault(); openSplit(); });
+      end.prepend(sp);
+    }
     const a = mk("a", "", "? tutorial");
     a.id = "tut-link"; a.href = "#"; a.title = "interactive tutorial";
     a.addEventListener("click", (e) => {
