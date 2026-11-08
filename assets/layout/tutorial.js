@@ -393,7 +393,8 @@
         try {
           const r = f.contentDocument.documentElement, second = f === bottomFrame();
           r.classList.toggle("mk-hide-nav", second && st.hideNav);
-          r.classList.toggle("mk-hide-extra", second && st.hideExt);
+          /* hide the in-pane theme button in BOTH panes; the page's own button stays */
+          r.classList.toggle("mk-hide-extra", st.hideExt);
         } catch (_) {}
       });
     }
@@ -426,7 +427,7 @@
       swapB.title = "change who is on top (or left)";
       layB.textContent = st.layout === "col" ? "side by side" : "stacked";
       navB.textContent = "2nd navbar: " + (st.hideNav ? "hidden" : "shown");
-      extB.textContent = "2nd theme: " + (st.hideExt ? "hidden" : "shown");
+      extB.textContent = "pane themes: " + (st.hideExt ? "hidden" : "shown");
     }
 
     const bar = mk("div", "sb");
