@@ -85,18 +85,22 @@
 
   /* full rundown: every lesson in order, no forced actions, jumps to your existing items */
   const strip = (a, label) => a.map((s) => Object.assign({}, s, { on: undefined, opt: 1, t: label + " · " + s.t }));
-  const sect = (k, label) => {
-    const a = strip(T[k], label);
-    a[0] = Object.assign({}, a[0], { go: () => navTo(k) });
+  const sect = (k, label, summary) => {
+    const a = strip(T[k], label).map((s) => Object.assign(s, { sec: k }));
+    a[0] = Object.assign(a[0], { go: () => navTo(k), miss: summary });
     return a;
   };
   T.rundown = [
-    { t: "Full rundown", x: "A tour of everything in tally.mk, in order: overview, counter, notepad, timer, time slot, simple view and data backup. Nothing here forces an action. It jumps to items you already have; for a type you have not created, you get the explanation only." },
+    { t: "Full rundown", x: "A tour of everything in tally.mk, in order: overview, counter, notepad, timer, time slot, simple view and data backup. Nothing here forces an action. It jumps to items you already have. If you have none of a type, that part is shortened to one description." },
   ].concat(
-    sect("overview", "Overview"), sect("counter", "Counter"), sect("notepad", "Notepad"),
-    sect("timer", "Timer"), sect("slot", "Time slot"), sect("simple", "Simple view"),
+    sect("overview", "Overview"),
+    sect("counter", "Counter", "A counter keeps one number with +/− buttons, a saved interval, one-off add/subtract, undo, a timestamped history and optional attached notepad and timer."),
+    sect("notepad", "Notepad", "A notepad is plain text saved as you type. It can also be attached to a counter or slot."),
+    sect("timer", "Timer", "A timer is a stopwatch or a countdown with start/pause and reset. It keeps running if you leave the page."),
+    sect("slot", "Time slot", "A time slot is a counter wired to shift.mk: pick a tag, then tally into the current interval. Breaks are deducted automatically, and it shows time left and day totals."),
+    sect("simple", "Simple view"),
     strip(DATA, "Data"),
-    [{ t: "That is everything", x: "You are back on the overview. Press ? tutorial any time for a lesson on whatever is open.", go: () => navTo("overview") }]
+    [{ t: "That is everything", x: "You are back on the overview. Press ? tutorial any time for a lesson on whatever is open.", go: () => { cleanDemo(); return navTo("overview"); } }]
   );
 
   /* ===== shift.mk ===== */
@@ -167,7 +171,7 @@
   document.head.append(css);
 
   /* ---------- engine ---------- */
-  let lesson = null, i = 0, hit = false, adv = false, scrolled = false, card, hl, tickId = null;
+  let lesson = null, i = 0, hit = false, adv = false, scrolled = false, card, hl, tickId = null, missing = {}, dir = 1;
 
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const btn = (txt, fn, cls) => { const b = mk("button", "btn sm " + (cls || ""), txt); b.type = "button"; b.onclick = fn; return b; };
@@ -185,22 +189,34 @@
     if (st.dlg) { if (!d.open) { const a = q("[data-data]"); if (a) a.click(); } }
     else if (d.open) { if (hl && card) document.body.append(hl, card); d.close(); }
   }
-  function close() {
+  function close(keep) {
     const d = q("#mkdlg");
     if (d && d.open) { if (hl && card) document.body.append(hl, card); d.close(); }
     lesson = null; clearInterval(tickId); tickId = null;
     if (hl) hl.remove(); if (card) card.remove(); hl = card = null;
+    if (!keep) cleanDemo();
   }
   function open(steps) {
-    close(); lesson = steps; i = 0; ensureUi(); show();
+    close(true); lesson = steps.slice(); i = 0; missing = {}; dir = 1; ensureUi(); show();
     tickId = setInterval(tick, 200);
   }
   function show() {
     hit = false; adv = false; scrolled = false;
     const st = lesson[i], pending = st.on && !st.opt;
+    if (st.sec && !st.go && missing[st.sec]) {
+      /* section has no item to show: skip its remaining steps */
+      const j = i + dir;
+      if (j < 0 || j >= lesson.length) return close();
+      i = j; return show();
+    }
     syncDlg(st);
     let body = st.x;
-    if (st.go && st.go() === false) body += " (You have no such item yet, so there is nothing to point at. Add one from the overview to try it.)";
+    if (st.go) {
+      const r = st.go(), none = r === false;
+      if (st.sec) missing[st.sec] = none;
+      if (none) body = (st.miss || st.x) + " This part could not be opened, so it is only described.";
+      else if (r === "demo") body += " (This is a temporary tutorial item. It is removed when you finish or exit.)";
+    }
     card.replaceChildren(
       mk("div", "p", "step " + (i + 1) + " / " + lesson.length),
       mk("h3", "", st.t),
@@ -209,18 +225,18 @@
       (() => {
         const r = mk("div", "r");
         r.append(
-          btn("‹ back", () => { if (i > 0) { i--; show(); } }, "ghost"),
+          btn("‹ back", () => { if (i > 0) { dir = -1; i--; show(); } }, "ghost"),
           (st.on && !st.opt) ? btn("skip step", next, "ghost") : mk("span"),
           (() => { const s = mk("span", "sp"); return s; })(),
-          btn("exit", close, "ghost"),
-          i === lesson.length - 1 ? btn("done", close) : (pending ? mk("span") : btn("next ›", next)),
+          btn("exit", () => close(), "ghost"),
+          i === lesson.length - 1 ? btn("done", () => close()) : (pending ? mk("span") : btn("next ›", next)),
         );
         return r;
       })(),
     );
     tick();
   }
-  function next() { if (!lesson) return; if (i >= lesson.length - 1) return close(); i++; show(); }
+  function next() { if (!lesson) return; if (i >= lesson.length - 1) return close(); dir = 1; i++; show(); }
 
   function tick() {
     if (!lesson || !hl) return;
@@ -235,7 +251,7 @@
       card.style.top = low ? "64px" : "auto";
       card.style.bottom = low ? "auto" : "12px";
     } else {
-      hl.style.cssText = "top:50%;left:50%;width:0;height:0";
+      hl.style.cssText = "display:none";
       card.style.top = "auto"; card.style.bottom = "12px";
     }
     if (st.on && !st.opt && hit && !adv) { adv = true; setTimeout(() => { if (lesson && lesson[i] === st) next(); }, 450); }
@@ -253,11 +269,11 @@
   /* ---------- menus ---------- */
   function menu(title, note, items) {
     close(); ensureUi();
-    hl.style.cssText = "top:50%;left:50%;width:0;height:0";
+    hl.style.cssText = "display:none";
     card.style.top = "auto"; card.style.bottom = "12px";
     const col = mk("div", "r"); col.style.flexDirection = "column"; col.style.alignItems = "stretch";
     items.forEach(([label, fn]) => col.append(btn(label, fn, "ghost")));
-    card.replaceChildren(mk("div", "p", "tutorial"), mk("h3", "", title), note ? mk("div", "x", note) : mk("div"), col, btn("close", close));
+    card.replaceChildren(mk("div", "p", "tutorial"), mk("h3", "", title), note ? mk("div", "x", note) : mk("div"), col, btn("close", () => close()));
     lesson = null;
   }
 
@@ -271,20 +287,41 @@
   }
   const NAMES = { overview: "Overview", counter: "Counter", notepad: "Notepad", timer: "Timer", slot: "Time slots (shift.mk)", simple: "Simple view" };
   /* open the page for a kind of item; false when you have none of that type */
+  let demo = [];
+  function mkDemo(k) {
+    const it = Object.assign({ id: uid(), type: k, name: "Tutorial " + k, parent: null, demo: true }, MAKE[k]());
+    S.items.push(it); demo.push(it.id); save();
+    return it;
+  }
+  /* remove every temporary tutorial item (also sweeps leftovers from a closed tab) */
+  function cleanDemo() {
+    try {
+      const ids = S.items.filter((x) => x.demo).map((x) => x.id);
+      if (!ids.length) { demo = []; return; }
+      ids.forEach((id) => { if (get(id)) del(id); });
+      demo = [];
+      if (route && !get(route)) go(null); else render();
+    } catch (_) {}
+  }
+  /* open the page for a kind of item; with none of that type, make a temporary demo one ("demo") */
   function navTo(k) {
     try {
       if (k === "simple") { if (!S.simple) { S.simple = true; save(); render(); } return true; }
       if (S.simple) { S.simple = false; save(); }
       if (k === "overview") { go(null); return true; }
-      const it = S.items.find((x) => x.type === k && !x.parent) || S.items.find((x) => x.type === k);
-      if (it) { go(it.id); return true; }
+      let it = S.items.find((x) => x.type === k && !x.parent && !x.demo) || S.items.find((x) => x.type === k);
+      if (!it && MAKE[k]) it = mkDemo(k);
+      if (it) { go(it.id); return it.demo ? "demo" : true; }
       go(null);
     } catch (_) {}
     return false;
   }
-  function goTo(k, msg) {
-    if (!navTo(k)) { k = "overview"; msg = "Add a " + (msg || "") + " with the + buttons first, then open this lesson again."; }
-    setTimeout(() => { open(T[k]); if (msg && k === "overview") lesson[0] = Object.assign({}, lesson[0], { x: msg }); show(); }, 150);
+  function goTo(k) {
+    const r = navTo(k);
+    /* a demo slot writes to your real shift.mk data, so its lesson never forces actions */
+    let steps = k === "slot" && r === "demo" ? strip(T.slot, "Time slot") : T[k].slice();
+    if (k !== "overview" && k !== "simple") steps[0] = Object.assign({}, steps[0], { go: () => navTo(k) });
+    setTimeout(() => open(steps), 150);
   }
   function tallyMenu() {
     const k = tallyKind();
@@ -322,4 +359,5 @@
     end.prepend(a);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
+  if (PAGE === "tally") setTimeout(cleanDemo, 0);
 })();
