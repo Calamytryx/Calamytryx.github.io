@@ -1,0 +1,75 @@
+# Save as: .github/workflows/update-artcraft.yml
+#
+# Weekly (and on demand): finds every repo in the storytold org whose latest
+# release has a "*-web-*.zip", unzips it into artcraft/<repo>/ (wrapper folder
+# stripped), and commits only when the release tag changed.
+#
+# Result: calamytryx.github.io/artcraft/gridcraft/index.html
+
+name: Update ArtCraft tools
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # Mondays 03:00 UTC
+  workflow_dispatch:       # manual "Run workflow" button
+
+permissions:
+  contents: write
+
+concurrency: update-artcraft
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull, unzip, replace
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          for repo in $(gh repo list storytold --limit 200 --no-archived --json name -q '.[].name'); do
+            info=$(gh release view --repo "storytold/$repo" --json tagName,assets 2>/dev/null) || continue
+            asset=$(echo "$info" | jq -r '[.assets[].name | select(test("-web-.*\\.zip$"))][0] // empty')
+            [ -z "$asset" ] && continue
+            tag=$(echo "$info" | jq -r .tagName)
+
+            # skip if already up to date
+            if [ "$(cat "artcraft/$repo/.version" 2>/dev/null)" = "$tag" ]; then
+              echo "$repo already at $tag"
+              continue
+            fi
+
+            echo "Updating $repo -> $tag"
+            rm -rf tmp && mkdir -p tmp/x
+            gh release download "$tag" --repo "storytold/$repo" --pattern "$asset" --dir tmp
+            unzip -q "tmp/$asset" -d tmp/x
+
+            rm -rf "artcraft/$repo" && mkdir -p "artcraft/$repo"
+
+            # strip the single wrapper folder if there is one
+            entries=$(ls -A tmp/x | wc -l)
+            first=$(ls -A tmp/x | head -n1)
+            if [ "$entries" = "1" ] && [ -d "tmp/x/$first" ]; then
+              cp -a "tmp/x/$first/." "artcraft/$repo/"
+            else
+              cp -a tmp/x/. "artcraft/$repo/"
+            fi
+
+            echo "$tag" > "artcraft/$repo/.version"
+          done
+          rm -rf tmp
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Update ArtCraft tools"
+            git pull --rebase
+            git push
+          fi
