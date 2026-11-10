@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtCraft apps — Calamytryx</title>
+<link rel="icon" href="/assets/media/logo.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/my_css.css">
+  <script src="/assets/layout/theme.js" defer></script>
+  <script src="/assets/layout/pwa.js" defer></script>
+  <script src="/assets/layout/include.js" defer></script>
+  <script src="/assets/layout/render.js" defer></script>
+  <script src="/assets/layout/panels.js" defer></script>
+  <script src="/assets/layout/cursors.js" defer></script>
+<style>
+  /* page-only bits; everything else comes from my_css.css */
+  .ac_bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:28px}
+  .ac_q{
+    flex:1 1 240px;max-width:420px;
+    background:var(--panel);border:2px solid var(--line);color:var(--txt);
+    font-family:var(--mono);font-size:1rem;padding:10px 14px;
+  }
+  .ac_q:focus{outline:none;border-color:var(--blood)}
+  .ac_actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:4px}
+  .ac_actions .btn{padding:6px 16px;font-size:.8rem;box-shadow:4px 4px 0 #000}
+  .ac_actions .btn:hover{box-shadow:2px 2px 0 #000;transform:translate(2px,2px)}
+  .ac_actions .go{color:var(--dim);font-size:.8rem;text-decoration:underline;text-underline-offset:3px}
+  .ac_actions .go:hover{color:var(--blood)}
+  .ac_empty{color:var(--dim);padding:24px 0}
+</style>
+</head>
+<body data-page="artcraft">
+
+<div data-include="/assets/layout/header.html"></div>
+
+<main>
+
+<section class="section">
+  <div class="wrap">
+    <p class="eyebrow">Mirror · MIT OR Apache-2.0</p>
+    <h1 class="display h_xl cursor mt_1">ArtCraft apps</h1>
+    <p class="lead muted mt_2" style="max-width:62ch">
+      Browser builds of the open-source Crafting Apps, mirrored here as static sites.
+      Everything runs locally in your browser. Pre-alpha software, so expect rough edges.
+    </p>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <div class="wrap">
+    <div class="ac_bar">
+      <input id="ac_q" class="ac_q" type="search" placeholder="Filter apps…" aria-label="Filter apps" autocomplete="off">
+      <span id="ac_count" class="muted"></span>
+    </div>
+    <div id="ac_groups"></div>
+    <p id="ac_empty" class="ac_empty" hidden>No apps match.</p>
+  </div>
+</section>
+
+<hr class="divider flip">
+
+<section class="section">
+  <div class="wrap">
+    <div class="panel">
+      <p class="muted">
+        These are unmodified web builds of apps by
+        <a href="https://github.com/storytold" rel="noopener">storytold</a>, redistributed under their
+        <strong>MIT OR Apache-2.0</strong> licenses. Each app folder keeps its own LICENSE and NOTICE files.
+        This mirror is unofficial and is not affiliated with the original author.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div data-include="/assets/layout/footer.html"></div>
+
+<script>
+// ArtCraft's own lineup (getartcraft.com/apps): same order and category labels.
+// Apps not listed here (like the launcher, or future apps) go after, unnumbered.
+const LINEUP = [
+  ["photocraft", "Image editor"],
+  ["vectorcraft", "Vector illustration"],
+  ["filmcraft", "Video editor"],
+  ["lightcraft", "Photo library & raw developer"],
+  ["pdfcraft", "PDF workbench"],
+  ["effectcraft", "Motion graphics & VFX"],
+  ["designcraft", "Page layout & publishing"],
+  ["figcraft", "Interface design"],
+  ["texturecraft", "3D texture painting"],
+  ["materialcraft", "Procedural materials"],
+  ["wordcraft", "Word processing"],
+  ["soundcraft", "Digital audio workstation"],
+  ["deckcraft", "Presentations & slide shows"],
+  ["cadcraft", "Computer-aided design & drafting"],
+  ["gridcraft", "Spreadsheets & data analysis"],
+  ["craft-anything", "Software exploration & creation"],
+];
+const ORDER = Object.fromEntries(LINEUP.map(([slug], i) => [slug, i]));
+const KIND = Object.fromEntries(LINEUP);
+KIND["craft-launcher"] = "Launcher";
+const rank = a => (a.slug in ORDER ? ORDER[a.slug] : 1000);
+
+// Fallback list, used if apps.json can't be loaded.
+// The GitHub Action rewrites apps.json on every run, so new apps appear on their own.
+const FALLBACK = LINEUP.map(([slug]) => ({ slug })).concat([{ slug: "craft-launcher" }]);
+
+const groupsEl = document.getElementById("ac_groups");
+const q = document.getElementById("ac_q");
+const count = document.getElementById("ac_count");
+const emptyMsg = document.getElementById("ac_empty");
+let apps = [];
+
+const NAMES = { cadcraft: "CADCraft" };
+
+function prettyName(app) {
+  if (app.name) return app.name;
+  if (NAMES[app.slug]) return NAMES[app.slug];
+  const words = app.slug.split("-").map(w => w[0].toUpperCase() + w.slice(1));
+  return words.join(" ").replace(/craft$/i, "Craft");
+}
+
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  Object.assign(n, props);
+  kids.forEach(k => n.append(k));
+  return n;
+}
+
+function card(app) {
+  const c = el("article", { className: "card proj_card" });
+
+  const kind = KIND[app.slug];
+  if (kind) {
+    const num = app.slug in ORDER ? String(ORDER[app.slug] + 1).padStart(2, "0") + " · " : "";
+    c.append(el("div", { className: "tag", textContent: num + kind }));
+  }
+  c.append(el("h3", { textContent: prettyName(app) }));
+  if (app.description) c.append(el("p", { textContent: app.description }));
+
+  if (app.version) {
+    c.append(el("div", { className: "repo_meta" },
+      el("span", { className: "repo_lang" },
+        el("span", { className: "dot" }), app.version)));
+  }
+
+  c.append(el("div", { className: "ac_actions" },
+    el("a", { className: "btn", href: `./${app.slug}/`, textContent: "Open" }),
+    el("a", { className: "go", href: `https://github.com/storytold/${app.slug}`, textContent: "Source", rel: "noopener" }),
+    el("a", { className: "go", href: `./${app.slug}/LICENSE-MIT`, textContent: "License" })
+  ));
+  return c;
+}
+
+function render() {
+  const term = q.value.trim().toLowerCase();
+  const shown = apps.filter(a =>
+    (prettyName(a) + " " + (KIND[a.slug] || "") + " " + (a.description || "")).toLowerCase().includes(term));
+
+  groupsEl.replaceChildren(el("div", { className: "proj_grid" }, ...shown.map(card)));
+  count.textContent = `${shown.length} of ${apps.length} apps`;
+  emptyMsg.hidden = shown.length !== 0;
+}
+
+fetch("apps.json", { cache: "no-cache" })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .catch(() => FALLBACK)
+  .then(list => {
+    apps = list.slice().sort((a, b) => rank(a) - rank(b) || prettyName(a).localeCompare(prettyName(b)));
+    render();
+  });
+
+q.addEventListener("input", render);
+</script>
+</body>
+</html>
