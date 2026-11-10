@@ -36,7 +36,7 @@ jobs:
             tag=$(echo "$info" | jq -r .tagName)
 
             # skip if already up to date
-            if [ "$(cat "artcraft/$repo/.version" 2>/dev/null)" = "$tag" ]; then
+            if [ "$(cat "pages/artcraft/$repo/.version" 2>/dev/null)" = "$tag" ]; then
               echo "$repo already at $tag"
               continue
             fi
@@ -46,18 +46,18 @@ jobs:
             gh release download "$tag" --repo "storytold/$repo" --pattern "$asset" --dir tmp
             unzip -q "tmp/$asset" -d tmp/x
 
-            rm -rf "artcraft/$repo" && mkdir -p "artcraft/$repo"
+            rm -rf "pages/artcraft/$repo" && mkdir -p "pages/artcraft/$repo"
 
             # strip the single wrapper folder if there is one
             entries=$(ls -A tmp/x | wc -l)
             first=$(ls -A tmp/x | head -n1)
             if [ "$entries" = "1" ] && [ -d "tmp/x/$first" ]; then
-              cp -a "tmp/x/$first/." "artcraft/$repo/"
+              cp -a "tmp/x/$first/." "pages/artcraft/$repo/"
             else
-              cp -a tmp/x/. "artcraft/$repo/"
+              cp -a tmp/x/. "pages/artcraft/$repo/"
             fi
 
-            echo "$tag" > "artcraft/$repo/.version"
+            echo "$tag" > "pages/artcraft/$repo/.version"
           done
           rm -rf tmp
 
