@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="VectorCraft">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#262626">
+  <title>VectorCraft</title>
+  <!-- Tab and home-screen icons: copied from assets/app-icon (one folder per size, the PNG names are equal). -->
+  
+  
+  
+  <link rel="icon" type="image/svg+xml" href="icons/ai.storyteller.vectorcraft.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/32/ai.storyteller.vectorcraft.png">
+  <link rel="apple-touch-icon" href="icons/256/ai.storyteller.vectorcraft.png">
+  
+<script type="module">
+import init, * as bindings from './vectorcraft-web-aaa19135505d0f43.js';
+const wasm = await init({ module_or_path: './vectorcraft-web-aaa19135505d0f43_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  <style>
+    /* iPad: no page scroll, bounce, pinch zoom, text selection or callout; the app takes the gestures. */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626;
+      overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+    /* Inside the safe areas (notch, home indicator) of a full-screen app. */
+    #vectorcraft_canvas { position: absolute; top: env(safe-area-inset-top, 0); right: env(safe-area-inset-right, 0);
+      bottom: env(safe-area-inset-bottom, 0); left: env(safe-area-inset-left, 0);
+      width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+      height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+      display: block; touch-action: none; }
+    #vectorcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
+  </style>
+<link rel="modulepreload" href="./vectorcraft-web-aaa19135505d0f43.js" crossorigin="anonymous" integrity="sha384-gmJVjraleQMYVjOEhJjQqIbFPhH+iMSdUQbh7xzwKx2Fe1yoxdQr+kCGat6b5qCS"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./vectorcraft-web-aaa19135505d0f43_bg.wasm" crossorigin="anonymous" integrity="sha384-KtkpaYz08b57tq92sDNMztWnBnpz4OTq3SNhF6wjukUKN7zuSpT4qmuul6finZxY" as="fetch" type="application/wasm"></head>
+<body>
+  <canvas id="vectorcraft_canvas"></canvas>
+  <div id="vectorcraft_loading">Loading VectorCraft&hellip;</div>
+</body>
+</html>

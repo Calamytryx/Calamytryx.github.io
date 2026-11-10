@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArtCraft Launcher</title>
+  
+<script type="module">
+import init, * as bindings from './artcraft-launcher-web-d6ac5b262e9079b7.js';
+const wasm = await init({ module_or_path: './artcraft-launcher-web-d6ac5b262e9079b7_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  <link rel="icon" href="./ai.storyteller.artcraft-launcher-9a16edafac98b1f8.png" integrity="sha384-yZQWsJuZa5h5QTp4wgUYjDjaH++NlvMLSVua+WOJbYlv/Lt5cRMl5ZOiBbA/TuEa"/>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #121316; }
+    #launcher_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #launcher_loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: rgba(242, 241, 238, 0.6); font: 500 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.15em; text-transform: uppercase; pointer-events: none; }
+    @media (prefers-color-scheme: light) { html, body { background: #f2f1ee; } #launcher_loading { color: rgba(16, 16, 20, 0.62); } }
+  </style>
+<link rel="modulepreload" href="./artcraft-launcher-web-d6ac5b262e9079b7.js" crossorigin="anonymous" integrity="sha384-CWhPGrLkxeamSIwXojsnMlMF9zEyckpaZRjhuHi4y5T2qSZwrz2oall/o0M4IDye"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./artcraft-launcher-web-d6ac5b262e9079b7_bg.wasm" crossorigin="anonymous" integrity="sha384-0o2FDt0aboE6y33/WQL2bIsI7swbiWXvpqhhUEHc6se8ltUiDt8Uykmqo3KKGdLF" as="fetch" type="application/wasm"></head>
+<body>
+  <canvas id="launcher_canvas"></canvas>
+  <div id="launcher_loading">Loading ArtCraft Launcher&hellip;</div>
+</body>
+</html>
