@@ -47,34 +47,39 @@
 .cm_panel button:focus-visible,.cm_panel input:focus-visible,.cm_panel select:focus-visible,.cm_panel textarea:focus-visible{outline:2px solid var(--blood);outline-offset:2px}
 @media(max-width:680px){.toolbar{flex-wrap:wrap}.toolbar .tbsub{flex:1 1 220px}.toolbar a{margin-left:auto}.cm_panel{padding:18px}.cm_totp_output{grid-template-columns:1fr}}
 
-/* pack subtool (scoped) */
-#panel-pack .pk_wrap{display:flex;flex-direction:column;gap:28px}
-#panel-pack .pk_sec{display:flex;flex-direction:column;gap:12px}
-#panel-pack #dec{border-top:1px solid var(--line);padding-top:24px}
-#panel-pack .sub_t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase}
-#panel-pack .sub_t.rule{border-top:1px solid var(--line);padding-top:12px}
-#panel-pack input,#panel-pack select,#panel-pack textarea{background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;font-size:.85rem;padding:8px 10px;min-width:0;border-radius:0}
-#panel-pack input:focus,#panel-pack select:focus,#panel-pack textarea:focus{border-color:var(--blood)}
-#panel-pack textarea{width:100%;min-height:150px;resize:vertical;word-break:break-all}
-#panel-pack input[type=file]{width:100%}
-#panel-pack input[type=range]{padding:0;accent-color:var(--blood)}
-#panel-pack .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-#panel-pack .row label{color:var(--dim);font-size:.85rem;display:flex;gap:6px;align-items:center}
-#panel-pack .hint{color:var(--dim);font-size:.8rem}
-#panel-pack .stat{font-size:.85rem;line-height:1.7;border-left:3px solid var(--blood);padding-left:10px;min-height:20px;overflow-wrap:anywhere}
-#panel-pack .stat b{color:#fff}
-#panel-pack .err{color:#ff7373;font-size:.85rem;overflow-wrap:anywhere}
-#panel-pack .pv{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
-#panel-pack .pv img{max-width:100%;max-height:340px;border:2px solid var(--line);background:#000}
-#panel-pack .pv audio{width:100%}
-#panel-pack .opts{display:none;flex-direction:column;gap:10px}
-#panel-pack .opts.on{display:flex}
-#panel-pack .pk_list{display:flex;flex-direction:column;gap:14px}
-#panel-pack .pk_item{border:2px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}
-#panel-pack .pk_item .nm{color:#fff;font-size:.85rem;overflow-wrap:anywhere}
-#panel-pack .pk_item textarea{min-height:70px}
-#panel-pack .pk_item img{max-width:100%;max-height:200px;align-self:flex-start;border:2px solid var(--line);background:#000}
-#panel-pack .pk_item audio{width:100%}
+/* pack subtools: encode + decode panels (scoped) */
+.pk_panel .pk_wrap{display:flex;flex-direction:column;gap:28px}
+.pk_panel .pk_sec{display:flex;flex-direction:column;gap:12px}
+.pk_panel .sub_t{color:var(--blood);font-size:.7rem;letter-spacing:2px;text-transform:uppercase}
+.pk_panel .sub_t.rule{border-top:1px solid var(--line);padding-top:12px}
+.pk_panel input,.pk_panel select,.pk_panel textarea{background:var(--bg);border:2px solid var(--line);color:var(--txt);font:inherit;font-size:.85rem;padding:8px 10px;min-width:0;border-radius:0}
+.pk_panel input:focus,.pk_panel select:focus,.pk_panel textarea:focus{border-color:var(--blood)}
+.pk_panel textarea{width:100%;min-height:150px;resize:vertical;word-break:break-all}
+.pk_panel input[type=file]{width:100%}
+.pk_panel input[type=range]{padding:0;accent-color:var(--blood)}
+.pk_panel input[type=checkbox]{padding:0;width:16px;height:16px;accent-color:var(--blood);flex:0 0 auto}
+.pk_panel .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pk_panel .row label{color:var(--dim);font-size:.85rem;display:flex;gap:6px;align-items:center}
+.pk_panel .hint{color:var(--dim);font-size:.8rem}
+.pk_panel .stat{font-size:.85rem;line-height:1.7;border-left:3px solid var(--blood);padding-left:10px;min-height:20px;overflow-wrap:anywhere}
+.pk_panel .stat b{color:#fff}
+.pk_panel .err{color:#ff7373;font-size:.85rem;overflow-wrap:anywhere}
+.pk_panel .pv{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.pk_panel .pv img{max-width:100%;max-height:340px;border:2px solid var(--line);background:#000}
+.pk_panel .pv audio{width:100%}
+.pk_panel .opts{display:none;flex-direction:column;gap:10px}
+.pk_panel .opts.on{display:flex}
+.pk_panel .pk_list{display:flex;flex-direction:column;gap:14px}
+.pk_panel .pk_item{border:2px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}
+.pk_panel .pk_item .nm{color:#fff;font-size:.85rem;overflow-wrap:anywhere}
+.pk_panel .pk_item textarea{min-height:70px}
+.pk_panel .pk_item img{max-width:100%;max-height:200px;align-self:flex-start;border:2px solid var(--line);background:#000}
+.pk_panel .pk_item audio{width:100%}
+.pk_panel .fd_items{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;max-height:280px;overflow:auto;border:2px solid var(--line);padding:8px}
+.pk_panel .fd_items:empty{display:none}
+.pk_panel .fd_items label{display:flex;gap:8px;align-items:center;font-size:.8rem;color:var(--txt);overflow-wrap:anywhere;cursor:pointer}
+.pk_panel .fd_items label[hidden]{display:none}
+.pk_panel #fd_names{min-height:70px}
 </style>
   <script>
 if ('serviceWorker' in navigator) {
@@ -1815,7 +1820,8 @@ qrcode.stringToBytes = function(s) {
       <button class="cm_tab" type="button" role="tab" id="tab-wifi" aria-controls="panel-wifi" aria-selected="false" tabindex="-1">Wi-Fi QR</button>
       <button class="cm_tab" type="button" role="tab" id="tab-totp" aria-controls="panel-totp" aria-selected="false" tabindex="-1">TOTP</button>
       <button class="cm_tab" type="button" role="tab" id="tab-barcode" aria-controls="panel-barcode" aria-selected="false" tabindex="-1">barcodes</button>
-      <button class="cm_tab" type="button" role="tab" id="tab-pack" aria-controls="panel-pack" aria-selected="false" tabindex="-1">pack</button>
+      <button class="cm_tab" type="button" role="tab" id="tab-encode" aria-controls="panel-encode" aria-selected="false" tabindex="-1">encode</button>
+      <button class="cm_tab" type="button" role="tab" id="tab-decode" aria-controls="panel-decode" aria-selected="false" tabindex="-1">decode</button>
     </div>
 
     <section class="cm_panel" id="panel-qr" role="tabpanel" aria-labelledby="tab-qr">
@@ -1937,13 +1943,11 @@ qrcode.stringToBytes = function(s) {
       <p id="barcodeStatus" class="cm_status" role="status" aria-live="polite"></p>
     </section>
 
-    <section class="cm_panel" id="panel-pack" role="tabpanel" aria-labelledby="tab-pack" hidden>
-      <h2 class="display h_md">file packer</h2>
-      <p class="muted">Turn images, audio files, or any files into short text (or PNG carriers) and decode them back again. Select several files to encode or decode a batch. Runs locally.</p>
+    <section class="cm_panel pk_panel" id="panel-encode" role="tabpanel" aria-labelledby="tab-encode" hidden>
+      <h2 class="display h_md">file encoder</h2>
+      <p class="muted">Turn images, audio files, or any files into short text (or PNG carriers). Select several files to encode a batch. Runs locally. Use the decode tab to turn them back.</p>
       <div class="pk_wrap">
-
         <div class="pk_sec" id="enc">
-          <div class="sub_t">encode</div>
           <input type="file" id="f" multiple>
           <div class="hint" id="ftype">pick one or more images, audio files, or anything else.</div>
 
@@ -1997,15 +2001,46 @@ qrcode.stringToBytes = function(s) {
           </div>
           <div class="pk_list" id="e_list"></div>
         </div>
+      </div>
+    </section>
 
+    <section class="cm_panel pk_panel" id="panel-decode" role="tabpanel" aria-labelledby="tab-decode" hidden>
+      <h2 class="display h_md">file decoder</h2>
+      <p class="muted">Decode packed text or PNG carriers back into files. Load from the test folder, paste text, or pick files. Runs locally.</p>
+      <div class="pk_wrap">
         <div class="pk_sec" id="dec">
-          <div class="sub_t">decode</div>
+
+          <div class="sub_t">test folder</div>
+          <div class="row">
+            <input type="text" id="fd_base" value="/assets/Test_png/" spellcheck="false" style="flex:1 1 240px">
+            <button class="btn sm" type="button" id="fd_scan">scan folder</button>
+          </div>
+          <div class="hint">scan reads the folder's directory index and lists every .png. on GitHub Pages (no directory index) it falls back to the GitHub API. you can also type filenames below (relative to the folder) and add them.</div>
+          <textarea id="fd_names" placeholder="a.pack.png&#10;b.pack.png (one per line or comma-separated)" spellcheck="false"></textarea>
+          <div class="row"><button class="btn sm" type="button" id="fd_add">add names</button></div>
+          <div class="row" id="fd_tools" style="display:none">
+            <input type="text" id="fd_filter" placeholder="filter" spellcheck="false" style="flex:1 1 140px">
+            <button class="btn sm" type="button" id="fd_selall">select shown</button>
+            <button class="btn sm" type="button" id="fd_selnone">select none</button>
+            <button class="btn sm" type="button" id="fd_clear">clear list</button>
+          </div>
+          <div class="fd_items" id="fd_items"></div>
+          <div class="row" id="fd_go" style="display:none">
+            <button class="btn sm" type="button" id="fd_sel">decode selected</button>
+            <button class="btn sm" type="button" id="fd_all">decode all</button>
+            <span class="hint" id="fd_count"></span>
+          </div>
+          <div class="err" id="fd_err"></div>
+
+          <div class="sub_t rule">paste or files</div>
           <textarea id="d_in" placeholder="paste packed text here (several texts: separate with a blank line)" spellcheck="false"></textarea>
           <div class="row">
             <input type="file" id="d_f" multiple accept=".txt,.png,image/png,text/plain" style="flex:1">
           </div>
           <div class="hint">paste text, or use "paste from clipboard". select several .txt files and png carriers to decode a batch; "copy all text" output can be pasted back as-is.</div>
           <div class="row"><button class="btn sm" type="button" id="dpaste">paste from clipboard</button><button class="btn sm" type="button" id="dgo">decode</button></div>
+
+          <div class="sub_t rule">output</div>
           <div class="stat" id="d_stat"></div>
           <div class="err" id="d_err"></div>
           <div class="row" id="d_bulk" style="display:none">
@@ -2013,7 +2048,6 @@ qrcode.stringToBytes = function(s) {
           </div>
           <div class="pk_list" id="d_pv"></div>
         </div>
-
       </div>
     </section>
   </main>
@@ -3097,25 +3131,20 @@ async function pngToContainer(f){
   return carrierRead(x.getImageData(0,0,c.width,c.height).data);
 }
 const splitChunks = t => t.split(/\n\s*\n/).filter(s=>s.trim());
+const baseOf = name => (name.replace(/\.[^.]+$/,'')||'file').replace(/\.pack$/i,'')||'file';
+const DEC_BTNS = ['dgo','fd_sel','fd_all'];
 
-$('dgo').onclick = async () => {
+/* shared runner: jobs = [{label, base, get: async()=>containerBytes}] */
+async function runJobs(jobs){
   $('d_err').textContent=''; $('d_stat').textContent='';
-  const btn=$('dgo'); btn.disabled=true; btn.textContent='working…';
   const pv=$('d_pv'); pv.replaceChildren(); decItems=[]; $('d_bulk').style.display='none';
-  const jobs=[];
-  splitChunks(decText!==null?decText:$('d_in').value).forEach((s,i)=>jobs.push({label:'pasted '+(i+1),base:'pasted'+(i+1),get:async()=>textDecode(s)}));
+  const bs=DEC_BTNS.map($); bs.forEach(b=>b.disabled=true);
   try{
-    for(const f of decFiles){
-      const base=f.name.replace(/\.[^.]+$/,'')||'file';
-      if(f.type==='image/png'||/\.png$/i.test(f.name)) jobs.push({label:f.name,base,get:()=>pngToContainer(f)});
-      else splitChunks(await f.text()).forEach((s,i)=>jobs.push({label:f.name+(i?' #'+(i+1):''),base:base+(i?'-'+(i+1):''),get:async()=>textDecode(s)}));
-    }
-      decPastedPngs.forEach((f,i)=>jobs.push({label:f.name,base:'pasted-image-'+(i+1),get:()=>pngToContainer(f)}));
     if(!jobs.length) throw new Error('nothing to decode');
     let ok=0;
     for(let i=0;i<jobs.length;i++){
       const j=jobs[i];
-      if(jobs.length>1) $('d_stat').textContent='decoding '+(i+1)+'/'+jobs.length;
+      if(jobs.length>1) $('d_stat').textContent='decoding '+(i+1)+'/'+jobs.length+' · '+j.label;
       const box=document.createElement('div'); box.className='pk_item';
       const nm=document.createElement('div'); nm.className='nm'; nm.textContent=j.label; box.appendChild(nm);
       pv.appendChild(box);
@@ -3124,9 +3153,140 @@ $('dgo').onclick = async () => {
     }
     $('d_stat').textContent = jobs.length>1 ? ok+'/'+jobs.length+' decoded' : '';
     $('d_bulk').style.display = decItems.length>1 ? '' : 'none';
+    if(jobs.length) pv.scrollIntoView({block:'nearest'});
   }catch(e){ $('d_err').textContent='failed: '+e.message; }
-  finally{ btn.disabled=false; btn.textContent='decode'; }
+  finally{ bs.forEach(b=>b.disabled=false); }
+}
+
+$('dgo').onclick = async () => {
+  const jobs=[];
+  try{
+    splitChunks(decText!==null?decText:$('d_in').value).forEach((s,i)=>jobs.push({label:'pasted '+(i+1),base:'pasted'+(i+1),get:async()=>textDecode(s)}));
+    for(const f of decFiles){
+      const base=baseOf(f.name);
+      if(f.type==='image/png'||/\.png$/i.test(f.name)) jobs.push({label:f.name,base,get:()=>pngToContainer(f)});
+      else splitChunks(await f.text()).forEach((s,i)=>jobs.push({label:f.name+(i?' #'+(i+1):''),base:base+(i?'-'+(i+1):''),get:async()=>textDecode(s)}));
+    }
+    decPastedPngs.forEach((f,i)=>jobs.push({label:f.name,base:'pasted-image-'+(i+1),get:()=>pngToContainer(f)}));
+  }catch(e){ $('d_err').textContent='failed: '+e.message; return; }
+  await runJobs(jobs);
 };
+
+/* ---- test folder: directory index first, GitHub API fallback ---- */
+let folder=[]; // {name,url,on}
+const natural = (a,b) => a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});
+function folderBase(){
+  let b=$('fd_base').value.trim()||'/assets/Test_png/';
+  if(!b.endsWith('/')) b+='/';
+  return new URL(b,location.href);
+}
+function addFolder(names){
+  const base=folderBase(), have=new Set(folder.map(x=>x.name)); let added=0;
+  for(const n of names){
+    if(!n||have.has(n)) continue;
+    have.add(n); added++;
+    folder.push({name:n,url:new URL(encodeURI(n),base).href,on:true});
+  }
+  folder.sort(natural); renderFolder(); return added;
+}
+function updateCount(){
+  const sel=folder.filter(x=>x.on).length;
+  $('fd_count').textContent=sel+' of '+folder.length+' selected';
+}
+function renderFolder(){
+  const host=$('fd_items'); host.replaceChildren();
+  folder.forEach(item=>{
+    const lab=document.createElement('label'), cb=document.createElement('input');
+    cb.type='checkbox'; cb.checked=item.on;
+    cb.onchange=()=>{ item.on=cb.checked; updateCount(); };
+    item.label=lab;
+    lab.append(cb,document.createTextNode(item.name)); host.appendChild(lab);
+  });
+  const has=folder.length>0;
+  $('fd_tools').style.display=has?'':'none'; $('fd_go').style.display=has?'':'none';
+  applyFilter(); updateCount();
+}
+function applyFilter(){
+  const q=$('fd_filter').value.trim().toLowerCase();
+  folder.forEach(item=>{ if(item.label) item.label.hidden = q && !item.name.toLowerCase().includes(q); });
+}
+$('fd_filter').oninput=applyFilter;
+$('fd_selall').onclick=()=>{
+  folder.forEach(item=>{ if(item.label && !item.label.hidden){ item.on=true; item.label.querySelector('input').checked=true; } });
+  updateCount();
+};
+$('fd_selnone').onclick=()=>{
+  folder.forEach(item=>{ item.on=false; if(item.label) item.label.querySelector('input').checked=false; });
+  updateCount();
+};
+$('fd_clear').onclick=()=>{ folder=[]; renderFolder(); $('fd_err').textContent=''; };
+
+$('fd_scan').onclick = async () => {
+  $('fd_err').textContent='';
+  const btn=$('fd_scan'); btn.disabled=true;
+  try{
+    const base=folderBase();
+    let names=[];
+    // 1) plain directory index (works on servers that expose one)
+    try{
+      const r=await fetch(base.href,{cache:'no-cache'});
+      if(r.ok){
+        const doc=new DOMParser().parseFromString(await r.text(),'text/html');
+        doc.querySelectorAll('a[href]').forEach(a=>{
+          let u; try{ u=new URL(a.getAttribute('href'),base); }catch(_){ return; }
+          if(u.origin!==base.origin || !u.pathname.startsWith(base.pathname)) return;
+          let rel=u.pathname.slice(base.pathname.length);
+          try{ rel=decodeURIComponent(rel); }catch(_){}
+          if(!rel||rel.includes('/')||!/\.png$/i.test(rel)) return;
+          names.push(rel);
+        });
+      }
+    }catch(_){}
+    // 2) GitHub Pages has no directory index: ask the GitHub contents API instead
+    if(!names.length && /\.github\.io$/i.test(location.hostname)){
+      const owner=location.hostname.split('.')[0];
+      const first=location.pathname.split('/').filter(Boolean)[0];
+      const isRoot=base.pathname.startsWith('/'+(first||'')+'/') && first && !/\.[a-z0-9]+$/i.test(first) && false;
+      const repo=location.hostname; // user site: owner.github.io
+      const path=base.pathname.replace(/^\/|\/$/g,'');
+      const g=await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path.split('/').map(encodeURIComponent).join('/'));
+      if(!g.ok) throw new Error('GitHub API HTTP '+g.status+' for '+path+' — check folder name/case, or type filenames below and use "add names".');
+      const list=await g.json();
+      names=(Array.isArray(list)?list:[]).filter(x=>x.type==='file'&&/\.png$/i.test(x.name)).map(x=>x.name);
+    }
+    if(!names.length) throw new Error('no .png files found in '+base.pathname+' — type filenames below and use "add names".');
+    const n=addFolder(names);
+    $('fd_err').textContent = n ? '' : 'nothing new — all files already listed.';
+  }catch(e){ $('fd_err').textContent='scan failed: '+(e.message||e); }
+  finally{ btn.disabled=false; }
+};
+$('fd_add').onclick = () => {
+  $('fd_err').textContent='';
+  const names=$('fd_names').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>/\.png$/i.test(s)?s:s+'.png');
+  if(!names.length){ $('fd_err').textContent='type at least one filename.'; return; }
+  addFolder(names); $('fd_names').value='';
+};
+function folderJobs(list){
+  return list.map(item=>({
+    label:item.name, base:baseOf(item.name),
+    get: async()=>{
+      const r=await fetch(item.url,{cache:'no-cache'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return pngToContainer(await r.blob());
+    }
+  }));
+}
+$('fd_sel').onclick = () => {
+  const list=folder.filter(x=>x.on);
+  if(!list.length){ $('fd_err').textContent='nothing selected.'; return; }
+  $('fd_err').textContent=''; runJobs(folderJobs(list));
+};
+$('fd_all').onclick = () => {
+  if(!folder.length){ $('fd_err').textContent='list is empty — scan or add names first.'; return; }
+  $('fd_err').textContent=''; runJobs(folderJobs(folder));
+};
+
 /* one click: every decoded file downloaded separately (no zip) */
 $('dl_dec').onclick = async () => {
   const used=new Set();
@@ -3163,7 +3323,8 @@ async function showDecoded(container, box, base){
   }
 }
 })();
-if (location.hash === '#pack') document.getElementById('tab-pack').click();
+if (location.hash === '#pack' || location.hash === '#encode') document.getElementById('tab-encode').click();
+else if (location.hash === '#decode') document.getElementById('tab-decode').click();
 </script>
 </body>
 </html>
