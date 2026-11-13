@@ -1,11 +1,11 @@
 [
   {
-    "name": "Agustin-Portfolio",
-    "html_url": "https://github.com/Calamytryx/Agustin-Portfolio",
-    "description": null,
-    "language": "JavaScript",
-    "stargazers_count": 0,
-    "updated_at": "2026-11-12T12:24:47Z",
+    "name": "MineLauncher",
+    "html_url": "https://github.com/Calamytryx/MineLauncher",
+    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
+    "language": "QML",
+    "stargazers_count": 29,
+    "updated_at": "2026-11-13T09:35:02Z",
     "default_branch": "main"
   },
   {
@@ -14,7 +14,16 @@
     "description": null,
     "language": "JavaScript",
     "stargazers_count": 1,
-    "updated_at": "2026-11-11T14:33:05Z",
+    "updated_at": "2026-11-12T15:37:13Z",
+    "default_branch": "main"
+  },
+  {
+    "name": "Agustin-Portfolio",
+    "html_url": "https://github.com/Calamytryx/Agustin-Portfolio",
+    "description": null,
+    "language": "JavaScript",
+    "stargazers_count": 0,
+    "updated_at": "2026-11-12T12:24:47Z",
     "default_branch": "main"
   },
   {
@@ -33,15 +42,6 @@
     "language": null,
     "stargazers_count": 0,
     "updated_at": "2026-11-05T19:35:18Z",
-    "default_branch": "main"
-  },
-  {
-    "name": "MineLauncher",
-    "html_url": "https://github.com/Calamytryx/MineLauncher",
-    "description": "Minecraft-style app launcher for KDE Plasma 6 — turn your desktop into a Creative Inventory grid with category tabs, favorites, and authentic MC-inspired UI. 🧱✨ Contributions welcome!",
-    "language": "QML",
-    "stargazers_count": 28,
-    "updated_at": "2026-10-23T11:00:53Z",
     "default_branch": "main"
   },
   {
