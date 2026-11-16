@@ -6,8 +6,8 @@
   <title>ArtCraft Launcher</title>
   
 <script type="module">
-import init, * as bindings from './artcraft-launcher-web-d6ac5b262e9079b7.js';
-const wasm = await init({ module_or_path: './artcraft-launcher-web-d6ac5b262e9079b7_bg.wasm' });
+import init, * as bindings from './artcraft-launcher-web-2f6718deaa657ee4.js';
+const wasm = await init({ module_or_path: './artcraft-launcher-web-2f6718deaa657ee4_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -25,7 +25,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
       letter-spacing: 0.15em; text-transform: uppercase; pointer-events: none; }
     @media (prefers-color-scheme: light) { html, body { background: #f2f1ee; } #launcher_loading { color: rgba(16, 16, 20, 0.62); } }
   </style>
-<link rel="modulepreload" href="./artcraft-launcher-web-d6ac5b262e9079b7.js" crossorigin="anonymous" integrity="sha384-CWhPGrLkxeamSIwXojsnMlMF9zEyckpaZRjhuHi4y5T2qSZwrz2oall/o0M4IDye"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./artcraft-launcher-web-d6ac5b262e9079b7_bg.wasm" crossorigin="anonymous" integrity="sha384-0o2FDt0aboE6y33/WQL2bIsI7swbiWXvpqhhUEHc6se8ltUiDt8Uykmqo3KKGdLF" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./artcraft-launcher-web-2f6718deaa657ee4.js" crossorigin="anonymous" integrity="sha384-FhaFbbUvevOGWnIQdp5nrJO6ZkXyMDQtkKMdIyPLXFjizPn6M3NdjKBPz/8WYuwU"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./artcraft-launcher-web-2f6718deaa657ee4_bg.wasm" crossorigin="anonymous" integrity="sha384-A5v58npXcRsgeqfc4CKDr5qs5nQhxeQMVgMnmKF+oT547+hGeM05F+Sq4tnwYlfW" as="fetch" type="application/wasm"></head>
 <body>
   <canvas id="launcher_canvas"></canvas>
   <div id="launcher_loading">Loading ArtCraft Launcher&hellip;</div>

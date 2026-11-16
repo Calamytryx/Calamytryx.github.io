@@ -6,8 +6,8 @@
   <title>CADCraft</title>
   
 <script type="module">
-import init, * as bindings from './cadcraft-web-6d4b36dbd2e3b704.js';
-const wasm = await init({ module_or_path: './cadcraft-web-6d4b36dbd2e3b704_bg.wasm' });
+import init, * as bindings from './cadcraft-web-a91fdcd993cc5580.js';
+const wasm = await init({ module_or_path: './cadcraft-web-a91fdcd993cc5580_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -22,7 +22,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
     #cadcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
       color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
   </style>
-<link rel="modulepreload" href="./cadcraft-web-6d4b36dbd2e3b704.js" crossorigin="anonymous" integrity="sha384-zi72nef4X+5NerVYix6JKubERQhJvY1b60Lg/GeIcSrHyqxcE4JKN/bKtc5vZ57N"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./cadcraft-web-6d4b36dbd2e3b704_bg.wasm" crossorigin="anonymous" integrity="sha384-HvmPFGVeX9nBLAJy/YwrDZNRLb6a6bsJrg8GH/aqc2GCvmNcb8N4ueGLfVR9uvsN" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./cadcraft-web-a91fdcd993cc5580.js" crossorigin="anonymous" integrity="sha384-FwaNYGMvo9m9A+RVmXy2LVSgfpK3H75vN+2yRi8MuUrMHs556nUHNFzbYWk/0P7k"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./cadcraft-web-a91fdcd993cc5580_bg.wasm" crossorigin="anonymous" integrity="sha384-zzrO43yN37Y6m0RnnWmtRUUx7TjLT9HrVcJyMtIpqGdqA8R3Da/Qgn8sDunJMNnT" as="fetch" type="application/wasm"></head>
 <body>
   <canvas id="cadcraft_canvas"></canvas>
   <div id="cadcraft_loading">Loading CADCraft&hellip;</div>

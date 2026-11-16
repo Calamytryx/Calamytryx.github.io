@@ -6,8 +6,8 @@
   <title>DesignCraft</title>
   
 <script type="module">
-import init, * as bindings from './designcraft-web-1f8b037fe9e0fc02.js';
-const wasm = await init({ module_or_path: './designcraft-web-1f8b037fe9e0fc02_bg.wasm' });
+import init, * as bindings from './designcraft-web-6fe2a088b8a9125b.js';
+const wasm = await init({ module_or_path: './designcraft-web-6fe2a088b8a9125b_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -22,7 +22,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
     #designcraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
       color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
   </style>
-<link rel="modulepreload" href="./designcraft-web-1f8b037fe9e0fc02.js" crossorigin="anonymous" integrity="sha384-/hI9KabZhxZ84Qw6o8BGbEjkgi4mUORDkv/og16KFxZ6KWvq8bHw4FQlBr7A5ogq"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./designcraft-web-1f8b037fe9e0fc02_bg.wasm" crossorigin="anonymous" integrity="sha384-FFR4JZdB7DuRyu/1zBuj+3ETcfw17mX6kFFEjUtEDhyvbEGnjLQ4M1SMTww/j8mj" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./designcraft-web-6fe2a088b8a9125b.js" crossorigin="anonymous" integrity="sha384-lWeFL0kUh5n9ZjBPK4lExU2Aw591oPJOn4a/RHow504C1mvKNFXeEbpup1+4jXqi"><link rel="modulepreload" href="./snippets/eframe-d31a8450ea12dfc1/inline0.js" crossorigin="anonymous" integrity="sha384-uPZQ72BwgZ4v7Km6+UIFbkDDlt7ShGEsAVEHVN/+wZSGFhItJZB83iKMFQXauTSs"><link rel="preload" href="./designcraft-web-6fe2a088b8a9125b_bg.wasm" crossorigin="anonymous" integrity="sha384-RLo2usAn6X8yXJu7teSnTOIeHG72oPA0xxZzkhNH3/80UGbniIhPHrualo/szz92" as="fetch" type="application/wasm"></head>
 <body>
   <canvas id="designcraft_canvas"></canvas>
   <div id="designcraft_loading">Loading DesignCraft&hellip;</div>
